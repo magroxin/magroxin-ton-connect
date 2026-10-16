@@ -4,12 +4,7 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import {
-  Address,
-  beginCell,
-  Cell,
-  toNano,
-} from "@ton/core";
+import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
 
 const app = express();
@@ -19,6 +14,8 @@ const DATABASE_URL = process.env.DATABASE_URL || "";
 const FEE_WALLET = process.env.MAGROXIN_FEE_WALLET || "";
 const CLIENT_ORIGIN =
   process.env.CLIENT_ORIGIN || "https://magroxin.blogspot.com";
+const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
+const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
 const MAINNET_FEE = Number(
   process.env.MAINNET_SERVICE_FEE_USD || 100,
@@ -30,9 +27,8 @@ const PAYMENT_REQUEST_ENABLED =
 const PAYMENT_VERIFICATION_ENABLED =
   process.env.ENABLE_PAYMENT_VERIFICATION === "true";
 
+// Keep deployment disabled until the complete deployment flow is tested.
 const DEPLOYMENT_ENABLED = false;
-const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
-const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
 const ORDER_LIFETIME_MS = 5 * 60 * 1000;
 const PAYMENT_GRACE_SECONDS = 120;
@@ -116,6 +112,15 @@ function paymentComment(orderId: string): string {
   return `MAGROXIN:${orderId}`;
 }
 
+function validOrderId(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+  );
+}
+
 function rowToOrder(row: Record<string, any>): Order {
   const token: TokenData =
     typeof row.token_data === "string"
@@ -167,7 +172,8 @@ async function getOrder(id: string): Promise<Order | null> {
 async function expireOrderIfNeeded(order: Order): Promise<Order> {
   if (
     order.status === "created" &&
-    Date.now() >= order.expiresAt + PAYMENT_GRACE_SECONDS * 1000
+    Date.now() >=
+      order.expiresAt + PAYMENT_GRACE_SECONDS * 1000
   ) {
     const result = await pool.query(
       `UPDATE magroxin_orders
@@ -177,7 +183,9 @@ async function expireOrderIfNeeded(order: Order): Promise<Order> {
       [order.id],
     );
 
-    if (result.rows[0]) return rowToOrder(result.rows[0]);
+    if (result.rows[0]) {
+      return rowToOrder(result.rows[0]);
+    }
 
     return (await getOrder(order.id)) || order;
   }
@@ -201,11 +209,11 @@ function decodeComment(body: unknown): string | null {
   }
 }
 
+/**
+ * Fail closed: missing or incomplete transaction data
+ * must never be treated as successful payment.
+ */
 function transactionSucceeded(tx: any): boolean {
-  // Fail closed if the provider cannot establish success.
-  if (tx?.success === true) return true;
-  if (tx?.success === false) return false;
-
   const description = tx?.description;
 
   if (!description || typeof description !== "object") {
@@ -213,10 +221,31 @@ function transactionSucceeded(tx: any): boolean {
   }
 
   if (description.aborted !== false) return false;
-  if (description.destroyed === true) return false;
-  if (description.bounce?.bounced === true) return false;
-  if (description.compute_ph?.success === false) return false;
-  if (description.action?.success === false) return false;
+  if (description.destroyed !== false) return false;
+
+  const compute = description.compute_ph;
+
+  if (!compute || compute.success !== true) {
+    return false;
+  }
+
+  if (compute.skipped === true) {
+    return false;
+  }
+
+  const action = description.action;
+
+  if (
+    action !== undefined &&
+    (
+      !action ||
+      action.success !== true ||
+      action.valid !== true ||
+      action.no_funds === true
+    )
+  ) {
+    return false;
+  }
 
   return true;
 }
@@ -232,6 +261,7 @@ async function findVerifiedPayment(
   const sender = normalizeAddress(order.walletAddress);
 
   const url = new URL(`${TONCENTER_V3}/transactions`);
+
   url.searchParams.set("account", recipient);
   url.searchParams.set("limit", "1000");
   url.searchParams.set("sort", "desc");
@@ -263,21 +293,32 @@ async function findVerifiedPayment(
     transactions?: any[];
   };
 
+  if (!Array.isArray(data.transactions)) {
+    throw new Error("Unexpected TON Center response.");
+  }
+
+  const expectedComment = paymentComment(order.id);
+  const expectedAmount = BigInt(order.amountNano);
   const createdSeconds = Math.floor(order.createdAt / 1000);
   const expiresSeconds =
     Math.floor(order.expiresAt / 1000) +
     PAYMENT_GRACE_SECONDS;
 
-  const expectedComment = paymentComment(order.id);
-  const expectedAmount = BigInt(order.amountNano);
-
-  for (const tx of data.transactions || []) {
-    if (!tx?.hash || !transactionSucceeded(tx)) continue;
+  for (const tx of data.transactions) {
+    if (
+      typeof tx?.hash !== "string" ||
+      !tx.hash ||
+      !transactionSucceeded(tx)
+    ) {
+      continue;
+    }
 
     const msg = tx.in_msg;
 
     if (!msg || msg.bounced === true) continue;
-    if (!msg.source || !msg.destination || msg.value == null) continue;
+    if (!msg.source || !msg.destination || msg.value == null) {
+      continue;
+    }
 
     let actualSender: string;
     let actualRecipient: string;
@@ -305,7 +346,9 @@ async function findVerifiedPayment(
     const txTime = Number(tx.now);
 
     if (!Number.isFinite(txTime)) continue;
-    if (txTime < createdSeconds || txTime > expiresSeconds) continue;
+    if (txTime < createdSeconds || txTime > expiresSeconds) {
+      continue;
+    }
 
     const decoded = msg.message_content?.decoded;
 
@@ -318,7 +361,7 @@ async function findVerifiedPayment(
 
     if (comment !== expectedComment) continue;
 
-    return { hash: String(tx.hash) };
+    return { hash: tx.hash };
   }
 
   return null;
@@ -344,6 +387,7 @@ async function getTonUsdPrice(): Promise<number> {
       if (!response.ok) continue;
 
       const data: any = await response.json();
+
       const price =
         Number(data?.price) ||
         Number(data?.["the-open-network"]?.usd);
@@ -574,7 +618,7 @@ app.get(
 
       const id = req.params.id;
 
-      if (typeof id !== "string") {
+      if (!validOrderId(id)) {
         return res.status(400).json({
           ok: false,
           error: "Invalid order ID.",
@@ -649,10 +693,11 @@ app.post(
   async (req: Request, res: Response) => {
     const id = req.params.id;
 
-    if (typeof id !== "string") {
+    if (!validOrderId(id)) {
       return res.status(400).json({
         ok: false,
         error: "Invalid order ID.",
+        paymentMarkedPaid: false,
       });
     }
 
@@ -685,6 +730,7 @@ app.post(
       return res.status(404).json({
         ok: false,
         error: "Order not found.",
+        paymentMarkedPaid: false,
       });
     }
 
@@ -840,7 +886,7 @@ app.get("/api/orders/:id", async (req: Request, res: Response) => {
   try {
     const orderId = req.params.id;
 
-    if (typeof orderId !== "string") {
+    if (!validOrderId(orderId)) {
       return res.status(400).json({
         ok: false,
         error: "Invalid order ID.",
