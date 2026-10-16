@@ -18,13 +18,21 @@ const CLIENT_ORIGIN =
 const MAINNET_FEE = Number(process.env.MAINNET_SERVICE_FEE_USD || 100);
 const TESTNET_FEE = Number(process.env.TESTNET_SERVICE_FEE_USD || 1);
 
-// Keep payments and deployment disabled until independently tested.
+// Payment verification and deployment remain disabled.
 const PAYMENT_REQUEST_ENABLED = false;
 const PAYMENT_VERIFICATION_ENABLED = false;
 const DEPLOYMENT_ENABLED = false;
 
 type Network = "mainnet" | "testnet";
 type OrderStatus = "created" | "paid" | "expired" | "failed";
+
+interface TokenData {
+  name: string;
+  symbol: string;
+  supply: string;
+  decimals: number;
+  description: string;
+}
 
 interface Order {
   id: string;
@@ -38,13 +46,7 @@ interface Order {
   createdAt: number;
   expiresAt: number;
   paymentTxHash?: string | null;
-  token: {
-    name: string;
-    symbol: string;
-    supply: string;
-    decimals: number;
-    description: string;
-  };
+  token: TokenData;
 }
 
 if (!DATABASE_URL) {
@@ -62,6 +64,7 @@ const pool = new Pool({
 });
 
 app.disable("x-powered-by");
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -77,6 +80,7 @@ app.use(
     },
   }),
 );
+
 app.use(express.json({ limit: "1mb" }));
 
 const orderSchema = z.object({
@@ -96,22 +100,24 @@ function normalizeAddress(value: string): string {
 }
 
 function rowToOrder(row: Record<string, any>): Order {
+  const token: TokenData =
+    typeof row.token_data === "string"
+      ? JSON.parse(row.token_data)
+      : row.token_data;
+
   return {
-    id: row.id,
-    walletAddress: row.wallet_address,
-    deploymentNetwork: row.deployment_network,
+    id: String(row.id),
+    walletAddress: String(row.wallet_address),
+    deploymentNetwork: row.deployment_network as Network,
     serviceFeeNetwork: "mainnet",
     feeUsd: Number(row.fee_usd),
     feeTon: String(row.fee_ton),
     amountNano: String(row.amount_nano),
-    status: row.status,
+    status: row.status as OrderStatus,
     createdAt: Number(row.created_at),
     expiresAt: Number(row.expires_at),
     paymentTxHash: row.payment_tx_hash ?? null,
-    token:
-      typeof row.token_data === "string"
-        ? JSON.parse(row.token_data)
-        : row.token_data,
+    token,
   };
 }
 
@@ -134,7 +140,7 @@ function publicOrder(order: Order) {
 
 async function getOrder(id: string): Promise<Order | null> {
   const result = await pool.query(
-    `SELECT * FROM magroxin_orders WHERE id = $1 LIMIT 1`,
+    "SELECT * FROM magroxin_orders WHERE id = $1 LIMIT 1",
     [id],
   );
 
@@ -149,33 +155,33 @@ async function getTonUsdPrice(): Promise<number> {
   ];
 
   for (const url of urls) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 7000);
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { accept: "application/json" },
+      });
 
-      try {
-        const response = await fetch(url, {
-          signal: controller.signal,
-          headers: { accept: "application/json" },
-        });
+      if (!response.ok) {
+        continue;
+      }
 
-        if (!response.ok) continue;
+      const data: any = await response.json();
 
-        const data: any = await response.json();
-        const price =
-          typeof data.price === "string" || typeof data.price === "number"
-            ? Number(data.price)
-            : Number(data?.["the-open-network"]?.usd);
+      const price =
+        Number(data?.price) ||
+        Number(data?.["the-open-network"]?.usd);
 
-        if (Number.isFinite(price) && price > 0) {
-          console.log("[MAGROXIN] Valid TON/USD quote received.");
-          return price;
-        }
-      } finally {
-        clearTimeout(timeout);
+      if (Number.isFinite(price) && price > 0) {
+        console.log("[MAGROXIN] Valid TON/USD quote received.");
+        return price;
       }
     } catch {
-      // Try the next public price source.
+      // Try the next provider.
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -205,8 +211,7 @@ async function initializeDatabase(): Promise<void> {
   `);
 
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS
-      magroxin_orders_status_expiry_idx
+    CREATE INDEX IF NOT EXISTS magroxin_orders_status_expiry_idx
     ON magroxin_orders (status, expires_at);
   `);
 
@@ -217,7 +222,7 @@ app.get("/health", async (_req: Request, res: Response) => {
   try {
     await pool.query("SELECT 1");
 
-    res.json({
+    return res.json({
       ok: true,
       service: "magroxin-api",
       databaseConnected: true,
@@ -227,7 +232,7 @@ app.get("/health", async (_req: Request, res: Response) => {
       deploymentEnabled: DEPLOYMENT_ENABLED,
     });
   } catch {
-    res.status(503).json({
+    return res.status(503).json({
       ok: false,
       service: "magroxin-api",
       databaseConnected: false,
@@ -239,7 +244,7 @@ app.get("/health", async (_req: Request, res: Response) => {
 });
 
 app.get("/tonconnect-manifest.json", (_req: Request, res: Response) => {
-  res.json({
+  return res.json({
     url: CLIENT_ORIGIN,
     name: "MAGROXIN",
     iconUrl: `${CLIENT_ORIGIN}/favicon.ico`,
@@ -275,11 +280,11 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       });
     }
 
-    // Validate configuration privately; never return the fee destination.
     try {
       Address.parse(FEE_WALLET);
     } catch {
       console.error("[MAGROXIN] Fee wallet configuration is invalid.");
+
       return res.status(503).json({
         ok: false,
         error: "Service fee configuration is invalid.",
@@ -309,8 +314,6 @@ app.post("/api/orders", async (req: Request, res: Response) => {
     }
 
     const tonUsd = await getTonUsdPrice();
-
-    // Round to six decimal places for the displayed TON quote.
     const feeTon = (feeUsd / tonUsd).toFixed(6);
     const amountNano = toNano(feeTon).toString();
 
@@ -318,7 +321,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
     const expiresAt = now + 5 * 60 * 1000;
     const id = randomUUID();
 
-    const token = {
+    const token: TokenData = {
       name: parsed.data.token.name,
       symbol: parsed.data.token.symbol,
       supply: parsed.data.token.supply,
@@ -365,8 +368,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
         paymentRequestEnabled: PAYMENT_REQUEST_ENABLED,
         paymentVerificationEnabled: PAYMENT_VERIFICATION_ENABLED,
         paymentSent: false,
-        message:
-          "Order created. No payment has been requested or sent.",
+        message: "Order created. No payment has been requested or sent.",
       },
       deployment: {
         enabled: DEPLOYMENT_ENABLED,
@@ -400,9 +402,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
 
 app.get(
   "/api/orders/:id/payment-request",
-  async (req: Request, res: Response) => {
-    // Fail closed: do not provide a transaction payload until
-    // payment verification has been implemented and tested.
+  async (_req: Request, res: Response) => {
     return res.status(503).json({
       ok: false,
       error: "Payment requests are temporarily disabled.",
@@ -416,7 +416,6 @@ app.get(
 app.post(
   "/api/orders/:id/verify",
   async (_req: Request, res: Response) => {
-    // Never trust a client to mark an order as paid.
     return res.status(503).json({
       ok: false,
       error: "Payment verification is not implemented yet.",
@@ -425,9 +424,6 @@ app.post(
     });
   },
 );
-
-app.get("/api/orders/:id", async (req: Request, res: Response) => {
-  try {
 
 app.get("/api/orders/:id", async (req: Request, res: Response) => {
   try {
@@ -486,5 +482,6 @@ start().catch((error) => {
     "[MAGROXIN] Startup failed:",
     error instanceof Error ? error.message : error,
   );
+
   process.exit(1);
 });
