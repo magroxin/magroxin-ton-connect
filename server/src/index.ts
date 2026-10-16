@@ -6,6 +6,18 @@ import { beginCell, toNano, Address } from "@ton/core";
 import { z } from "zod";
 
 const app = express();
+
+app.get("/tonconnect-manifest.json", (_req, res) => {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=300");
+
+  res.status(200).json({
+    url: "https://magroxin.blogspot.com",
+    name: "MAGROXIN",
+    iconUrl: "https://magroxin.blogspot.com/favicon.ico"
+  });
+});
+
 const PORT = Number(process.env.PORT || 8787);
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const FEE_WALLET = process.env.MAGROXIN_FEE_WALLET || "";
