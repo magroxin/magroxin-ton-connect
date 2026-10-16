@@ -1,3 +1,4 @@
+
 name: MAGROXIN TON Build
 
 on:
@@ -25,7 +26,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm install
 
       - name: Build frontend
@@ -36,3 +37,26 @@ jobs:
 
       - name: Build backend
         run: npm run build -w server
+
+      - name: Verify Jetton contract source files
+        run: |
+          test -f contracts/jetton-minter.fc
+          test -f contracts/jetton-wallet.fc
+          test -f contracts/jetton-minter.tlb
+          test -f contracts/jetton-wallet.tlb
+
+      - name: Setup TON compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config libssl-dev zlib1g-dev
+          git clone --depth 1 https://github.com/ton-blockchain/ton.git /tmp/ton
+          cmake -S /tmp/ton -B /tmp/ton/build -GNinja -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/ton/build --target func fift -j2
+          echo "/tmp/ton/build" >> "$GITHUB_PATH"
+
+      - name: Compile Jetton contracts
+        run: |
+          mkdir -p build
+          func -V
+          func -APS -o build/jetton-minter.fif contracts/jetton-minter.fc
+          func -APS -o build/jetton-wallet.fif contracts/jetton-wallet.fc
