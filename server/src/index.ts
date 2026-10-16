@@ -4,7 +4,12 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { Address, toNano } from "@ton/core";
+import {
+  Address,
+  beginCell,
+  Cell,
+  toNano,
+} from "@ton/core";
 import { z } from "zod";
 
 const app = express();
@@ -18,10 +23,16 @@ const CLIENT_ORIGIN =
 const MAINNET_FEE = Number(process.env.MAINNET_SERVICE_FEE_USD || 100);
 const TESTNET_FEE = Number(process.env.TESTNET_SERVICE_FEE_USD || 1);
 
-// Payment verification and deployment remain disabled.
-const PAYMENT_REQUEST_ENABLED = false;
-const PAYMENT_VERIFICATION_ENABLED = false;
+const PAYMENT_REQUEST_ENABLED =
+  process.env.ENABLE_PAYMENT_REQUESTS === "true";
+
+const PAYMENT_VERIFICATION_ENABLED =
+  process.env.ENABLE_PAYMENT_VERIFICATION === "true";
+
 const DEPLOYMENT_ENABLED = false;
+
+const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
+const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
 type Network = "mainnet" | "testnet";
 type OrderStatus = "created" | "paid" | "expired" | "failed";
@@ -147,6 +158,130 @@ async function getOrder(id: string): Promise<Order | null> {
   return result.rows[0] ? rowToOrder(result.rows[0]) : null;
 }
 
+function paymentComment(orderId: string): string {
+  return `MAGROXIN:${orderId}`;
+}
+
+function decodeComment(body: unknown): string | null {
+  if (typeof body !== "string" || body.length === 0) {
+    return null;
+  }
+
+  try {
+    const cell = Cell.fromBase64(body);
+    const slice = cell.beginParse();
+
+    if (slice.remainingBits < 32) return null;
+    if (slice.loadUint(32) !== 0) return null;
+
+    return slice.loadStringTail();
+  } catch {
+    return null;
+  }
+}
+
+async function findVerifiedPayment(
+  order: Order,
+): Promise<{ hash: string } | null> {
+  if (!TONCENTER_API_KEY || !FEE_WALLET) {
+    throw new Error("TON payment verification is not configured.");
+  }
+
+  const recipient = normalizeAddress(FEE_WALLET);
+  const sender = normalizeAddress(order.walletAddress);
+
+  const url = new URL(`${TONCENTER_V3}/transactions`);
+  url.searchParams.set("account", recipient);
+  url.searchParams.set("limit", "100");
+  url.searchParams.set("sort", "desc");
+  url.searchParams.set(
+    "start_utime",
+    String(Math.floor(order.createdAt / 1000)),
+  );
+  url.searchParams.set(
+    "end_utime",
+    String(Math.floor(order.expiresAt / 1000) + 120),
+  );
+
+  const response = await fetch(url, {
+    headers: {
+      accept: "application/json",
+      "X-API-Key": TONCENTER_API_KEY,
+    },
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!response.ok) {
+    throw new Error("TON Center transaction lookup failed.");
+  }
+
+  const data = (await response.json()) as {
+    transactions?: Array<{
+      hash?: string;
+      now?: number;
+      in_msg?: {
+        source?: string;
+        destination?: string;
+        value?: string;
+        bounced?: boolean;
+        message_content?: {
+          body?: string;
+          decoded?: {
+            type?: string;
+            comment?: string;
+            text?: string;
+          };
+        };
+      } | null;
+    }>;
+  };
+
+  const expectedComment = paymentComment(order.id);
+  const createdSeconds = Math.floor(order.createdAt / 1000);
+  const expiresSeconds = Math.floor(order.expiresAt / 1000) + 120;
+
+  for (const tx of data.transactions || []) {
+    const msg = tx.in_msg;
+
+    if (!msg || msg.bounced || !tx.hash) continue;
+    if (!msg.source || !msg.destination) continue;
+
+    let actualSender: string;
+    let actualRecipient: string;
+
+    try {
+      actualSender = normalizeAddress(msg.source);
+      actualRecipient = normalizeAddress(msg.destination);
+    } catch {
+      continue;
+    }
+
+    if (actualSender !== sender) continue;
+    if (actualRecipient !== recipient) continue;
+    if (String(msg.value) !== order.amountNano) continue;
+
+    const txTime = Number(tx.now);
+
+    if (!Number.isFinite(txTime)) continue;
+    if (txTime < createdSeconds || txTime > expiresSeconds) continue;
+
+    const decoded = msg.message_content?.decoded;
+
+    const comment =
+      typeof decoded?.comment === "string"
+        ? decoded.comment
+        : typeof decoded?.text === "string"
+          ? decoded.text
+          : decodeComment(msg.message_content?.body);
+
+    if (comment !== expectedComment) continue;
+
+    return { hash: tx.hash };
+  }
+
+  return null;
+}
+
 async function getTonUsdPrice(): Promise<number> {
   const urls = [
     "https://data-api.binance.vision/api/v3/ticker/price?symbol=TONUSDT",
@@ -164,12 +299,9 @@ async function getTonUsdPrice(): Promise<number> {
         headers: { accept: "application/json" },
       });
 
-      if (!response.ok) {
-        continue;
-      }
+      if (!response.ok) continue;
 
       const data: any = await response.json();
-
       const price =
         Number(data?.price) ||
         Number(data?.["the-open-network"]?.usd);
@@ -179,7 +311,7 @@ async function getTonUsdPrice(): Promise<number> {
         return price;
       }
     } catch {
-      // Try the next provider.
+      // Try the next price provider.
     } finally {
       clearTimeout(timeout);
     }
@@ -228,7 +360,7 @@ app.get("/health", async (_req: Request, res: Response) => {
       databaseConnected: true,
       paymentRequestEnabled: PAYMENT_REQUEST_ENABLED,
       paymentVerificationEnabled: PAYMENT_VERIFICATION_ENABLED,
-      paymentVerificationImplemented: false,
+      paymentVerificationImplemented: true,
       deploymentEnabled: DEPLOYMENT_ENABLED,
     });
   } catch {
@@ -331,17 +463,9 @@ app.post("/api/orders", async (req: Request, res: Response) => {
 
     const result = await pool.query(
       `INSERT INTO magroxin_orders (
-        id,
-        wallet_address,
-        deployment_network,
-        service_fee_network,
-        fee_usd,
-        fee_ton,
-        amount_nano,
-        status,
-        created_at,
-        expires_at,
-        token_data
+        id, wallet_address, deployment_network,
+        service_fee_network, fee_usd, fee_ton,
+        amount_nano, status, created_at, expires_at, token_data
       )
       VALUES ($1, $2, $3, 'mainnet', $4, $5, $6, 'created', $7, $8, $9)
       RETURNING *`,
@@ -402,26 +526,236 @@ app.post("/api/orders", async (req: Request, res: Response) => {
 
 app.get(
   "/api/orders/:id/payment-request",
-  async (_req: Request, res: Response) => {
-    return res.status(503).json({
-      ok: false,
-      error: "Payment requests are temporarily disabled.",
-      paymentRequestEnabled: false,
-      paymentVerificationEnabled: false,
-      paymentSent: false,
-    });
+  async (req: Request, res: Response) => {
+    try {
+      if (
+        !PAYMENT_REQUEST_ENABLED ||
+        !PAYMENT_VERIFICATION_ENABLED ||
+        !TONCENTER_API_KEY
+      ) {
+        return res.status(503).json({
+          ok: false,
+          error: "Payment is disabled pending end-to-end testing.",
+          paymentSent: false,
+        });
+      }
+
+      const id = req.params.id;
+
+      if (typeof id !== "string") {
+        return res.status(400).json({
+          ok: false,
+          error: "Invalid order ID.",
+        });
+      }
+
+      const order = await getOrder(id);
+
+      if (!order) {
+        return res.status(404).json({
+          ok: false,
+          error: "Order not found.",
+        });
+      }
+
+      if (order.status !== "created") {
+        return res.status(409).json({
+          ok: false,
+          error: "Order is not awaiting payment.",
+        });
+      }
+
+      if (Date.now() >= order.expiresAt) {
+        return res.status(410).json({
+          ok: false,
+          error: "Order expired. Create a new order.",
+        });
+      }
+
+      const feeAddress = Address.parse(FEE_WALLET).toString({
+        bounceable: true,
+        urlSafe: true,
+      });
+
+      const payload = beginCell()
+        .storeUint(0, 32)
+        .storeStringTail(paymentComment(order.id))
+        .endCell()
+        .toBoc()
+        .toString("base64");
+
+      return res.json({
+        ok: true,
+        orderId: order.id,
+        network: "-239",
+        address: feeAddress,
+        amountNano: order.amountNano,
+        payload,
+        validUntil: Math.floor(order.expiresAt / 1000),
+        paymentRequestEnabled: true,
+        paymentVerificationEnabled: true,
+      });
+    } catch (error) {
+      console.error(
+        "[MAGROXIN] Payment request failed:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+
+      return res.status(503).json({
+        ok: false,
+        error: "Unable to create payment request.",
+        paymentSent: false,
+      });
+    }
   },
 );
 
 app.post(
   "/api/orders/:id/verify",
-  async (_req: Request, res: Response) => {
-    return res.status(503).json({
-      ok: false,
-      error: "Payment verification is not implemented yet.",
-      paymentVerificationEnabled: false,
-      paymentMarkedPaid: false,
-    });
+  async (req: Request, res: Response) => {
+    const id = req.params.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        ok: false,
+        error: "Invalid order ID.",
+      });
+    }
+
+    if (!PAYMENT_VERIFICATION_ENABLED || !TONCENTER_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        error: "Payment verification is disabled.",
+        paymentMarkedPaid: false,
+      });
+    }
+
+    const client = await pool.connect();
+    let transactionOpen = false;
+
+    try {
+      const order = await getOrder(id);
+
+      if (!order) {
+        return res.status(404).json({
+          ok: false,
+          error: "Order not found.",
+        });
+      }
+
+      if (order.status === "paid") {
+        return res.json({
+          ok: true,
+          status: "paid",
+          paymentMarkedPaid: true,
+          paymentTxHash: order.paymentTxHash ?? null,
+          deploymentEnabled: false,
+        });
+      }
+
+      if (order.status !== "created") {
+        return res.status(409).json({
+          ok: false,
+          error: "Order is not awaiting payment.",
+          paymentMarkedPaid: false,
+        });
+      }
+
+      const payment = await findVerifiedPayment(order);
+
+      if (!payment) {
+        if (Date.now() >= order.expiresAt + 120000) {
+          await pool.query(
+            `UPDATE magroxin_orders
+             SET status = 'expired'
+             WHERE id = $1 AND status = 'created'`,
+            [id],
+          );
+
+          return res.status(410).json({
+            ok: false,
+            status: "expired",
+            error: "No matching payment was found before expiry.",
+            paymentMarkedPaid: false,
+          });
+        }
+
+        return res.status(202).json({
+          ok: true,
+          status: "pending",
+          paymentMarkedPaid: false,
+          message: "No matching confirmed payment found yet.",
+        });
+      }
+
+      await client.query("BEGIN");
+      transactionOpen = true;
+
+      const updated = await client.query(
+        `UPDATE magroxin_orders
+         SET status = 'paid', payment_tx_hash = $1
+         WHERE id = $2 AND status = 'created'
+           AND payment_tx_hash IS NULL
+         RETURNING id`,
+        [payment.hash, id],
+      );
+
+      if (updated.rowCount !== 1) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+
+        const latest = await getOrder(id);
+
+        if (latest?.status === "paid") {
+          return res.json({
+            ok: true,
+            status: "paid",
+            paymentMarkedPaid: true,
+            paymentTxHash: latest.paymentTxHash ?? null,
+            deploymentEnabled: false,
+          });
+        }
+
+        return res.status(409).json({
+          ok: false,
+          error: "Order status changed. Refresh the order.",
+          paymentMarkedPaid: false,
+        });
+      }
+
+      await client.query("COMMIT");
+      transactionOpen = false;
+
+      return res.json({
+        ok: true,
+        status: "paid",
+        paymentMarkedPaid: true,
+        paymentTxHash: payment.hash,
+        deploymentEnabled: false,
+        message: "Service fee verified. Token deployment is not enabled.",
+      });
+    } catch (error) {
+      if (transactionOpen) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          // Preserve the original error.
+        }
+      }
+
+      console.error(
+        "[MAGROXIN] Payment verification failed:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+
+      return res.status(503).json({
+        ok: false,
+        error: "Unable to verify payment right now.",
+        paymentMarkedPaid: false,
+      });
+    } finally {
+      client.release();
+    }
   },
 );
 
@@ -471,8 +805,16 @@ async function start(): Promise<void> {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`[MAGROXIN] API listening on port ${PORT}`);
-    console.log("[MAGROXIN] Payment requests: disabled");
-    console.log("[MAGROXIN] Payment verification: disabled");
+    console.log(
+      `[MAGROXIN] Payment requests: ${
+        PAYMENT_REQUEST_ENABLED ? "configured" : "disabled"
+      }`,
+    );
+    console.log(
+      `[MAGROXIN] Payment verification: ${
+        PAYMENT_VERIFICATION_ENABLED ? "configured" : "disabled"
+      }`,
+    );
     console.log("[MAGROXIN] Token deployment: disabled");
   });
 }
