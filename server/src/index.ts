@@ -3,45 +3,25 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
-import { Address, beginCell, Cell, toNano } from "@ton/core";
+import { Pool } from "pg";
+import { Address, toNano } from "@ton/core";
 import { z } from "zod";
 
 const app = express();
 
 const PORT = Number(process.env.PORT || 10000);
+const DATABASE_URL = process.env.DATABASE_URL || "";
 const FEE_WALLET = process.env.MAGROXIN_FEE_WALLET || "";
-const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
-const VERIFY_ENABLED =
-  process.env.ENABLE_PAYMENT_VERIFICATION === "true";
-
-const MAINNET_FEE = Number(
-  process.env.MAINNET_SERVICE_FEE_USD || 100
-);
-const TESTNET_FEE = Number(
-  process.env.TESTNET_SERVICE_FEE_USD || 1
-);
+const MAINNET_FEE = Number(process.env.MAINNET_SERVICE_FEE_USD || 100);
+const TESTNET_FEE = Number(process.env.TESTNET_SERVICE_FEE_USD || 1);
 const CLIENT_ORIGIN =
   process.env.CLIENT_ORIGIN || "https://magroxin.blogspot.com";
 
-const allowedOrigins = new Set([
-  CLIENT_ORIGIN,
-  "https://magroxin.blogspot.com",
-  "https://www.magroxin.blogspot.com"
-]);
-
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.has(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Origin not allowed by MAGROXIN API"));
-      }
-    }
-  })
-);
-
-app.use(express.json({ limit: "2mb" }));
+// Deliberately disabled until payment verification has been
+// independently reviewed and tested.
+const PAYMENT_VERIFICATION_ENABLED = false;
+const PAYMENT_REQUEST_ENABLED = false;
+const DEPLOYMENT_ENABLED = false;
 
 type Network = "mainnet" | "testnet";
 type OrderStatus = "created" | "paid" | "expired" | "failed";
@@ -67,30 +47,37 @@ type Order = {
   };
 };
 
-type TonMessage = {
-  source?: string | null;
-  destination?: string | null;
-  value?: string | number | null;
-  bounced?: boolean;
-  message_content?: {
-    body?: string | null;
-    decoded?: unknown;
-  } | null;
-};
+const pool = DATABASE_URL
+  ? new Pool({
+      connectionString: DATABASE_URL,
+      max: 5,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      ...(process.env.DATABASE_SSL === "true"
+        ? { ssl: { rejectUnauthorized: false } }
+        : {})
+    })
+  : null;
 
-type TonTransaction = {
-  hash?: string;
-  now?: number;
-  description?: {
-    aborted?: boolean;
-  };
-  in_msg?: TonMessage | null;
-};
+const allowedOrigins = new Set([
+  CLIENT_ORIGIN,
+  "https://magroxin.blogspot.com",
+  "https://www.magroxin.blogspot.com"
+]);
 
-const orders = new Map<string, Order>();
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Origin not allowed by MAGROXIN API"));
+      }
+    }
+  })
+);
 
-// In-memory protection only. Use a persistent database before production.
-const usedPaymentTransactions = new Map<string, string>();
+app.use(express.json({ limit: "2mb" }));
 
 const orderSchema = z.object({
   walletAddress: z.string().min(20).max(128),
@@ -108,58 +95,73 @@ function normalizeAddress(value: string): string {
   return Address.parse(value).toRawString().toLowerCase();
 }
 
-function makeCommentPayload(orderId: string): string {
-  return beginCell()
-    .storeUint(0, 32)
-    .storeStringTail(`MAGROXIN:${orderId}`)
-    .endCell()
-    .toBoc()
-    .toString("base64");
+function rowToOrder(row: any): Order {
+  return {
+    id: row.id,
+    walletAddress: row.wallet_address,
+    deploymentNetwork: row.deployment_network,
+    serviceFeeNetwork: "mainnet",
+    feeUsd: Number(row.fee_usd),
+    feeTon: String(row.fee_ton),
+    amountNano: String(row.amount_nano),
+    status: row.status,
+    createdAt: Number(row.created_at),
+    expiresAt: Number(row.expires_at),
+    ...(row.payment_tx_hash
+      ? { paymentTxHash: row.payment_tx_hash }
+      : {}),
+    token:
+      typeof row.token_data === "string"
+        ? JSON.parse(row.token_data)
+        : row.token_data
+  };
 }
 
-function readPaymentComment(message: TonMessage): string {
-  const body = message.message_content?.body;
-
-  if (!body) return "";
-
-  try {
-    const slice = Cell.fromBase64(body).beginParse();
-
-    if (slice.remainingBits < 32) return "";
-
-    const opcode = slice.loadUint(32);
-
-    // A standard TON text comment begins with opcode 0.
-    if (opcode !== 0) return "";
-
-    return slice.loadStringTail();
-  } catch {
-    return "";
-  }
+function publicOrder(order: Order) {
+  return {
+    id: order.id,
+    walletAddress: order.walletAddress,
+    deploymentNetwork: order.deploymentNetwork,
+    serviceFeeNetwork: order.serviceFeeNetwork,
+    feeUsd: order.feeUsd,
+    feeTon: order.feeTon,
+    amountNano: order.amountNano,
+    status: order.status,
+    createdAt: order.createdAt,
+    expiresAt: order.expiresAt,
+    ...(order.paymentTxHash
+      ? { paymentTxHash: order.paymentTxHash }
+      : {}),
+    token: order.token
+  };
 }
 
-/**
- * Fetch a market quote.
- * TONUSDT is a USD-equivalent quote, not a guaranteed exact USD price.
- */
+async function getOrder(id: string): Promise<Order | null> {
+  if (!pool) throw new Error("DATABASE_URL is not configured.");
+
+  const result = await pool.query(
+    `SELECT * FROM magroxin_orders WHERE id = $1 LIMIT 1`,
+    [id]
+  );
+
+  return result.rows.length ? rowToOrder(result.rows[0]) : null;
+}
+
 async function getTonUsdPrice(): Promise<number> {
   const providers = [
     {
-      name: "Binance",
-      url:
-        "https://data-api.binance.vision/api/v3/ticker/price?symbol=TONUSDT",
+      name: "Binance public market data",
+      url: "https://data-api.binance.vision/api/v3/ticker/price?symbol=TONUSDT",
       extract: (data: any) => Number(data?.price)
     },
     {
       name: "Binance fallback",
-      url:
-        "https://api.binance.com/api/v3/ticker/price?symbol=TONUSDT",
+      url: "https://api.binance.com/api/v3/ticker/price?symbol=TONUSDT",
       extract: (data: any) => Number(data?.price)
     },
     {
       name: "CoinGecko",
-      url:
-        "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
+      url: "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
       extract: (data: any) => Number(data?.["the-open-network"]?.usd)
     }
   ];
@@ -184,16 +186,16 @@ async function getTonUsdPrice(): Promise<number> {
       const price = provider.extract(data);
 
       if (!Number.isFinite(price) || price <= 0) {
-        throw new Error("Invalid price");
+        throw new Error("Invalid TON price");
       }
 
-      console.log(`[MAGROXIN] TON quote received from ${provider.name}`);
+      console.log(`[MAGROXIN] Valid TON price received from ${provider.name}`);
       return price;
     } catch (error) {
-      const message =
+      const detail =
         error instanceof Error ? error.message : "Unknown error";
-      errors.push(`${provider.name}: ${message}`);
-      console.warn(`[MAGROXIN] ${provider.name} failed: ${message}`);
+      errors.push(`${provider.name}: ${detail}`);
+      console.warn(`[MAGROXIN] ${provider.name} failed: ${detail}`);
     } finally {
       clearTimeout(timer);
     }
@@ -202,137 +204,64 @@ async function getTonUsdPrice(): Promise<number> {
   throw new Error(`All TON price providers failed: ${errors.join("; ")}`);
 }
 
-function publicOrder(order: Order) {
-  return {
-    id: order.id,
-    walletAddress: order.walletAddress,
-    deploymentNetwork: order.deploymentNetwork,
-    serviceFeeNetwork: order.serviceFeeNetwork,
-    feeUsd: order.feeUsd,
-    feeTon: order.feeTon,
-    amountNano: order.amountNano,
-    status: order.status,
-    createdAt: order.createdAt,
-    expiresAt: order.expiresAt,
-    ...(order.paymentTxHash
-      ? { paymentTxHash: order.paymentTxHash }
-      : {}),
-    token: order.token
-  };
-}
-
-async function getMainnetTransactions(
-  order: Order
-): Promise<TonTransaction[]> {
-  if (!TONCENTER_API_KEY) {
-    throw new Error("TONCENTER_API_KEY is not configured.");
+async function initializeDatabase(): Promise<void> {
+  if (!pool) {
+    throw new Error(
+      "DATABASE_URL is missing. Configure it in Render Environment."
+    );
   }
 
-  const feeWalletRaw = normalizeAddress(FEE_WALLET);
-  const url = new URL("https://toncenter.com/api/v3/transactions");
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS magroxin_orders (
+      id UUID PRIMARY KEY,
+      wallet_address TEXT NOT NULL,
+      deployment_network TEXT NOT NULL
+        CHECK (deployment_network IN ('mainnet', 'testnet')),
+      service_fee_network TEXT NOT NULL DEFAULT 'mainnet'
+        CHECK (service_fee_network = 'mainnet'),
+      fee_usd NUMERIC(18, 2) NOT NULL,
+      fee_ton NUMERIC(30, 6) NOT NULL,
+      amount_nano NUMERIC(40, 0) NOT NULL,
+      status TEXT NOT NULL DEFAULT 'created'
+        CHECK (status IN ('created', 'paid', 'expired', 'failed')),
+      created_at BIGINT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      payment_tx_hash TEXT UNIQUE,
+      token_data JSONB NOT NULL,
+      created_on TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
 
-  url.searchParams.set("account", feeWalletRaw);
-  url.searchParams.set("limit", "100");
-  url.searchParams.set("offset", "0");
-  url.searchParams.set("sort", "desc");
-  url.searchParams.set(
-    "start_utime",
-    String(Math.max(0, Math.floor(order.createdAt / 1000) - 30))
-  );
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS magroxin_orders_status_expiry_idx
+    ON magroxin_orders (status, expires_at)
+  `);
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      "X-API-Key": TONCENTER_API_KEY
-    },
-    signal: AbortSignal.timeout(12000)
-  });
+  await pool.query("SELECT 1");
 
-  if (!response.ok) {
-    throw new Error(`TON Center returned HTTP ${response.status}`);
-  }
-
-  const data: any = await response.json();
-
-  if (!Array.isArray(data?.transactions)) {
-    throw new Error("Unexpected TON Center transaction response.");
-  }
-
-  return data.transactions as TonTransaction[];
+  console.log("[MAGROXIN] PostgreSQL connected; schema ready");
 }
 
-function findMatchingPayment(
-  order: Order,
-  transactions: TonTransaction[]
-): TonTransaction | undefined {
-  const expectedWallet = normalizeAddress(FEE_WALLET);
-  const expectedSender = normalizeAddress(order.walletAddress);
-  const requiredAmount = BigInt(order.amountNano);
-  const requiredComment = `MAGROXIN:${order.id}`;
+app.get("/health", async (_req, res) => {
+  let databaseConnected = false;
 
-  return transactions.find((tx) => {
-    const message = tx.in_msg;
-
-    if (!message || message.bounced === true) return false;
-    if (tx.description?.aborted === true) return false;
-    if (!tx.hash) return false;
-
-    // Reject transactions dated before this order was created.
-    const transactionTime = Number(tx.now || 0);
-    if (
-      transactionTime > 0 &&
-      transactionTime < Math.floor(order.createdAt / 1000) - 30
-    ) {
-      return false;
+  try {
+    if (pool) {
+      await pool.query("SELECT 1");
+      databaseConnected = true;
     }
+  } catch {
+    databaseConnected = false;
+  }
 
-    try {
-      if (!message.destination || !message.source) return false;
-
-      if (normalizeAddress(message.destination) !== expectedWallet) {
-        return false;
-      }
-
-      if (normalizeAddress(message.source) !== expectedSender) {
-        return false;
-      }
-    } catch {
-      return false;
-    }
-
-    if (readPaymentComment(message) !== requiredComment) {
-      return false;
-    }
-
-    let received: bigint;
-
-    try {
-      received = BigInt(String(message.value ?? "0"));
-    } catch {
-      return false;
-    }
-
-    if (received < requiredAmount) return false;
-
-    const txKey = tx.hash.toLowerCase();
-    const usedBy = usedPaymentTransactions.get(txKey);
-
-    // One transaction cannot pay multiple orders.
-    if (usedBy && usedBy !== order.id) return false;
-
-    return true;
-  });
-}
-
-app.get("/health", (_req, res) => {
-  res.json({
-    ok: true,
+  res.status(databaseConnected ? 200 : 503).json({
+    ok: databaseConnected,
     service: "magroxin-api",
-    paymentVerificationEnabled: VERIFY_ENABLED,
-    paymentVerificationImplemented: true,
-    deploymentEnabled: false,
-    tonCenterKeyConfigured: Boolean(TONCENTER_API_KEY)
+    databaseConnected,
+    paymentVerificationEnabled: PAYMENT_VERIFICATION_ENABLED,
+    paymentVerificationImplemented: false,
+    paymentRequestEnabled: PAYMENT_REQUEST_ENABLED,
+    deploymentEnabled: DEPLOYMENT_ENABLED
   });
 });
 
@@ -355,6 +284,11 @@ app.post("/api/orders", async (req, res) => {
         message: issue.message
       }))
     });
+    return;
+  }
+
+  if (!pool) {
+    res.status(503).json({ error: "Database is not configured." });
     return;
   }
 
@@ -385,209 +319,118 @@ app.post("/api/orders", async (req, res) => {
     return;
   }
 
-  let tonUsdPrice: number;
-
   try {
-    tonUsdPrice = await getTonUsdPrice();
-  } catch (error) {
-    const detail =
-      error instanceof Error ? error.message : "Unknown price error";
+    const tonUsdPrice = await getTonUsdPrice();
+    const feeTonValue =
+      Math.ceil((feeUsd / tonUsdPrice) * 1_000_000) / 1_000_000;
+    const feeTon = feeTonValue.toFixed(6);
+    const amountNano = toNano(feeTon).toString();
+    const now = Date.now();
+    const id = randomUUID();
+    const expiresAt = now + 5 * 60 * 1000;
 
-    console.error("[MAGROXIN] TON quote error:", detail);
-    res.status(503).json({
-      error: "Unable to obtain a valid TON/USD quote.",
-      detail
-    });
-    return;
-  }
-
-  const feeTonValue =
-    Math.ceil((feeUsd / tonUsdPrice) * 1_000_000) / 1_000_000;
-
-  const feeTon = feeTonValue.toFixed(6);
-  const amountNano = toNano(feeTon).toString();
-  const now = Date.now();
-
-  const order: Order = {
-    id: randomUUID(),
-    walletAddress: senderAddress,
-    deploymentNetwork: parsed.data.deploymentNetwork,
-    serviceFeeNetwork: "mainnet",
-    feeUsd,
-    feeTon,
-    amountNano,
-    status: "created",
-    createdAt: now,
-    expiresAt: now + 5 * 60 * 1000,
-    token: {
+    const token = {
       name: parsed.data.token.name,
       symbol: parsed.data.token.symbol,
       supply: parsed.data.token.supply,
       decimals: parsed.data.token.decimals,
       description: parsed.data.token.description
-    }
-  };
+    };
 
-  orders.set(order.id, order);
-
-  res.status(201).json({
-    ok: true,
-    order: publicOrder(order)
-  });
-});
-
-app.get("/api/orders/:id/payment-request", (req, res) => {
-  const order = orders.get(req.params.id);
-
-  if (!order) {
-    res.status(404).json({ error: "Order not found." });
-    return;
-  }
-
-  if (order.status !== "created") {
-    res.status(409).json({ error: "Order is not awaiting payment." });
-    return;
-  }
-
-  if (Date.now() > order.expiresAt) {
-    order.status = "expired";
-    res.status(410).json({ error: "Order expired. Create a new order." });
-    return;
-  }
-
-  res.json({
-    ok: true,
-    orderId: order.id,
-    to: FEE_WALLET,
-    amountNano: order.amountNano,
-    payload: makeCommentPayload(order.id),
-    network: "-239"
-  });
-});
-
-app.post("/api/orders/:id/verify", async (req, res) => {
-  if (!VERIFY_ENABLED) {
-    res.status(503).json({
-      error: "Payment verification is disabled.",
-      paymentVerificationEnabled: false,
-      paymentVerificationImplemented: true,
-      paymentMarkedPaid: false
-    });
-    return;
-  }
-
-  if (!TONCENTER_API_KEY) {
-    res.status(503).json({
-      error: "TON Center API key is not configured."
-    });
-    return;
-  }
-
-  if (!FEE_WALLET) {
-    res.status(503).json({
-      error: "MAGROXIN service-fee wallet is not configured."
-    });
-    return;
-  }
-
-  const order = orders.get(req.params.id);
-
-  if (!order) {
-    res.status(404).json({
-      error: "Order not found. It may have been lost after a server restart."
-    });
-    return;
-  }
-
-  if (order.status === "paid") {
-    res.json({
-      ok: true,
-      paid: true,
-      status: "paid",
-      orderId: order.id,
-      paymentTxHash: order.paymentTxHash
-    });
-    return;
-  }
-
-  if (order.status !== "created") {
-    res.status(409).json({
-      error: "Order is not awaiting payment.",
-      status: order.status
-    });
-    return;
-  }
-
-  try {
-    const transactions = await getMainnetTransactions(order);
-    const payment = findMatchingPayment(order, transactions);
-
-    if (!payment || !payment.hash) {
-      res.status(200).json({
-        ok: true,
-        paid: false,
-        status: order.status,
-        message:
-          "No matching Mainnet payment found yet. No payment status was changed."
-      });
-      return;
-    }
-
-    const txKey = payment.hash.toLowerCase();
-    const alreadyUsedBy = usedPaymentTransactions.get(txKey);
-
-    if (alreadyUsedBy && alreadyUsedBy !== order.id) {
-      res.status(409).json({
-        error: "This transaction has already been assigned to another order."
-      });
-      return;
-    }
-
-    usedPaymentTransactions.set(txKey, order.id);
-    order.status = "paid";
-    order.paymentTxHash = payment.hash;
-
-    console.log(
-      `[MAGROXIN] Payment verified for order ${order.id}; transaction ${payment.hash}`
+    const result = await pool.query(
+      `INSERT INTO magroxin_orders
+        (id, wallet_address, deployment_network, service_fee_network,
+         fee_usd, fee_ton, amount_nano, status, created_at, expires_at,
+         token_data)
+       VALUES ($1, $2, $3, 'mainnet', $4, $5, $6, 'created', $7, $8, $9)
+       RETURNING *`,
+      [
+        id,
+        senderAddress,
+        parsed.data.deploymentNetwork,
+        feeUsd,
+        feeTon,
+        amountNano,
+        now,
+        expiresAt,
+        JSON.stringify(token)
+      ]
     );
 
-    res.json({
+    const order = rowToOrder(result.rows[0]);
+
+    console.log(`[MAGROXIN] Order stored in PostgreSQL: ${order.id}`);
+
+    res.status(201).json({
       ok: true,
-      paid: true,
-      status: "paid",
-      orderId: order.id,
-      paymentTxHash: payment.hash,
-      message:
-        "Matching Mainnet payment found. This does not deploy the token."
+      order: publicOrder(order),
+      message: "Order created and saved. Payment has not been enabled."
     });
   } catch (error) {
     const detail =
-      error instanceof Error ? error.message : "Unknown verification error";
+      error instanceof Error ? error.message : "Unknown order creation error";
 
-    console.error("[MAGROXIN] Verification error:", detail);
+    console.error("[MAGROXIN] Order creation error:", detail);
 
-    res.status(502).json({
-      error: "Could not verify payment with TON Center.",
-      detail,
-      paymentMarkedPaid: false
+    res.status(503).json({
+      error: "Could not create and save the order.",
+      detail
     });
   }
 });
 
-app.get("/api/orders/:id", (req, res) => {
-  const order = orders.get(req.params.id);
-
-  if (!order) {
-    res.status(404).json({ error: "Order not found." });
-    return;
-  }
-
-  res.json({
-    ok: true,
-    order: publicOrder(order)
+// Payment requests are deliberately blocked until the complete
+// payment and verification flow has been reviewed and tested.
+app.get("/api/orders/:id/payment-request", (_req, res) => {
+  res.status(503).json({
+    error: "Payment requests are temporarily disabled.",
+    paymentRequestEnabled: false,
+    paymentVerificationEnabled: false,
+    paymentSent: false
   });
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`[MAGROXIN] API listening on ${PORT}`);
+// Verification is deliberately blocked. Do not mark an order paid
+// until a secure, independently tested verification flow is deployed.
+app.post("/api/orders/:id/verify", (_req, res) => {
+  res.status(503).json({
+    error: "Payment verification is temporarily disabled.",
+    paymentVerificationEnabled: false,
+    paymentMarkedPaid: false
+  });
+});
+
+app.get("/api/orders/:id", async (req, res) => {
+  try {
+    const order = await getOrder(req.params.id);
+
+    if (!order) {
+      res.status(404).json({ error: "Order not found." });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      order: publicOrder(order)
+    });
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Unknown database error";
+
+    console.error("[MAGROXIN] Order lookup error:", detail);
+    res.status(503).json({ error: "Could not retrieve order." });
+  }
+});
+
+async function start(): Promise<void> {
+  await initializeDatabase();
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`[MAGROXIN] API listening on ${PORT}`);
+  });
+}
+
+start().catch((error) => {
+  console.error("[MAGROXIN] Startup failed:", error);
+  process.exit(1);
 });
