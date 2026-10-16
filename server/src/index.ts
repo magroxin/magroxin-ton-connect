@@ -428,7 +428,19 @@ app.post(
 
 app.get("/api/orders/:id", async (req: Request, res: Response) => {
   try {
-    const order = await getOrder(req.params.id);
+
+app.get("/api/orders/:id", async (req: Request, res: Response) => {
+  try {
+    const orderId = req.params.id;
+
+    if (typeof orderId !== "string") {
+      return res.status(400).json({
+        ok: false,
+        error: "Invalid order ID.",
+      });
+    }
+
+    const order = await getOrder(orderId);
 
     if (!order) {
       return res.status(404).json({
