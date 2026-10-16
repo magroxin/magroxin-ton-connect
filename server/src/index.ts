@@ -7,12 +7,13 @@ import { Address, beginCell, toNano } from "@ton/core";
 import { z } from "zod";
 
 const app = express();
- 
+
 const PORT = Number(process.env.PORT || 10000);
 const FEE_WALLET = process.env.MAGROXIN_FEE_WALLET || "";
 const VERIFY_ENABLED =
   process.env.ENABLE_PAYMENT_VERIFICATION === "true";
-const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
+const CLIENT_ORIGIN =
+  process.env.CLIENT_ORIGIN || "https://magroxin.blogspot.com";
 
 const MAINNET_FEE = Number(
   process.env.MAINNET_SERVICE_FEE_USD || 100
@@ -20,9 +21,6 @@ const MAINNET_FEE = Number(
 const TESTNET_FEE = Number(
   process.env.TESTNET_SERVICE_FEE_USD || 1
 );
-
-const CLIENT_ORIGIN =
-  process.env.CLIENT_ORIGIN || "https://magroxin.blogspot.com";
 
 const allowedOrigins = new Set([
   CLIENT_ORIGIN,
@@ -82,32 +80,46 @@ const orderSchema = z.object({
 });
 
 function makeCommentPayload(orderId: string): string {
-  const cell = beginCell()
+  return beginCell()
     .storeUint(0, 32)
     .storeStringTail(`MAGROXIN:${orderId}`)
-    .endCell();
-
-  return cell.toBoc().toString("base64");
+    .endCell()
+    .toBoc()
+    .toString("base64");
 }
 
 /**
- * Fetch a fresh TON/USD price.
- * CoinPaprika is tried first; CoinGecko is the fallback.
- * No hardcoded price is used if both providers fail.
+ * Retrieves a fresh TON market price.
+ *
+ * Binance TONUSDT is used as a USD-equivalent quote.
+ * USDT can trade slightly above or below USD.
+ * CoinGecko is a fallback.
+ *
+ * No hardcoded TON price is used.
+ * Orders fail closed if every provider fails.
  */
 async function getTonUsdPrice(): Promise<number> {
   const providers = [
     {
-      name: "CoinPaprika",
-      url: "https://api.coinpaprika.com/v1/tickers/ton-toncoin",
-      extract: (data: any): number | undefined =>
-        data?.quotes?.USD?.price
+      name: "Binance public market data",
+      url:
+        "https://data-api.binance.vision/api/v3/ticker/price?symbol=TONUSDT",
+      extract: (data: any): number =>
+        Number(data?.price)
+    },
+    {
+      name: "Binance API fallback",
+      url:
+        "https://api.binance.com/api/v3/ticker/price?symbol=TONUSDT",
+      extract: (data: any): number =>
+        Number(data?.price)
     },
     {
       name: "CoinGecko",
-      url: "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
-      extract: (data: any): number | undefined =>
-        data?.["the-open-network"]?.usd
+      url:
+        "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
+      extract: (data: any): number =>
+        Number(data?.["the-open-network"]?.usd)
     }
   ];
 
@@ -119,10 +131,11 @@ async function getTonUsdPrice(): Promise<number> {
 
     try {
       console.log(
-        `[MAGROXIN] Requesting TON/USD price from ${provider.name}`
+        `[MAGROXIN] Requesting TON price from ${provider.name}`
       );
 
       const response = await fetch(provider.url, {
+        method: "GET",
         signal: controller.signal,
         headers: { Accept: "application/json" }
       });
@@ -135,7 +148,6 @@ async function getTonUsdPrice(): Promise<number> {
       const price = provider.extract(data);
 
       if (
-        typeof price !== "number" ||
         !Number.isFinite(price) ||
         price <= 0
       ) {
@@ -143,7 +155,7 @@ async function getTonUsdPrice(): Promise<number> {
       }
 
       console.log(
-        `[MAGROXIN] TON/USD quote source: ${provider.name}`
+        `[MAGROXIN] Valid TON price received from ${provider.name}`
       );
 
       return price;
@@ -154,7 +166,7 @@ async function getTonUsdPrice(): Promise<number> {
       errors.push(`${provider.name}: ${message}`);
 
       console.warn(
-        `[MAGROXIN] ${provider.name} price request failed: ${message}`
+        `[MAGROXIN] ${provider.name} failed: ${message}`
       );
     } finally {
       clearTimeout(timer);
@@ -164,6 +176,22 @@ async function getTonUsdPrice(): Promise<number> {
   throw new Error(
     `All TON price providers failed. ${errors.join("; ")}`
   );
+}
+
+function publicOrder(order: Order) {
+  return {
+    id: order.id,
+    walletAddress: order.walletAddress,
+    deploymentNetwork: order.deploymentNetwork,
+    serviceFeeNetwork: order.serviceFeeNetwork,
+    feeUsd: order.feeUsd,
+    feeTon: order.feeTon,
+    amountNano: order.amountNano,
+    status: order.status,
+    createdAt: order.createdAt,
+    expiresAt: order.expiresAt,
+    token: order.token
+  };
 }
 
 app.get("/health", (_req, res) => {
@@ -235,7 +263,7 @@ app.post("/api/orders", async (req, res) => {
     const detail =
       error instanceof Error ? error.message : "Unknown price error";
 
-    console.error("[MAGROXIN] TON/USD quote error:", detail);
+    console.error("[MAGROXIN] TON price error:", detail);
 
     res.status(503).json({
       error: "Unable to obtain a valid TON/USD quote.",
@@ -257,7 +285,7 @@ app.post("/api/orders", async (req, res) => {
     walletAddress: parsed.data.walletAddress,
     deploymentNetwork: parsed.data.deploymentNetwork,
 
-    // MAGROXIN service fees are always paid on TON Mainnet.
+    // Service fees are always requested on TON Mainnet.
     serviceFeeNetwork: "mainnet",
 
     feeUsd,
@@ -280,19 +308,7 @@ app.post("/api/orders", async (req, res) => {
 
   res.status(201).json({
     ok: true,
-    order: {
-      id: order.id,
-      walletAddress: order.walletAddress,
-      deploymentNetwork: order.deploymentNetwork,
-      serviceFeeNetwork: order.serviceFeeNetwork,
-      feeUsd: order.feeUsd,
-      feeTon: order.feeTon,
-      amountNano: order.amountNano,
-      status: order.status,
-      createdAt: order.createdAt,
-      expiresAt: order.expiresAt,
-      token: order.token
-    }
+    order: publicOrder(order)
   });
 });
 
@@ -327,15 +343,14 @@ app.get("/api/orders/:id/payment-request", (req, res) => {
     amountNano: order.amountNano,
     payload: makeCommentPayload(order.id),
 
-    // Service-fee payment is on Mainnet, regardless of
-    // whether token deployment was selected for Testnet.
+    // -239 means TON Mainnet.
     network: "-239"
   });
 });
 
 app.post("/api/orders/:id/verify", (_req, res) => {
-  // Payment verification is deliberately fail-closed.
-  // Setting an environment flag alone does not implement verification.
+  // Verification is not implemented.
+  // Never mark an order paid without actual verification.
   res.status(503).json({
     error: "Payment verification is not implemented yet.",
     paymentVerificationEnabled: VERIFY_ENABLED,
@@ -354,19 +369,7 @@ app.get("/api/orders/:id", (req, res) => {
 
   res.json({
     ok: true,
-    order: {
-      id: order.id,
-      walletAddress: order.walletAddress,
-      deploymentNetwork: order.deploymentNetwork,
-      serviceFeeNetwork: order.serviceFeeNetwork,
-      feeUsd: order.feeUsd,
-      feeTon: order.feeTon,
-      amountNano: order.amountNano,
-      status: order.status,
-      createdAt: order.createdAt,
-      expiresAt: order.expiresAt,
-      token: order.token
-    }
+    order: publicOrder(order)
   });
 });
 
