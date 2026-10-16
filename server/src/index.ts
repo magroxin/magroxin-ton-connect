@@ -7,7 +7,7 @@ import { Address, beginCell, toNano } from "@ton/core";
 import { z } from "zod";
 
 const app = express();
-
+ 
 const PORT = Number(process.env.PORT || 10000);
 const FEE_WALLET = process.env.MAGROXIN_FEE_WALLET || "";
 const VERIFY_ENABLED =
