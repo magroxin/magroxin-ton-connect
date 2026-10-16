@@ -24,9 +24,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
 
-      - name: Install workspace dependencies
+      - name: Install dependencies
         run: npm install
 
       - name: Build frontend
@@ -38,44 +39,30 @@ jobs:
       - name: Build backend
         run: npm run build -w server
 
-      - name: Verify Jetton contract files
+      - name: Verify contract source files
         run: |
-          test -f contracts/jetton-minter.fc
-          test -f contracts/jetton-wallet.fc
-          test -f contracts/jetton-minter.tlb
-          test -f contracts/jetton-wallet.tlb
+          test -s contracts/jetton-minter.fc
+          test -s contracts/jetton-wallet.fc
+          test -s contracts/imports/stdlib.fc
 
-      - name: Install TON compiler prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build pkg-config libssl-dev zlib1g-dev libreadline-dev
-
-      - name: Build TON compiler
-        run: |
-          git clone --depth 1 https://github.com/ton-blockchain/ton.git /tmp/ton
-          cmake -S /tmp/ton -B /tmp/ton/build -GNinja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DTON_USE_JEMALLOC=OFF \
-            -DOPENSSL_ROOT_DIR=/usr
-          cmake --build /tmp/ton/build --target func fift -j2
+      - name: Install FunC WASM compiler
+        run: npm install --no-save @ton-community/func-js@0.11.0
 
       - name: Compile Jetton contracts
         run: |
-          FUNC="$(find /tmp/ton/build -type f -name func -executable | head -n 1)"
-          test -n "$FUNC"
           mkdir -p build
-          "$FUNC" -V
-          "$FUNC" -APS -o build/jetton-minter.fif contracts/jetton-minter.fc
-          "$FUNC" -APS -o build/jetton-wallet.fif contracts/jetton-wallet.fc
-          test -s build/jetton-minter.fif
-          test -s build/jetton-wallet.fif
+          npx func-js --help
+          npx func-js contracts/jetton-minter.fc --boc build/jetton-minter.boc
+          npx func-js contracts/jetton-wallet.fc --boc build/jetton-wallet.boc
+          test -s build/jetton-minter.boc
+          test -s build/jetton-wallet.boc
 
       - name: Upload compiled contract artifacts
         uses: actions/upload-artifact@v4
         with:
           name: magroxin-jetton-contracts
           path: |
-            build/jetton-minter.fif
-            build/jetton-wallet.fif
+            build/jetton-minter.boc
+            build/jetton-wallet.boc
           if-no-files-found: error
           retention-days: 14
