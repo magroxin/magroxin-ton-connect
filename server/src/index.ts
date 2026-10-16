@@ -4,7 +4,12 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { Address, beginCell, Cell, toNano } from "@ton/core";
+import {
+  Address,
+  beginCell,
+  Cell,
+  toNano,
+} from "@ton/core";
 import { z } from "zod";
 
 const app = express();
@@ -15,7 +20,9 @@ const FEE_WALLET = process.env.MAGROXIN_FEE_WALLET || "";
 const CLIENT_ORIGIN =
   process.env.CLIENT_ORIGIN || "https://magroxin.blogspot.com";
 
-const MAINNET_FEE = Number(process.env.MAINNET_SERVICE_FEE_USD || 100);
+const MAINNET_FEE = Number(
+  process.env.MAINNET_SERVICE_FEE_USD || 100,
+);
 
 const PAYMENT_REQUEST_ENABLED =
   process.env.ENABLE_PAYMENT_REQUESTS === "true";
@@ -26,6 +33,9 @@ const PAYMENT_VERIFICATION_ENABLED =
 const DEPLOYMENT_ENABLED = false;
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
 const TONCENTER_V3 = "https://toncenter.com/api/v3";
+
+const ORDER_LIFETIME_MS = 5 * 60 * 1000;
+const PAYMENT_GRACE_SECONDS = 120;
 
 type OrderStatus = "created" | "paid" | "expired" | "failed";
 
@@ -48,7 +58,7 @@ interface Order {
   status: OrderStatus;
   createdAt: number;
   expiresAt: number;
-  paymentTxHash?: string | null;
+  paymentTxHash: string | null;
   token: TokenData;
 }
 
@@ -102,6 +112,10 @@ function normalizeAddress(value: string): string {
   return Address.parse(value).toRawString().toLowerCase();
 }
 
+function paymentComment(orderId: string): string {
+  return `MAGROXIN:${orderId}`;
+}
+
 function rowToOrder(row: Record<string, any>): Order {
   const token: TokenData =
     typeof row.token_data === "string"
@@ -136,7 +150,7 @@ function publicOrder(order: Order) {
     status: order.status,
     createdAt: order.createdAt,
     expiresAt: order.expiresAt,
-    paymentTxHash: order.paymentTxHash ?? null,
+    paymentTxHash: order.paymentTxHash,
     token: order.token,
   };
 }
@@ -150,8 +164,25 @@ async function getOrder(id: string): Promise<Order | null> {
   return result.rows[0] ? rowToOrder(result.rows[0]) : null;
 }
 
-function paymentComment(orderId: string): string {
-  return `MAGROXIN:${orderId}`;
+async function expireOrderIfNeeded(order: Order): Promise<Order> {
+  if (
+    order.status === "created" &&
+    Date.now() >= order.expiresAt + PAYMENT_GRACE_SECONDS * 1000
+  ) {
+    const result = await pool.query(
+      `UPDATE magroxin_orders
+       SET status = 'expired'
+       WHERE id = $1 AND status = 'created'
+       RETURNING *`,
+      [order.id],
+    );
+
+    if (result.rows[0]) return rowToOrder(result.rows[0]);
+
+    return (await getOrder(order.id)) || order;
+  }
+
+  return order;
 }
 
 function decodeComment(body: unknown): string | null {
@@ -168,6 +199,26 @@ function decodeComment(body: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+function transactionSucceeded(tx: any): boolean {
+  // Fail closed if the provider cannot establish success.
+  if (tx?.success === true) return true;
+  if (tx?.success === false) return false;
+
+  const description = tx?.description;
+
+  if (!description || typeof description !== "object") {
+    return false;
+  }
+
+  if (description.aborted !== false) return false;
+  if (description.destroyed === true) return false;
+  if (description.bounce?.bounced === true) return false;
+  if (description.compute_ph?.success === false) return false;
+  if (description.action?.success === false) return false;
+
+  return true;
 }
 
 async function findVerifiedPayment(
@@ -190,7 +241,10 @@ async function findVerifiedPayment(
   );
   url.searchParams.set(
     "end_utime",
-    String(Math.floor(order.expiresAt / 1000) + 120),
+    String(
+      Math.floor(order.expiresAt / 1000) +
+        PAYMENT_GRACE_SECONDS,
+    ),
   );
 
   const response = await fetch(url, {
@@ -206,48 +260,47 @@ async function findVerifiedPayment(
   }
 
   const data = (await response.json()) as {
-    transactions?: Array<{
-      hash?: string;
-      now?: number;
-      in_msg?: {
-        source?: string | null;
-        destination?: string | null;
-        value?: string | number;
-        bounced?: boolean;
-        message_content?: {
-          body?: string;
-          decoded?: {
-            comment?: string;
-            text?: string;
-          } | null;
-        } | null;
-      } | null;
-    }>;
+    transactions?: any[];
   };
 
   const createdSeconds = Math.floor(order.createdAt / 1000);
-  const expiresSeconds = Math.floor(order.expiresAt / 1000) + 120;
+  const expiresSeconds =
+    Math.floor(order.expiresAt / 1000) +
+    PAYMENT_GRACE_SECONDS;
+
   const expectedComment = paymentComment(order.id);
+  const expectedAmount = BigInt(order.amountNano);
 
   for (const tx of data.transactions || []) {
+    if (!tx?.hash || !transactionSucceeded(tx)) continue;
+
     const msg = tx.in_msg;
 
-    if (!msg || msg.bounced || !tx.hash) continue;
-    if (!msg.source || !msg.destination) continue;
+    if (!msg || msg.bounced === true) continue;
+    if (!msg.source || !msg.destination || msg.value == null) continue;
 
     let actualSender: string;
     let actualRecipient: string;
 
     try {
-      actualSender = normalizeAddress(msg.source);
-      actualRecipient = normalizeAddress(msg.destination);
+      actualSender = normalizeAddress(String(msg.source));
+      actualRecipient = normalizeAddress(String(msg.destination));
     } catch {
       continue;
     }
 
     if (actualSender !== sender) continue;
     if (actualRecipient !== recipient) continue;
-    if (String(msg.value) !== order.amountNano) continue;
+
+    let actualAmount: bigint;
+
+    try {
+      actualAmount = BigInt(String(msg.value));
+    } catch {
+      continue;
+    }
+
+    if (actualAmount !== expectedAmount) continue;
 
     const txTime = Number(tx.now);
 
@@ -265,7 +318,7 @@ async function findVerifiedPayment(
 
     if (comment !== expectedComment) continue;
 
-    return { hash: tx.hash };
+    return { hash: String(tx.hash) };
   }
 
   return null;
@@ -399,8 +452,6 @@ app.post("/api/orders", async (req: Request, res: Response) => {
     try {
       Address.parse(FEE_WALLET);
     } catch {
-      console.error("[MAGROXIN] Fee wallet configuration is invalid.");
-
       return res.status(503).json({
         ok: false,
         error: "Service fee configuration is invalid.",
@@ -430,7 +481,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
     const amountNano = toNano(feeTon).toString();
 
     const now = Date.now();
-    const expiresAt = now + 5 * 60 * 1000;
+    const expiresAt = now + ORDER_LIFETIME_MS;
     const id = randomUUID();
 
     const token: TokenData = {
@@ -447,7 +498,8 @@ app.post("/api/orders", async (req: Request, res: Response) => {
         service_fee_network, fee_usd, fee_ton,
         amount_nano, status, created_at, expires_at, token_data
       )
-      VALUES ($1, $2, 'mainnet', 'mainnet', $3, $4, $5, 'created', $6, $7, $8)
+      VALUES ($1, $2, 'mainnet', 'mainnet', $3, $4, $5,
+              'created', $6, $7, $8)
       RETURNING *`,
       [
         id,
@@ -529,7 +581,7 @@ app.get(
         });
       }
 
-      const order = await getOrder(id);
+      let order = await getOrder(id);
 
       if (!order) {
         return res.status(404).json({
@@ -537,6 +589,8 @@ app.get(
           error: "Order not found.",
         });
       }
+
+      order = await expireOrderIfNeeded(order);
 
       if (order.status !== "created") {
         return res.status(409).json({
@@ -639,7 +693,7 @@ app.post(
         ok: true,
         status: "paid",
         paymentMarkedPaid: true,
-        paymentTxHash: order.paymentTxHash ?? null,
+        paymentTxHash: order.paymentTxHash,
         deploymentEnabled: false,
       });
     }
@@ -648,6 +702,20 @@ app.post(
       return res.status(409).json({
         ok: false,
         error: "Order is not awaiting payment.",
+        paymentMarkedPaid: false,
+      });
+    }
+
+    if (
+      Date.now() >=
+      order.expiresAt + PAYMENT_GRACE_SECONDS * 1000
+    ) {
+      const expired = await expireOrderIfNeeded(order);
+
+      return res.status(410).json({
+        ok: false,
+        status: expired.status,
+        error: "Order expired. Create a new order.",
         paymentMarkedPaid: false,
       });
     }
@@ -670,27 +738,11 @@ app.post(
     }
 
     if (!payment) {
-      if (Date.now() >= order.expiresAt + 120000) {
-        await pool.query(
-          `UPDATE magroxin_orders
-           SET status = 'expired'
-           WHERE id = $1 AND status = 'created'`,
-          [id],
-        );
-
-        return res.status(410).json({
-          ok: false,
-          status: "expired",
-          error: "No matching payment was found before expiry.",
-          paymentMarkedPaid: false,
-        });
-      }
-
       return res.status(202).json({
         ok: true,
         status: "pending",
         paymentMarkedPaid: false,
-        message: "No matching payment found yet.",
+        message: "No matching successful payment was found yet.",
       });
     }
 
@@ -704,10 +756,15 @@ app.post(
       const updated = await client.query(
         `UPDATE magroxin_orders
          SET status = 'paid', payment_tx_hash = $1
-         WHERE id = $2 AND status = 'created'
+         WHERE id = $2
+           AND status = 'created'
            AND payment_tx_hash IS NULL
-         RETURNING id`,
-        [payment.hash, id],
+           AND expires_at >= $3`,
+        [
+          payment.hash,
+          id,
+          Date.now() - PAYMENT_GRACE_SECONDS * 1000,
+        ],
       );
 
       if (updated.rowCount !== 1) {
@@ -721,14 +778,14 @@ app.post(
             ok: true,
             status: "paid",
             paymentMarkedPaid: true,
-            paymentTxHash: latest.paymentTxHash ?? null,
+            paymentTxHash: latest.paymentTxHash,
             deploymentEnabled: false,
           });
         }
 
         return res.status(409).json({
           ok: false,
-          error: "Order status changed. Refresh the order.",
+          error: "Order status changed or expired. Refresh the order.",
           paymentMarkedPaid: false,
         });
       }
@@ -790,7 +847,7 @@ app.get("/api/orders/:id", async (req: Request, res: Response) => {
       });
     }
 
-    const order = await getOrder(orderId);
+    let order = await getOrder(orderId);
 
     if (!order) {
       return res.status(404).json({
@@ -798,6 +855,8 @@ app.get("/api/orders/:id", async (req: Request, res: Response) => {
         error: "Order not found.",
       });
     }
+
+    order = await expireOrderIfNeeded(order);
 
     return res.json({
       ok: true,
