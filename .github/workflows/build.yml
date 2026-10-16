@@ -1,4 +1,3 @@
-
 name: MAGROXIN TON Build
 
 on:
@@ -18,7 +17,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout repository
+      - name: Checkout MAGROXIN
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -38,31 +37,39 @@ jobs:
       - name: Build backend
         run: npm run build -w server
 
-      - name: Verify Jetton contract files
+      - name: Verify Jetton files
         run: |
           test -f contracts/jetton-minter.fc
           test -f contracts/jetton-wallet.fc
           test -f contracts/jetton-minter.tlb
           test -f contracts/jetton-wallet.tlb
 
-      - name: Install TON compiler prerequisites
+      - name: Install compiler prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build pkg-config libssl-dev zlib1g-dev libreadline-dev
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config libssl-dev zlib1g-dev libreadline-dev perl
+
+      - name: Download TON source with submodules
+        run: |
+          git clone --depth 1 --recurse-submodules https://github.com/ton-blockchain/ton.git /tmp/ton
+          git -C /tmp/ton submodule update --init --recursive
 
       - name: Build TON compiler
         run: |
-          git clone --depth 1 https://github.com/ton-blockchain/ton.git /tmp/ton
           cmake -S /tmp/ton -B /tmp/ton/build -GNinja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DTON_USE_JEMALLOC=OFF \
-            -DOPENSSL_ROOT_DIR=/usr
+            -DTON_USE_JEMALLOC=OFF
           cmake --build /tmp/ton/build --target func fift -j2
-          echo "/tmp/ton/build" >> "$GITHUB_PATH"
+          find /tmp/ton/build -type f \( -name func -o -name fift \) -executable
 
       - name: Compile Jetton contracts
+        shell: bash
         run: |
+          FUNC="$(find /tmp/ton/build -type f -name func -executable | head -n 1)"
+          FIFT="$(find /tmp/ton/build -type f -name fift -executable | head -n 1)"
+          test -n "$FUNC"
+          test -n "$FIFT"
           mkdir -p build
-          func -V
-          func -APS -o build/jetton-minter.fif contracts/jetton-minter.fc
-          func -APS -o build/jetton-wallet.fif contracts/jetton-wallet.fc
+          "$FUNC" -V
+          "$FUNC" -APS -o build/jetton-minter.fif contracts/jetton-minter.fc
+          "$FUNC" -APS -o build/jetton-wallet.fif contracts/jetton-wallet.fc
