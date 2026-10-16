@@ -3,11 +3,9 @@ name: MAGROXIN TON Build
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -25,9 +23,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm install
 
       - name: Build frontend
@@ -39,23 +36,85 @@ jobs:
       - name: Build backend
         run: npm run build -w server
 
-      - name: Verify contract source files
+      - name: Verify contract sources
         run: |
           test -s contracts/jetton-minter.fc
           test -s contracts/jetton-wallet.fc
-          test -s contracts/imports/stdlib.fc
+          test -d contracts/imports
 
       - name: Install FunC WASM compiler
-        run: npm install --no-save @ton-community/func-js@0.11.0
+        run: npm install --no-save --package-lock=false @ton-community/func-js@0.11.0
 
       - name: Compile Jetton contracts
+        shell: bash
         run: |
           mkdir -p build
-          npx func-js --help
-          npx func-js contracts/jetton-minter.fc --boc build/jetton-minter.boc
-          npx func-js contracts/jetton-wallet.fc --boc build/jetton-wallet.boc
+          node --input-type=module <<'NODE'
+          import { compileFunc } from "@ton-community/func-js";
+          import { readFileSync, writeFileSync } from "node:fs";
+          import path from "node:path";
+
+          const root = process.cwd();
+
+          function resolveSource(requested) {
+            const candidates = [
+              path.resolve(root, requested),
+              path.resolve(root, "contracts", requested),
+              path.resolve(root, "contracts", "imports", path.basename(requested))
+            ];
+
+            for (const candidate of candidates) {
+              try {
+                return readFileSync(candidate, "utf8");
+              } catch {}
+            }
+
+            throw new Error(
+              `Missing FunC source: ${requested}. Check the contract import paths.`
+            );
+          }
+
+          async function compile(target, outputName) {
+            console.log(`Compiling ${target}`);
+
+            const result = await compileFunc({
+              targets: [target],
+              sources: resolveSource
+            });
+
+            if (result.status !== "ok") {
+              throw new Error(
+                `Compilation failed for ${target}:\n${result.message}`
+              );
+            }
+
+            const base = path.join(root, "build", outputName);
+
+            writeFileSync(
+              `${base}.boc`,
+              Buffer.from(result.codeBoc, "base64")
+            );
+
+            writeFileSync(`${base}.fif`, result.fiftCode, "utf8");
+
+            console.log(`Created ${outputName}.boc and ${outputName}.fif`);
+          }
+
+          await compile(
+            "contracts/jetton-minter.fc",
+            "jetton-minter"
+          );
+
+          await compile(
+            "contracts/jetton-wallet.fc",
+            "jetton-wallet"
+          );
+          NODE
+
           test -s build/jetton-minter.boc
           test -s build/jetton-wallet.boc
+          test -s build/jetton-minter.fif
+          test -s build/jetton-wallet.fif
 
       - name: Upload compiled contract artifacts
         uses: actions/upload-artifact@v4
@@ -64,5 +123,7 @@ jobs:
           path: |
             build/jetton-minter.boc
             build/jetton-wallet.boc
+            build/jetton-minter.fif
+            build/jetton-wallet.fif
           if-no-files-found: error
           retention-days: 14
