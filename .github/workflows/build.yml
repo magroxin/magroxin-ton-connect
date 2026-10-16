@@ -1,3 +1,4 @@
+
 name: MAGROXIN TON Build
 
 on:
@@ -17,7 +18,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout MAGROXIN
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -37,39 +38,44 @@ jobs:
       - name: Build backend
         run: npm run build -w server
 
-      - name: Verify Jetton files
+      - name: Verify Jetton contract files
         run: |
           test -f contracts/jetton-minter.fc
           test -f contracts/jetton-wallet.fc
           test -f contracts/jetton-minter.tlb
           test -f contracts/jetton-wallet.tlb
 
-      - name: Install compiler prerequisites
+      - name: Install TON compiler prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build pkg-config libssl-dev zlib1g-dev libreadline-dev perl
-
-      - name: Download TON source with submodules
-        run: |
-          git clone --depth 1 --recurse-submodules https://github.com/ton-blockchain/ton.git /tmp/ton
-          git -C /tmp/ton submodule update --init --recursive
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config libssl-dev zlib1g-dev libreadline-dev
 
       - name: Build TON compiler
         run: |
+          git clone --depth 1 https://github.com/ton-blockchain/ton.git /tmp/ton
           cmake -S /tmp/ton -B /tmp/ton/build -GNinja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DTON_USE_JEMALLOC=OFF
+            -DTON_USE_JEMALLOC=OFF \
+            -DOPENSSL_ROOT_DIR=/usr
           cmake --build /tmp/ton/build --target func fift -j2
-          find /tmp/ton/build -type f \( -name func -o -name fift \) -executable
 
       - name: Compile Jetton contracts
-        shell: bash
         run: |
           FUNC="$(find /tmp/ton/build -type f -name func -executable | head -n 1)"
-          FIFT="$(find /tmp/ton/build -type f -name fift -executable | head -n 1)"
           test -n "$FUNC"
-          test -n "$FIFT"
           mkdir -p build
           "$FUNC" -V
           "$FUNC" -APS -o build/jetton-minter.fif contracts/jetton-minter.fc
           "$FUNC" -APS -o build/jetton-wallet.fif contracts/jetton-wallet.fc
+          test -s build/jetton-minter.fif
+          test -s build/jetton-wallet.fif
+
+      - name: Upload compiled contract artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: magroxin-jetton-contracts
+          path: |
+            build/jetton-minter.fif
+            build/jetton-wallet.fif
+          if-no-files-found: error
+          retention-days: 14
