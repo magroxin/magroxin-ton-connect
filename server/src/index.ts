@@ -266,12 +266,11 @@ async function findVerifiedPayment(
 
   const recipient = normalizeAddress(FEE_WALLET);
   const sender = normalizeAddress(order.walletAddress);
-
-  const expectedComment = paymentComment(order.id);
   const expectedAmount = BigInt(order.amountNano);
+  const expectedComment = paymentComment(order.id);
 
-  const createdSeconds = Math.floor(order.createdAt / 1000);
-  const expiresSeconds =
+  const start = Math.floor(order.createdAt / 1000);
+  const end =
     Math.floor(order.expiresAt / 1000) +
     PAYMENT_GRACE_SECONDS;
 
@@ -285,8 +284,8 @@ async function findVerifiedPayment(
     url.searchParams.set("limit", String(pageSize));
     url.searchParams.set("offset", String(page * pageSize));
     url.searchParams.set("sort", "desc");
-    url.searchParams.set("start_utime", String(createdSeconds));
-    url.searchParams.set("end_utime", String(expiresSeconds));
+    url.searchParams.set("start_utime", String(start));
+    url.searchParams.set("end_utime", String(end));
 
     const response = await fetch(url, {
       headers: {
@@ -302,20 +301,27 @@ async function findVerifiedPayment(
       );
     }
 
-    const data = (await response.json()) as {
-      transactions?: any[];
-    };
+    const data: unknown = await response.json();
 
-    if (!Array.isArray(data.transactions)) {
-      throw new Error("Unexpected TON Center response.");
+    if (
+      !data ||
+      typeof data !== "object" ||
+      !Array.isArray(
+        (data as { transactions?: unknown }).transactions,
+      )
+    ) {
+      throw new Error("Invalid TON Center transaction response.");
     }
 
-    const transactions = data.transactions;
+    const transactions = (
+      data as { transactions: any[] }
+    ).transactions;
 
     for (const tx of transactions) {
       if (
         typeof tx?.hash !== "string" ||
         !tx.hash ||
+        !Number.isSafeInteger(Number(tx.now)) ||
         !transactionSucceeded(tx)
       ) {
         continue;
@@ -325,9 +331,9 @@ async function findVerifiedPayment(
 
       if (
         !msg ||
-        msg.bounced === true ||
-        !msg.source ||
-        !msg.destination ||
+        msg.bounced !== false ||
+        typeof msg.source !== "string" ||
+        typeof msg.destination !== "string" ||
         msg.value == null
       ) {
         continue;
@@ -337,10 +343,8 @@ async function findVerifiedPayment(
       let actualRecipient: string;
 
       try {
-        actualSender = normalizeAddress(String(msg.source));
-        actualRecipient = normalizeAddress(
-          String(msg.destination),
-        );
+        actualSender = normalizeAddress(msg.source);
+        actualRecipient = normalizeAddress(msg.destination);
       } catch {
         continue;
       }
@@ -360,13 +364,7 @@ async function findVerifiedPayment(
 
       const txTime = Number(tx.now);
 
-      if (
-        !Number.isSafeInteger(txTime) ||
-        txTime < createdSeconds ||
-        txTime > expiresSeconds
-      ) {
-        continue;
-      }
+      if (txTime < start || txTime > end) continue;
 
       const decoded = msg.message_content?.decoded;
 
@@ -387,11 +385,11 @@ async function findVerifiedPayment(
     }
   }
 
-  // Search was capped. Do not claim that no payment exists.
   throw new Error(
     "Transaction search limit reached; verification is inconclusive.",
   );
 }
+
 
 
 async function getTonUsdPrice(): Promise<number> {
