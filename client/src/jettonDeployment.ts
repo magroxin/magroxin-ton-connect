@@ -91,7 +91,7 @@ async function metadataKey(key: string): Promise<Buffer> {
     new TextEncoder().encode(key),
   );
 
-  return Buffer.from(digest);
+  return Buffer.from(new Uint8Array(digest));
 }
 
 function snakeString(value: string): Cell {
