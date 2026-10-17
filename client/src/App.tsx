@@ -17,10 +17,33 @@ type Order = {
   expiresAt: string;
 };
 
+type PaymentRequest = {
+  ok: boolean;
+  orderId: string;
+  network: "-239";
+  address: string;
+  amountNano: string;
+  payload: string;
+  validUntil: number;
+  error?: string;
+};
+
 const API = (
   import.meta.env.VITE_API_BASE ||
   "https://magroxin-ton-api.onrender.com"
 ).replace(/\/+$/, "");
+
+async function readResponse(response: Response) {
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || `Request failed (${response.status}).`
+    );
+  }
+
+  return data;
+}
 
 export default function App() {
   const [name, setName] = useState("");
@@ -74,7 +97,7 @@ export default function App() {
           deploymentNetwork: "mainnet",
           token: {
             name: name.trim(),
-            symbol: symbol.trim(),
+            symbol: symbol.trim().toUpperCase(),
             supply,
             decimals: Number(decimals),
             description: description.trim(),
@@ -82,39 +105,139 @@ export default function App() {
         }),
       });
 
-      const data = await response.json();
+      const data = await readResponse(response);
 
-      if (!response.ok) {
-        throw new Error(data.error || "Could not create fee order.");
+      if (!data.order?.id) {
+        throw new Error("The API did not return a valid order.");
       }
 
       setOrder(data.order);
+      setPaidStatus("UNPAID");
       setMessage(
-        "Order prepared. No payment has been made or verified."
+        "Order created. Continue to your wallet to pay the service fee."
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Request failed."
+        error instanceof Error ? error.message : "Could not create order."
       );
     } finally {
       setBusy(false);
     }
   }
 
-  async function payServiceFee() {
-    if (!order || !wallet) return;
-
-    setMessage(
-      "Payment is currently disabled while payment verification is being tested. No transaction was sent."
+  async function verifyPayment(orderId: string) {
+    const response = await fetch(
+      `${API}/api/orders/${encodeURIComponent(orderId)}/verify`,
+      { method: "POST" }
     );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (data.status === "paid" && data.paymentMarkedPaid === true) {
+      setPaidStatus("PAID — VERIFIED ON-CHAIN");
+      setMessage(
+        "Service fee verified. Token deployment is still a separate step."
+      );
+      return;
+    }
+
+    if (response.status === 202 || data.status === "pending") {
+      setPaidStatus("PAYMENT SENT — VERIFICATION PENDING");
+      setMessage(
+        data.message ||
+          "The payment has not been confirmed by the API yet. Check again shortly."
+      );
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || "Payment verification failed.");
+    }
+
+    setPaidStatus(data.status || "UNCONFIRMED");
+    setMessage(data.message || "Payment is not confirmed yet.");
   }
 
-  async function verifyPayment() {
-    if (!order) return;
+  async function payServiceFee() {
+    if (!order || !wallet || !address || busy) return;
 
-    setMessage(
-      "Payment verification is currently disabled. This order is not confirmed as paid."
-    );
+    setBusy(true);
+    setMessage("");
+    
+    try {
+      const requestResponse = await fetch(
+        `${API}/api/orders/${encodeURIComponent(order.id)}/payment-request`
+      );
+
+      const payment = (await readResponse(
+        requestResponse
+      )) as PaymentRequest;
+
+      if (
+        !payment.address ||
+        !payment.amountNano ||
+        !payment.payload ||
+        !payment.validUntil
+      ) {
+        throw new Error("The API returned an incomplete payment request.");
+      }
+
+      if (payment.network !== "-239") {
+        throw new Error("This order is not configured for TON Mainnet.");
+      }
+
+      if (payment.validUntil <= Math.floor(Date.now() / 1000)) {
+        throw new Error("This payment request has expired. Create a new order.");
+      }
+
+      setMessage("Approve the $100 service-fee transaction in your wallet.");
+
+      await tonConnectUI.sendTransaction({
+        validUntil: payment.validUntil,
+        network: "-239",
+        messages: [
+          {
+            address: payment.address,
+            amount: payment.amountNano,
+            payload: payment.payload,
+          },
+        ],
+      });
+
+      setPaidStatus("TRANSACTION SUBMITTED — VERIFYING");
+      setMessage(
+        "Wallet submitted the transaction. Checking Mainnet confirmation..."
+      );
+
+      await verifyPayment(order.id);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Transaction was not confirmed. Check your wallet before retrying."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function checkPayment() {
+    if (!order || busy) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await verifyPayment(order.id);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not check payment status."
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -236,9 +359,9 @@ export default function App() {
         </div>
 
         <p className="note">
-          The service fee is payable in Mainnet TON when payment
-          processing is enabled. Blockchain deployment costs are
-          separate. Payment and token deployment are currently disabled.
+          The service fee is paid separately from blockchain deployment
+          costs. The TON amount is calculated by the API. Only approve a
+          transaction after reviewing its destination and amount in your wallet.
         </p>
 
         <label className="check">
@@ -268,7 +391,7 @@ export default function App() {
         {order && (
           <div className="order">
             <div className="order-top">
-              <strong>Order prepared — unpaid</strong>
+              <strong>Service-fee order</strong>
               <span>{order.id}</span>
             </div>
 
@@ -276,30 +399,29 @@ export default function App() {
               {order.feeTon} TON <small>estimated quote</small>
             </div>
 
-            <p className="note">
-              This is an order, not a completed payment. The amount
-              is an estimate. Payment verification and deployment
-              have not been enabled.
-            </p>
+            <p className="hint">Payment status: {paidStatus || "UNPAID"}</p>
 
             <button
               className="primary"
-              disabled={busy}
+              disabled={busy || paidStatus === "PAID — VERIFIED ON-CHAIN"}
               onClick={payServiceFee}
             >
-              Service-fee payment unavailable
+              {busy ? "Processing…" : "Pay $100 service fee"}
             </button>
 
             <button
               className="secondary"
-              disabled={busy}
-              onClick={verifyPayment}
+              disabled={busy || paidStatus === "PAID — VERIFIED ON-CHAIN"}
+              onClick={checkPayment}
             >
               Check payment status
             </button>
 
-            {paidStatus && (
-              <p className="hint">Status: {paidStatus}</p>
+            {paidStatus === "PAID — VERIFIED ON-CHAIN" && (
+              <p className="note">
+                The service fee is verified. Token deployment is not yet
+                enabled, and no token has been deployed by this page.
+              </p>
             )}
           </div>
         )}
