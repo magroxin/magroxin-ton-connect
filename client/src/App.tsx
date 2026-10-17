@@ -3,7 +3,7 @@ import { TonConnectButton, useTonAddress, useTonConnectUI, useTonWallet } from "
 
 type Network = "mainnet" | "testnet";
 type Order = { id: string; feeUsd: number; feeTon: string; serviceFeeNetwork: "mainnet"; deploymentNetwork: Network; status: string; expiresAt: string };
-const API = import.meta.env.VITE_API_BASE || "http://localhost:8787";
+const API = (   import.meta.env.VITE_API_BASE ||   "https://magroxin-ton-api.onrender.com" ).replace(/\/+$/, "");
 
 export default function App() {
   const [name, setName] = useState("");
