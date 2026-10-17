@@ -7,6 +7,7 @@ import {
   contractAddress,
   type StateInit,
 } from "@ton/core";
+import { Buffer } from "buffer";
 
 export type JettonDeploymentInput = {
   adminAddress: string;
@@ -40,7 +41,7 @@ async function loadContractCode(url: string): Promise<Cell> {
     );
   }
 
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  const bytes = Buffer.from(await response.arrayBuffer());
   const cells = Cell.fromBoc(bytes);
 
   if (cells.length !== 1) {
@@ -53,19 +54,16 @@ async function loadContractCode(url: string): Promise<Cell> {
 function validateInput(input: JettonDeploymentInput): Address {
   const name = input.name.trim();
   const symbol = input.symbol.trim();
-  const description = input.description.trim();
 
   if (!name || name.length > 100) {
     throw new Error("Token name must contain 1–100 characters.");
   }
 
   if (!/^[A-Za-z0-9._-]{1,20}$/.test(symbol)) {
-    throw new Error(
-      "Symbol must contain 1–20 letters, numbers, dots, underscores or hyphens.",
-    );
+    throw new Error("Symbol must contain 1–20 valid characters.");
   }
 
-  if (description.length > 1000) {
+  if (input.description.trim().length > 1000) {
     throw new Error("Description must be at most 1000 characters.");
   }
 
@@ -81,29 +79,31 @@ function validateInput(input: JettonDeploymentInput): Address {
     throw new Error("Supply must be a positive whole number.");
   }
 
-  const smallestUnitSupply =
+  const supply =
     BigInt(input.supply) * 10n ** BigInt(input.decimals);
 
-  if (smallestUnitSupply > MAX_SUPPLY) {
+  if (supply > MAX_SUPPLY) {
     throw new Error("Token supply exceeds the supported limit.");
   }
 
   return Address.parse(input.adminAddress);
 }
 
-async function metadataKey(key: string): Promise<Uint8Array> {
-  const encoded = new TextEncoder().encode(key);
-  const digest = await crypto.subtle.digest("SHA-256", encoded);
+async function metadataKey(key: string): Promise<Buffer> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(key),
+  );
 
-  return new Uint8Array(digest);
+  return Buffer.from(new Uint8Array(digest));
 }
 
 function snakeString(value: string): Cell {
-  const bytes = new TextEncoder().encode(value);
-  const chunks: Uint8Array[] = [];
+  const bytes = Buffer.from(value, "utf8");
+  const chunks: Buffer[] = [];
 
   for (let i = 0; i < bytes.length; i += 127) {
-    chunks.push(bytes.slice(i, i + 127));
+    chunks.push(Buffer.from(bytes.subarray(i, i + 127)));
   }
 
   if (chunks.length === 0) {
@@ -143,10 +143,7 @@ async function buildMetadata(
   for (const [key, value] of fields) {
     const keyBytes = await metadataKey(key);
 
-    dictionary.set(
-      Buffer.from(keyBytes),
-      snakeString(value),
-    );
+    dictionary.set(keyBytes, snakeString(value));
   }
 
   return beginCell()
@@ -169,8 +166,8 @@ export async function prepareJettonDeployment(
   const supply =
     BigInt(input.supply) * 10n ** BigInt(input.decimals);
 
-  // This minter source stores the initial total supply as zero.
-  // Initial minting must be implemented as a separate transaction.
+  // The provided minter contract initializes total_supply to zero.
+  // Initial minting requires a separate, correctly implemented transaction.
   const data = beginCell()
     .storeCoins(0)
     .storeAddress(admin)
@@ -192,20 +189,16 @@ export async function prepareJettonDeployment(
 
   const address = contractAddress(0, stateInit);
 
-  // Inform the caller of the requested initial amount.
-  // This is NOT a signed deployment transaction or a mint transaction.
-  const initialData = beginCell()
-    .storeCoins(supply)
-    .endCell()
-    .toBoc()
-    .toString("base64");
-
   return {
     address: address.toString({
       bounceable: false,
       testOnly: false,
     }),
     stateInit: stateInitCell.toBoc().toString("base64"),
-    initialData,
+    initialData: beginCell()
+      .storeCoins(supply)
+      .endCell()
+      .toBoc()
+      .toString("base64"),
   };
 }
