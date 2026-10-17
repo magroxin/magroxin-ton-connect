@@ -213,37 +213,43 @@ function decodeComment(body: unknown): string | null {
  * Fail closed: missing or incomplete transaction data
  * must never be treated as successful payment.
  */
+
 function transactionSucceeded(tx: any): boolean {
   const description = tx?.description;
 
+  // A complete transaction description is mandatory.
   if (!description || typeof description !== "object") {
     return false;
   }
 
+  // Reject aborted or destroyed transactions.
   if (description.aborted !== false) return false;
   if (description.destroyed !== false) return false;
 
+  // Reject missing, unsuccessful, or skipped compute phases.
   const compute = description.compute_ph;
 
   if (!compute || compute.success !== true) {
     return false;
   }
 
-  if (compute.skipped === true) {
+  if (compute.skipped !== false) {
     return false;
   }
 
+  // If an action phase exists, it must have succeeded.
   const action = description.action;
 
-  if (
-    action !== undefined &&
-    (
-      !action ||
-      action.success !== true ||
-      action.valid !== true ||
-      action.no_funds === true
-    )
-  ) {
+  if (action !== undefined && action !== null) {
+    if (action.success !== true) return false;
+    if (action.valid !== true) return false;
+    if (action.no_funds !== false) return false;
+  }
+
+  // The inbound message must exist and not be bounced.
+  const message = tx?.in_msg;
+
+  if (!message || message.bounced !== false) {
     return false;
   }
 
