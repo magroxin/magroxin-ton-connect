@@ -250,6 +250,7 @@ function transactionSucceeded(tx: any): boolean {
   return true;
 }
 
+
 async function findVerifiedPayment(
   order: Order,
 ): Promise<{ hash: string } | null> {
@@ -260,112 +261,132 @@ async function findVerifiedPayment(
   const recipient = normalizeAddress(FEE_WALLET);
   const sender = normalizeAddress(order.walletAddress);
 
-  const url = new URL(`${TONCENTER_V3}/transactions`);
-
-  url.searchParams.set("account", recipient);
-  url.searchParams.set("limit", "1000");
-  url.searchParams.set("sort", "desc");
-  url.searchParams.set(
-    "start_utime",
-    String(Math.floor(order.createdAt / 1000)),
-  );
-  url.searchParams.set(
-    "end_utime",
-    String(
-      Math.floor(order.expiresAt / 1000) +
-        PAYMENT_GRACE_SECONDS,
-    ),
-  );
-
-  const response = await fetch(url, {
-    headers: {
-      accept: "application/json",
-      "X-API-Key": TONCENTER_API_KEY,
-    },
-    signal: AbortSignal.timeout(10000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`TON Center returned HTTP ${response.status}.`);
-  }
-
-  const data = (await response.json()) as {
-    transactions?: any[];
-  };
-
-  if (!Array.isArray(data.transactions)) {
-    throw new Error("Unexpected TON Center response.");
-  }
-
   const expectedComment = paymentComment(order.id);
   const expectedAmount = BigInt(order.amountNano);
+
   const createdSeconds = Math.floor(order.createdAt / 1000);
   const expiresSeconds =
     Math.floor(order.expiresAt / 1000) +
     PAYMENT_GRACE_SECONDS;
 
-  for (const tx of data.transactions) {
-    if (
-      typeof tx?.hash !== "string" ||
-      !tx.hash ||
-      !transactionSucceeded(tx)
-    ) {
-      continue;
+  const pageSize = 1000;
+  const maxPages = 10;
+
+  for (let page = 0; page < maxPages; page++) {
+    const url = new URL(`${TONCENTER_V3}/transactions`);
+
+    url.searchParams.set("account", recipient);
+    url.searchParams.set("limit", String(pageSize));
+    url.searchParams.set("offset", String(page * pageSize));
+    url.searchParams.set("sort", "desc");
+    url.searchParams.set("start_utime", String(createdSeconds));
+    url.searchParams.set("end_utime", String(expiresSeconds));
+
+    const response = await fetch(url, {
+      headers: {
+        accept: "application/json",
+        "X-API-Key": TONCENTER_API_KEY,
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `TON Center returned HTTP ${response.status}.`,
+      );
     }
 
-    const msg = tx.in_msg;
+    const data = (await response.json()) as {
+      transactions?: any[];
+    };
 
-    if (!msg || msg.bounced === true) continue;
-    if (!msg.source || !msg.destination || msg.value == null) {
-      continue;
+    if (!Array.isArray(data.transactions)) {
+      throw new Error("Unexpected TON Center response.");
     }
 
-    let actualSender: string;
-    let actualRecipient: string;
+    const transactions = data.transactions;
 
-    try {
-      actualSender = normalizeAddress(String(msg.source));
-      actualRecipient = normalizeAddress(String(msg.destination));
-    } catch {
-      continue;
+    for (const tx of transactions) {
+      if (
+        typeof tx?.hash !== "string" ||
+        !tx.hash ||
+        !transactionSucceeded(tx)
+      ) {
+        continue;
+      }
+
+      const msg = tx.in_msg;
+
+      if (
+        !msg ||
+        msg.bounced === true ||
+        !msg.source ||
+        !msg.destination ||
+        msg.value == null
+      ) {
+        continue;
+      }
+
+      let actualSender: string;
+      let actualRecipient: string;
+
+      try {
+        actualSender = normalizeAddress(String(msg.source));
+        actualRecipient = normalizeAddress(
+          String(msg.destination),
+        );
+      } catch {
+        continue;
+      }
+
+      if (actualSender !== sender) continue;
+      if (actualRecipient !== recipient) continue;
+
+      let actualAmount: bigint;
+
+      try {
+        actualAmount = BigInt(String(msg.value));
+      } catch {
+        continue;
+      }
+
+      if (actualAmount !== expectedAmount) continue;
+
+      const txTime = Number(tx.now);
+
+      if (
+        !Number.isSafeInteger(txTime) ||
+        txTime < createdSeconds ||
+        txTime > expiresSeconds
+      ) {
+        continue;
+      }
+
+      const decoded = msg.message_content?.decoded;
+
+      const comment =
+        typeof decoded?.comment === "string"
+          ? decoded.comment
+          : typeof decoded?.text === "string"
+            ? decoded.text
+            : decodeComment(msg.message_content?.body);
+
+      if (comment !== expectedComment) continue;
+
+      return { hash: tx.hash };
     }
 
-    if (actualSender !== sender) continue;
-    if (actualRecipient !== recipient) continue;
-
-    let actualAmount: bigint;
-
-    try {
-      actualAmount = BigInt(String(msg.value));
-    } catch {
-      continue;
+    if (transactions.length < pageSize) {
+      return null;
     }
-
-    if (actualAmount !== expectedAmount) continue;
-
-    const txTime = Number(tx.now);
-
-    if (!Number.isFinite(txTime)) continue;
-    if (txTime < createdSeconds || txTime > expiresSeconds) {
-      continue;
-    }
-
-    const decoded = msg.message_content?.decoded;
-
-    const comment =
-      typeof decoded?.comment === "string"
-        ? decoded.comment
-        : typeof decoded?.text === "string"
-          ? decoded.text
-          : decodeComment(msg.message_content?.body);
-
-    if (comment !== expectedComment) continue;
-
-    return { hash: tx.hash };
   }
 
-  return null;
+  // Search was capped. Do not claim that no payment exists.
+  throw new Error(
+    "Transaction search limit reached; verification is inconclusive.",
+  );
 }
+
 
 async function getTonUsdPrice(): Promise<number> {
   const urls = [
