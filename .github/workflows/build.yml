@@ -23,6 +23,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Install workspace dependencies
         run: npm install
@@ -32,6 +33,9 @@ jobs:
 
       - name: Check backend TypeScript
         run: npm run check -w server
+
+      - name: Run backend tests
+        run: npm test -w server
 
       - name: Build backend
         run: npm run build -w server
@@ -49,6 +53,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p build
+
           node --input-type=module <<'NODE'
           import { compileFunc } from "@ton-community/func-js";
           import { readFileSync, writeFileSync } from "node:fs";
