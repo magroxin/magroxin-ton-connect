@@ -35,7 +35,9 @@ async function loadContractCode(url: string): Promise<Cell> {
   const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
-    throw new Error(`Could not load contract code: HTTP ${response.status}`);
+    throw new Error(
+      `Could not load contract code: HTTP ${response.status}`,
+    );
   }
 
   const bytes = new Uint8Array(await response.arrayBuffer());
@@ -51,16 +53,19 @@ async function loadContractCode(url: string): Promise<Cell> {
 function validateInput(input: JettonDeploymentInput): Address {
   const name = input.name.trim();
   const symbol = input.symbol.trim();
+  const description = input.description.trim();
 
   if (!name || name.length > 100) {
     throw new Error("Token name must contain 1–100 characters.");
   }
 
   if (!/^[A-Za-z0-9._-]{1,20}$/.test(symbol)) {
-    throw new Error("Symbol must contain 1–20 valid characters.");
+    throw new Error(
+      "Symbol must contain 1–20 letters, numbers, dots, underscores or hyphens.",
+    );
   }
 
-  if (input.description.length > 1000) {
+  if (description.length > 1000) {
     throw new Error("Description must be at most 1000 characters.");
   }
 
@@ -76,54 +81,59 @@ function validateInput(input: JettonDeploymentInput): Address {
     throw new Error("Supply must be a positive whole number.");
   }
 
-  const supply = BigInt(input.supply) * 10n ** BigInt(input.decimals);
+  const smallestUnitSupply =
+    BigInt(input.supply) * 10n ** BigInt(input.decimals);
 
-  if (supply > MAX_SUPPLY) {
+  if (smallestUnitSupply > MAX_SUPPLY) {
     throw new Error("Token supply exceeds the supported limit.");
   }
 
   return Address.parse(input.adminAddress);
 }
 
-async function metadataKey(key: string): Promise<Buffer> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(key),
-  );
+async function metadataKey(key: string): Promise<Uint8Array> {
+  const encoded = new TextEncoder().encode(key);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
 
-  return Buffer.from(new Uint8Array(digest));
+  return new Uint8Array(digest);
 }
 
 function snakeString(value: string): Cell {
-  const bytes = Buffer.from(value, "utf8");
-  const root = beginCell();
-  let current = root;
-
-  // Store a UTF-8 string in TON snake format.
-  // Each cell contains at most 127 bytes.
-  const chunks: Buffer[] = [];
+  const bytes = new TextEncoder().encode(value);
+  const chunks: Uint8Array[] = [];
 
   for (let i = 0; i < bytes.length; i += 127) {
-    chunks.push(bytes.subarray(i, i + 127));
+    chunks.push(bytes.slice(i, i + 127));
   }
 
-  for (let i = 0; i < chunks.length; i++) {
-    current.storeBuffer(chunks[i]);
+  if (chunks.length === 0) {
+    return beginCell().endCell();
+  }
 
-    if (i < chunks.length - 1) {
-      const next = beginCell();
-      current.storeRef(next.endCell());
-      current = next;
+  let next: Cell | undefined;
+
+  for (let i = chunks.length - 1; i >= 0; i--) {
+    const builder = beginCell().storeBuffer(chunks[i]);
+
+    if (next) {
+      builder.storeRef(next);
     }
+
+    next = builder.endCell();
   }
 
-  return root.endCell();
+  return next!;
 }
 
-async function buildMetadata(input: JettonDeploymentInput): Promise<Cell> {
-  const entries: [Buffer, Cell][] = [];
+async function buildMetadata(
+  input: JettonDeploymentInput,
+): Promise<Cell> {
+  const dictionary = Dictionary.empty(
+    Dictionary.Keys.Buffer(32),
+    Dictionary.Values.Cell(),
+  );
 
-  const fields: [string, string][] = [
+  const fields: Array<[string, string]> = [
     ["name", input.name.trim()],
     ["symbol", input.symbol.trim()],
     ["description", input.description.trim()],
@@ -131,22 +141,14 @@ async function buildMetadata(input: JettonDeploymentInput): Promise<Cell> {
   ];
 
   for (const [key, value] of fields) {
-    entries.push([
-      await metadataKey(key),
+    const keyBytes = await metadataKey(key);
+
+    dictionary.set(
+      Buffer.from(keyBytes),
       snakeString(value),
-    ]);
+    );
   }
 
-  const dictionary = Dictionary.empty(
-    Dictionary.Keys.Buffer(32),
-    Dictionary.Values.Cell(),
-  );
-
-  for (const [key, value] of entries) {
-    dictionary.set(key, value);
-  }
-
-  // TEP-64 on-chain metadata content.
   return beginCell()
     .storeUint(0, 8)
     .storeDict(dictionary)
@@ -167,7 +169,8 @@ export async function prepareJettonDeployment(
   const supply =
     BigInt(input.supply) * 10n ** BigInt(input.decimals);
 
-  // Storage layout must exactly match jetton-minter.fc.
+  // This minter source stores the initial total supply as zero.
+  // Initial minting must be implemented as a separate transaction.
   const data = beginCell()
     .storeCoins(0)
     .storeAddress(admin)
@@ -180,9 +183,8 @@ export async function prepareJettonDeployment(
     data,
   };
 
-  const initCell = beginCell()
-    .storeBit(0) // split_depth absent
-    .storeBit(0) // special absent
+  const stateInitCell = beginCell()
+    .storeUint(0, 2)
     .storeMaybeRef(stateInit.code)
     .storeMaybeRef(stateInit.data)
     .storeDict(null)
@@ -190,19 +192,20 @@ export async function prepareJettonDeployment(
 
   const address = contractAddress(0, stateInit);
 
-  // The supplied minter source starts with zero supply and does not
-  // mint tokens automatically during deployment.
-  // Never report this result as a completed token deployment.
+  // Inform the caller of the requested initial amount.
+  // This is NOT a signed deployment transaction or a mint transaction.
+  const initialData = beginCell()
+    .storeCoins(supply)
+    .endCell()
+    .toBoc()
+    .toString("base64");
+
   return {
     address: address.toString({
       bounceable: false,
       testOnly: false,
     }),
-    stateInit: initCell.toBoc().toString("base64"),
-    initialData: beginCell()
-      .storeCoins(supply)
-      .endCell()
-      .toBoc()
-      .toString("base64"),
+    stateInit: stateInitCell.toBoc().toString("base64"),
+    initialData,
   };
 }
