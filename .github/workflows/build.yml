@@ -1,4 +1,4 @@
-
+```yaml
 name: MAGROXIN TON Build
 
 on:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -73,9 +75,7 @@ jobs:
               } catch {}
             }
 
-            throw new Error(
-              `Missing FunC source: ${requested}. Check the contract import paths.`
-            );
+            throw new Error(`Missing FunC source: ${requested}`);
           }
 
           async function compile(target, outputName) {
@@ -87,38 +87,50 @@ jobs:
             });
 
             if (result.status !== "ok") {
-              throw new Error(
-                `Compilation failed for ${target}:\n${result.message}`
-              );
+              throw new Error(`Compilation failed for ${target}:\n${result.message}`);
             }
 
-            const base = path.join(root, "build", outputName);
-
             writeFileSync(
-              `${base}.boc`,
+              path.join(root, "build", `${outputName}.boc`),
               Buffer.from(result.codeBoc, "base64")
             );
 
-            writeFileSync(`${base}.fif`, result.fiftCode, "utf8");
+            writeFileSync(
+              path.join(root, "build", `${outputName}.fif`),
+              result.fiftCode,
+              "utf8"
+            );
 
             console.log(`Created ${outputName}.boc and ${outputName}.fif`);
           }
 
-          await compile(
-            "contracts/jetton-minter.fc",
-            "jetton-minter"
-          );
-
-          await compile(
-            "contracts/jetton-wallet.fc",
-            "jetton-wallet"
-          );
+          await compile("contracts/jetton-minter.fc", "jetton-minter");
+          await compile("contracts/jetton-wallet.fc", "jetton-wallet");
           NODE
 
           test -s build/jetton-minter.boc
           test -s build/jetton-wallet.boc
           test -s build/jetton-minter.fif
           test -s build/jetton-wallet.fif
+
+      - name: Copy compiled BOCs into contracts/build
+        run: |
+          mkdir -p contracts/build
+          cp build/jetton-minter.boc contracts/build/jetton-minter.boc
+          cp build/jetton-wallet.boc contracts/build/jetton-wallet.boc
+
+      - name: Commit updated BOCs
+        if: github.event_name != 'pull_request'
+        run: |
+          if [[ -n "$(git status --porcelain contracts/build/jetton-minter.boc contracts/build/jetton-wallet.boc)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add contracts/build/jetton-minter.boc contracts/build/jetton-wallet.boc
+            git commit -m "Build updated Jetton contract BOCs"
+            git push
+          else
+            echo "Contract BOCs are already up to date."
+          fi
 
       - name: Upload compiled contract artifacts
         uses: actions/upload-artifact@v4
@@ -131,3 +143,4 @@ jobs:
             build/jetton-wallet.fif
           if-no-files-found: error
           retention-days: 14
+```
