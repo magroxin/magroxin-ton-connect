@@ -1,11 +1,13 @@
 ```yaml
 name: MAGROXIN TON Build
 
-on:
+"on":
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
