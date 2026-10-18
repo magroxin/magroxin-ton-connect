@@ -33,8 +33,7 @@ const MINTER_CODE_URL =
 const WALLET_CODE_URL =
   "https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/main/contracts/build/jetton-wallet.boc";
 
-// Provisional transaction budget only; actual network costs may vary.
-// Do not send a Mainnet transaction until contract BOCs are verified.
+// Provisional only. Do not use for a real Mainnet transaction until verified.
 const DEPLOY_VALUE_NANO = "500000000";
 const WALLET_FUNDING_NANO = "100000000";
 const MAX_SUPPLY_UNITS = 10n ** 30n;
@@ -43,9 +42,7 @@ async function loadContractCode(url: string): Promise<Cell> {
   const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
-    throw new Error(
-      `Could not load contract code: HTTP ${response.status}`,
-    );
+    throw new Error(`Could not load contract code: HTTP ${response.status}`);
   }
 
   const cells = Cell.fromBoc(
@@ -59,10 +56,7 @@ async function loadContractCode(url: string): Promise<Cell> {
   return cells[0];
 }
 
-function validateInput(input: JettonDeploymentInput): {
-  admin: Address;
-  supplyUnits: bigint;
-} {
+function validateInput(input: JettonDeploymentInput) {
   const name = input.name.trim();
   const symbol = input.symbol.trim();
 
@@ -90,6 +84,7 @@ function validateInput(input: JettonDeploymentInput): {
     throw new Error("Supply must be a positive whole number.");
   }
 
+  const admin = Address.parse(input.adminAddress);
   const supplyUnits =
     BigInt(input.supply) * 10n ** BigInt(input.decimals);
 
@@ -97,10 +92,7 @@ function validateInput(input: JettonDeploymentInput): {
     throw new Error("Token supply exceeds the supported limit.");
   }
 
-  return {
-    admin: Address.parse(input.adminAddress),
-    supplyUnits,
-  };
+  return { admin, supplyUnits };
 }
 
 async function metadataKey(key: string): Promise<Buffer> {
@@ -123,12 +115,9 @@ function snakeString(value: string): Cell {
 
   for (let offset = bytes.length; offset > 0; offset -= 127) {
     const start = Math.max(0, offset - 127);
-    const chunk = bytes.subarray(start, offset);
-    const builder = beginCell().storeBuffer(chunk);
+    const builder = beginCell().storeBuffer(bytes.subarray(start, offset));
 
-    if (next) {
-      builder.storeRef(next);
-    }
+    if (next) builder.storeRef(next);
 
     next = builder.endCell();
   }
@@ -152,17 +141,10 @@ async function buildMetadata(
   ];
 
   for (const [key, value] of fields) {
-    dictionary.set(
-      await metadataKey(key),
-      snakeString(value),
-    );
+    dictionary.set(await metadataKey(key), snakeString(value));
   }
 
-  // TEP-64 on-chain metadata content.
-  return beginCell()
-    .storeUint(0, 8)
-    .storeDict(dictionary)
-    .endCell();
+  return beginCell().storeUint(0, 8).storeDict(dictionary).endCell();
 }
 
 export async function prepareJettonDeployment(
@@ -176,8 +158,7 @@ export async function prepareJettonDeployment(
     buildMetadata(input),
   ]);
 
-  // The provided minter storage starts with total_supply = 0.
-  // The mint message below requests minting to the admin's wallet.
+  // Must match load_data() in jetton-minter.fc.
   const data = beginCell()
     .storeCoins(0)
     .storeAddress(admin)
@@ -192,8 +173,7 @@ export async function prepareJettonDeployment(
 
   const address = contractAddress(0, stateInit);
 
-  // Jetton internal-transfer body sent by the minter to the
-  // recipient's Jetton wallet.
+  // Initial supply is encoded in the internal_transfer message.
   const internalTransfer = beginCell()
     .storeUint(0x178d4519, 32)
     .storeUint(0, 64)
@@ -204,7 +184,7 @@ export async function prepareJettonDeployment(
     .storeBit(0)
     .endCell();
 
-  // Standard minter mint opcode.
+  // Must match the mint handler in jetton-minter.fc.
   const mintPayload = beginCell()
     .storeUint(21, 32)
     .storeUint(0, 64)
