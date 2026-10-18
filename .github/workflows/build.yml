@@ -1,7 +1,6 @@
-```yaml
 name: MAGROXIN TON Build
 
-"on":
+on:
   push:
     branches:
       - main
@@ -11,7 +10,7 @@ name: MAGROXIN TON Build
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -20,8 +19,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,107 +39,3 @@ jobs:
 
       - name: Build backend
         run: npm run build -w server
-
-      - name: Verify contract sources
-        run: |
-          test -s contracts/jetton-minter.fc
-          test -s contracts/jetton-wallet.fc
-          test -d contracts/imports
-
-      - name: Install FunC WASM compiler
-        run: npm install --no-save --package-lock=false @ton-community/func-js@0.11.0
-
-      - name: Compile Jetton contracts
-        shell: bash
-        run: |
-          mkdir -p build
-
-          node --input-type=module <<'NODE'
-          import { compileFunc } from "@ton-community/func-js";
-          import { readFileSync, writeFileSync } from "node:fs";
-          import path from "node:path";
-
-          const root = process.cwd();
-
-          function resolveSource(requested) {
-            const candidates = [
-              path.resolve(root, requested),
-              path.resolve(root, "contracts", requested),
-              path.resolve(root, "contracts", "imports", path.basename(requested))
-            ];
-
-            for (const candidate of candidates) {
-              try {
-                return readFileSync(candidate, "utf8");
-              } catch {}
-            }
-
-            throw new Error(`Missing FunC source: ${requested}`);
-          }
-
-          async function compile(target, outputName) {
-            console.log(`Compiling ${target}`);
-
-            const result = await compileFunc({
-              targets: [target],
-              sources: resolveSource
-            });
-
-            if (result.status !== "ok") {
-              throw new Error(`Compilation failed for ${target}:\n${result.message}`);
-            }
-
-            writeFileSync(
-              path.join(root, "build", `${outputName}.boc`),
-              Buffer.from(result.codeBoc, "base64")
-            );
-
-            writeFileSync(
-              path.join(root, "build", `${outputName}.fif`),
-              result.fiftCode,
-              "utf8"
-            );
-
-            console.log(`Created ${outputName}.boc and ${outputName}.fif`);
-          }
-
-          await compile("contracts/jetton-minter.fc", "jetton-minter");
-          await compile("contracts/jetton-wallet.fc", "jetton-wallet");
-          NODE
-
-          test -s build/jetton-minter.boc
-          test -s build/jetton-wallet.boc
-          test -s build/jetton-minter.fif
-          test -s build/jetton-wallet.fif
-
-      - name: Copy compiled BOCs into contracts/build
-        run: |
-          mkdir -p contracts/build
-          cp build/jetton-minter.boc contracts/build/jetton-minter.boc
-          cp build/jetton-wallet.boc contracts/build/jetton-wallet.boc
-
-      - name: Commit updated BOCs
-        if: github.event_name != 'pull_request'
-        run: |
-          if [[ -n "$(git status --porcelain contracts/build/jetton-minter.boc contracts/build/jetton-wallet.boc)" ]]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add contracts/build/jetton-minter.boc contracts/build/jetton-wallet.boc
-            git commit -m "Build updated Jetton contract BOCs"
-            git push
-          else
-            echo "Contract BOCs are already up to date."
-          fi
-
-      - name: Upload compiled contract artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: magroxin-jetton-contracts
-          path: |
-            build/jetton-minter.boc
-            build/jetton-wallet.boc
-            build/jetton-minter.fif
-            build/jetton-wallet.fif
-          if-no-files-found: error
-          retention-days: 14
-```
