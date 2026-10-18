@@ -5,6 +5,7 @@ import {
   Cell,
   Dictionary,
   contractAddress,
+  storeStateInit,
   type StateInit,
 } from "@ton/core";
 import { Buffer } from "buffer";
@@ -21,7 +22,9 @@ export type JettonDeploymentInput = {
 export type JettonDeploymentResult = {
   address: string;
   stateInit: string;
-  initialData: string;
+  payload: string;
+  deployValueNano: string;
+  supplyUnits: string;
 };
 
 const MINTER_CODE_URL =
@@ -30,7 +33,11 @@ const MINTER_CODE_URL =
 const WALLET_CODE_URL =
   "https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/main/contracts/build/jetton-wallet.boc";
 
-const MAX_SUPPLY = 10n ** 30n;
+// Provisional transaction budget only; actual network costs may vary.
+// Do not send a Mainnet transaction until contract BOCs are verified.
+const DEPLOY_VALUE_NANO = "500000000";
+const WALLET_FUNDING_NANO = "100000000";
+const MAX_SUPPLY_UNITS = 10n ** 30n;
 
 async function loadContractCode(url: string): Promise<Cell> {
   const response = await fetch(url, { cache: "no-store" });
@@ -41,8 +48,9 @@ async function loadContractCode(url: string): Promise<Cell> {
     );
   }
 
-  const bytes = Buffer.from(await response.arrayBuffer());
-  const cells = Cell.fromBoc(bytes);
+  const cells = Cell.fromBoc(
+    Buffer.from(await response.arrayBuffer()),
+  );
 
   if (cells.length !== 1) {
     throw new Error("Unexpected contract BOC format.");
@@ -51,16 +59,19 @@ async function loadContractCode(url: string): Promise<Cell> {
   return cells[0];
 }
 
-function validateInput(input: JettonDeploymentInput): Address {
+function validateInput(input: JettonDeploymentInput): {
+  admin: Address;
+  supplyUnits: bigint;
+} {
   const name = input.name.trim();
   const symbol = input.symbol.trim();
 
-  if (!name || name.length > 100) {
-    throw new Error("Token name must contain 1–100 characters.");
+  if (name.length < 2 || name.length > 100) {
+    throw new Error("Token name must contain 2–100 characters.");
   }
 
-  if (!/^[A-Za-z0-9._-]{1,20}$/.test(symbol)) {
-    throw new Error("Symbol must contain 1–20 valid characters.");
+  if (!/^[A-Za-z0-9._-]{2,10}$/.test(symbol)) {
+    throw new Error("Token symbol must contain 2–10 valid characters.");
   }
 
   if (input.description.trim().length > 1000) {
@@ -70,23 +81,26 @@ function validateInput(input: JettonDeploymentInput): Address {
   if (
     !Number.isInteger(input.decimals) ||
     input.decimals < 0 ||
-    input.decimals > 18
+    input.decimals > 9
   ) {
-    throw new Error("Decimals must be between 0 and 18.");
+    throw new Error("Decimals must be between 0 and 9.");
   }
 
   if (!/^[1-9]\d*$/.test(input.supply)) {
     throw new Error("Supply must be a positive whole number.");
   }
 
-  const supply =
+  const supplyUnits =
     BigInt(input.supply) * 10n ** BigInt(input.decimals);
 
-  if (supply > MAX_SUPPLY) {
+  if (supplyUnits > MAX_SUPPLY_UNITS) {
     throw new Error("Token supply exceeds the supported limit.");
   }
 
-  return Address.parse(input.adminAddress);
+  return {
+    admin: Address.parse(input.adminAddress),
+    supplyUnits,
+  };
 }
 
 async function metadataKey(key: string): Promise<Buffer> {
@@ -95,25 +109,22 @@ async function metadataKey(key: string): Promise<Buffer> {
     new TextEncoder().encode(key),
   );
 
-  return Buffer.from(new Uint8Array(digest));
+  return Buffer.from(digest);
 }
 
 function snakeString(value: string): Cell {
   const bytes = Buffer.from(value, "utf8");
-  const chunks: Buffer[] = [];
 
-  for (let i = 0; i < bytes.length; i += 127) {
-    chunks.push(Buffer.from(bytes.subarray(i, i + 127)));
-  }
-
-  if (chunks.length === 0) {
+  if (bytes.length === 0) {
     return beginCell().endCell();
   }
 
   let next: Cell | undefined;
 
-  for (let i = chunks.length - 1; i >= 0; i--) {
-    const builder = beginCell().storeBuffer(chunks[i]);
+  for (let offset = bytes.length; offset > 0; offset -= 127) {
+    const start = Math.max(0, offset - 127);
+    const chunk = bytes.subarray(start, offset);
+    const builder = beginCell().storeBuffer(chunk);
 
     if (next) {
       builder.storeRef(next);
@@ -135,17 +146,19 @@ async function buildMetadata(
 
   const fields: Array<[string, string]> = [
     ["name", input.name.trim()],
-    ["symbol", input.symbol.trim()],
+    ["symbol", input.symbol.trim().toUpperCase()],
     ["description", input.description.trim()],
     ["decimals", String(input.decimals)],
   ];
 
   for (const [key, value] of fields) {
-    const keyBytes = await metadataKey(key);
-
-    dictionary.set(keyBytes, snakeString(value));
+    dictionary.set(
+      await metadataKey(key),
+      snakeString(value),
+    );
   }
 
+  // TEP-64 on-chain metadata content.
   return beginCell()
     .storeUint(0, 8)
     .storeDict(dictionary)
@@ -155,7 +168,7 @@ async function buildMetadata(
 export async function prepareJettonDeployment(
   input: JettonDeploymentInput,
 ): Promise<JettonDeploymentResult> {
-  const admin = validateInput(input);
+  const { admin, supplyUnits } = validateInput(input);
 
   const [minterCode, walletCode, content] = await Promise.all([
     loadContractCode(MINTER_CODE_URL),
@@ -163,11 +176,8 @@ export async function prepareJettonDeployment(
     buildMetadata(input),
   ]);
 
-  const supply =
-    BigInt(input.supply) * 10n ** BigInt(input.decimals);
-
-  // The provided minter contract initializes total_supply to zero.
-  // Initial minting requires a separate, correctly implemented transaction.
+  // The provided minter storage starts with total_supply = 0.
+  // The mint message below requests minting to the admin's wallet.
   const data = beginCell()
     .storeCoins(0)
     .storeAddress(admin)
@@ -180,25 +190,43 @@ export async function prepareJettonDeployment(
     data,
   };
 
-  const stateInitCell = beginCell()
-    .storeUint(0, 2)
-    .storeMaybeRef(stateInit.code)
-    .storeMaybeRef(stateInit.data)
-    .storeDict(null)
+  const address = contractAddress(0, stateInit);
+
+  // Jetton internal-transfer body sent by the minter to the
+  // recipient's Jetton wallet.
+  const internalTransfer = beginCell()
+    .storeUint(0x178d4519, 32)
+    .storeUint(0, 64)
+    .storeCoins(supplyUnits)
+    .storeAddress(address)
+    .storeAddress(admin)
+    .storeCoins(0)
+    .storeBit(0)
     .endCell();
 
-  const address = contractAddress(0, stateInit);
+  // Standard minter mint opcode.
+  const mintPayload = beginCell()
+    .storeUint(0x642b7d07, 32)
+    .storeUint(0, 64)
+    .storeAddress(admin)
+    .storeCoins(BigInt(WALLET_FUNDING_NANO))
+    .storeRef(internalTransfer)
+    .endCell();
+
+  const stateInitBoc = beginCell()
+    .store(storeStateInit(stateInit))
+    .endCell()
+    .toBoc()
+    .toString("base64");
 
   return {
     address: address.toString({
       bounceable: false,
       testOnly: false,
     }),
-    stateInit: stateInitCell.toBoc().toString("base64"),
-    initialData: beginCell()
-      .storeCoins(supply)
-      .endCell()
-      .toBoc()
-      .toString("base64"),
+    stateInit: stateInitBoc,
+    payload: mintPayload.toBoc().toString("base64"),
+    deployValueNano: DEPLOY_VALUE_NANO,
+    supplyUnits: supplyUnits.toString(),
   };
 }
