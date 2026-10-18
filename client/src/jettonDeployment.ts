@@ -206,7 +206,7 @@ export async function prepareJettonDeployment(
 
   // Standard minter mint opcode.
   const mintPayload = beginCell()
-    .storeUint(0x642b7d07, 32)
+    .storeUint(21, 32)
     .storeUint(0, 64)
     .storeAddress(admin)
     .storeCoins(BigInt(WALLET_FUNDING_NANO))
