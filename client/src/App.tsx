@@ -15,7 +15,7 @@ type Order = {
   serviceFeeNetwork: "mainnet";
   deploymentNetwork: "mainnet";
   status: string;
-  expiresAt: string;
+  expiresAt: number;
 };
 
 type PaymentRequest = {
@@ -41,6 +41,8 @@ const API = (
   import.meta.env.VITE_API_BASE ||
   "https://magroxin-ton-api.onrender.com"
 ).replace(/\/+$/, "");
+
+const PAID_STATUS = "PAID — VERIFIED ON-CHAIN";
 
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
@@ -74,7 +76,7 @@ export default function App() {
   const [tonConnectUI] = useTonConnectUI();
 
   const isMainnet = wallet?.account.chain === "-239";
-  const isPaid = paidStatus === "PAID — VERIFIED ON-CHAIN";
+  const isPaid = paidStatus === PAID_STATUS;
 
   const valid = useMemo(
     () =>
@@ -82,6 +84,7 @@ export default function App() {
       /^[A-Za-z0-9._-]{2,10}$/.test(symbol.trim()) &&
       /^[1-9]\d*$/.test(supply) &&
       Number.isSafeInteger(Number(supply)) &&
+      Number.isInteger(Number(decimals)) &&
       Number(decimals) >= 0 &&
       Number(decimals) <= 9 &&
       description.trim().length <= 1000,
@@ -146,7 +149,7 @@ export default function App() {
     }
   }
 
-  async function verifyPayment(orderId: string) {
+  async function verifyPayment(orderId: string): Promise<boolean> {
     const response = await fetch(
       `${API}/api/orders/${encodeURIComponent(orderId)}/verify`,
       { method: "POST" }
@@ -154,12 +157,16 @@ export default function App() {
 
     const data = await response.json().catch(() => ({}));
 
-    if (data.status === "paid" && data.paymentMarkedPaid === true) {
-      setPaidStatus("PAID — VERIFIED ON-CHAIN");
+    if (
+      response.ok &&
+      data.status === "paid" &&
+      data.paymentMarkedPaid === true
+    ) {
+      setPaidStatus(PAID_STATUS);
       setMessage(
-        "Service fee verified. You can now prepare token deployment."
+        "Service fee verified on-chain. Deployment still requires a separate transaction."
       );
-      return;
+      return true;
     }
 
     if (response.status === 202 || data.status === "pending") {
@@ -167,7 +174,7 @@ export default function App() {
       setMessage(
         data.message || "Payment confirmation is still pending."
       );
-      return;
+      return false;
     }
 
     if (!response.ok) {
@@ -176,6 +183,7 @@ export default function App() {
 
     setPaidStatus(data.status || "UNCONFIRMED");
     setMessage(data.message || "Payment is not confirmed yet.");
+    return false;
   }
 
   async function payServiceFee() {
@@ -227,7 +235,14 @@ export default function App() {
 
       setPaidStatus("TRANSACTION SUBMITTED — VERIFYING");
       setMessage("Transaction submitted. Checking Mainnet confirmation...");
-      await verifyPayment(order.id);
+
+      const verified = await verifyPayment(order.id);
+
+      if (!verified) {
+        setMessage(
+          "Payment transaction submitted. On-chain verification is still pending; check again shortly."
+        );
+      }
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -296,9 +311,7 @@ export default function App() {
   }
 
   async function deployToken() {
-    if (!wallet || !address || !order || !isPaid || !deployment || busy) {
-      return;
-    }
+    if (!wallet || !address || !order || !deployment || busy) return;
 
     if (!isMainnet) {
       setMessage("Switch your wallet to TON Mainnet first.");
@@ -311,12 +324,12 @@ export default function App() {
     setMessage("");
 
     try {
-      // Recheck that the service fee is verified before deployment.
-      await verifyPayment(order.id);
+      // Use the fresh return value instead of stale React state.
+      const verified = await verifyPayment(order.id);
 
-      if (paidStatus !== "PAID — VERIFIED ON-CHAIN") {
+      if (!verified) {
         throw new Error(
-          "Service-fee verification must be confirmed before deployment."
+          "Service-fee verification is not confirmed. Deployment is blocked."
         );
       }
 
