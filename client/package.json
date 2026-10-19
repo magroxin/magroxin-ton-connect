@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build"
   },
   "dependencies": {
+    "@ton/core": "^0.60.1",
     "@tonconnect/ui-react": "^2.3.0",
+    "buffer": "^6.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
