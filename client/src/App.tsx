@@ -6,6 +6,7 @@ import {
   useTonConnectUI,
   useTonWallet,
 } from "@tonconnect/ui-react";
+import { prepareJettonDeployment } from "./jettonDeployment";
 
 type Order = {
   id: string;
@@ -26,6 +27,14 @@ type PaymentRequest = {
   payload: string;
   validUntil: number;
   error?: string;
+};
+
+type DeploymentResult = {
+  address: string;
+  stateInit: string;
+  payload: string;
+  deployValueNano: string;
+  supplyUnits: string;
 };
 
 const API = (
@@ -56,25 +65,37 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [paidStatus, setPaidStatus] = useState("");
+  const [deployment, setDeployment] =
+    useState<DeploymentResult | null>(null);
+  const [deploymentStatus, setDeploymentStatus] = useState("");
 
   const address = useTonAddress();
   const wallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
 
+  const isMainnet = wallet?.account.chain === "-239";
+  const isPaid = paidStatus === "PAID — VERIFIED ON-CHAIN";
+
   const valid = useMemo(
     () =>
       name.trim().length >= 2 &&
-      /^[A-Za-z0-9]{2,10}$/.test(symbol.trim()) &&
-      Number(supply) > 0 &&
+      /^[A-Za-z0-9._-]{2,10}$/.test(symbol.trim()) &&
+      /^[1-9]\d*$/.test(supply) &&
       Number.isSafeInteger(Number(supply)) &&
       Number(decimals) >= 0 &&
-      Number(decimals) <= 9,
-    [name, symbol, supply, decimals]
+      Number(decimals) <= 9 &&
+      description.trim().length <= 1000,
+    [name, symbol, supply, decimals, description]
   );
 
   async function createOrder() {
     if (!wallet || !address) {
       setMessage("Connect your TON wallet first.");
+      return;
+    }
+
+    if (!isMainnet) {
+      setMessage("Switch your wallet to TON Mainnet first.");
       return;
     }
 
@@ -87,6 +108,8 @@ export default function App() {
     setMessage("");
     setOrder(null);
     setPaidStatus("");
+    setDeployment(null);
+    setDeploymentStatus("");
 
     try {
       const response = await fetch(`${API}/api/orders`, {
@@ -113,9 +136,7 @@ export default function App() {
 
       setOrder(data.order);
       setPaidStatus("UNPAID");
-      setMessage(
-        "Order created. Continue to your wallet to pay the service fee."
-      );
+      setMessage("Order created. Continue to pay the service fee.");
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not create order."
@@ -136,7 +157,7 @@ export default function App() {
     if (data.status === "paid" && data.paymentMarkedPaid === true) {
       setPaidStatus("PAID — VERIFIED ON-CHAIN");
       setMessage(
-        "Service fee verified. Token deployment is still a separate step."
+        "Service fee verified. You can now prepare token deployment."
       );
       return;
     }
@@ -144,8 +165,7 @@ export default function App() {
     if (response.status === 202 || data.status === "pending") {
       setPaidStatus("PAYMENT SENT — VERIFICATION PENDING");
       setMessage(
-        data.message ||
-          "The payment has not been confirmed by the API yet. Check again shortly."
+        data.message || "Payment confirmation is still pending."
       );
       return;
     }
@@ -161,17 +181,20 @@ export default function App() {
   async function payServiceFee() {
     if (!order || !wallet || !address || busy) return;
 
+    if (!isMainnet) {
+      setMessage("Switch your wallet to TON Mainnet first.");
+      return;
+    }
+
     setBusy(true);
     setMessage("");
-    
+
     try {
-      const requestResponse = await fetch(
+      const response = await fetch(
         `${API}/api/orders/${encodeURIComponent(order.id)}/payment-request`
       );
 
-      const payment = (await readResponse(
-        requestResponse
-      )) as PaymentRequest;
+      const payment = (await readResponse(response)) as PaymentRequest;
 
       if (
         !payment.address ||
@@ -187,10 +210,8 @@ export default function App() {
       }
 
       if (payment.validUntil <= Math.floor(Date.now() / 1000)) {
-        throw new Error("This payment request has expired. Create a new order.");
+        throw new Error("Payment request expired. Create a new order.");
       }
-
-      setMessage("Approve the $100 service-fee transaction in your wallet.");
 
       await tonConnectUI.sendTransaction({
         validUntil: payment.validUntil,
@@ -205,16 +226,13 @@ export default function App() {
       });
 
       setPaidStatus("TRANSACTION SUBMITTED — VERIFYING");
-      setMessage(
-        "Wallet submitted the transaction. Checking Mainnet confirmation..."
-      );
-
+      setMessage("Transaction submitted. Checking Mainnet confirmation...");
       await verifyPayment(order.id);
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Transaction was not confirmed. Check your wallet before retrying."
+          : "Transaction was not confirmed. Check your wallet."
       );
     } finally {
       setBusy(false);
@@ -231,9 +249,101 @@ export default function App() {
       await verifyPayment(order.id);
     } catch (error) {
       setMessage(
+        error instanceof Error ? error.message : "Could not check payment."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function prepareDeployment() {
+    if (!wallet || !address || !order || !isPaid || busy) return;
+
+    if (!isMainnet) {
+      setMessage("Switch your wallet to TON Mainnet first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+    setDeployment(null);
+    setDeploymentStatus("");
+
+    try {
+      const result = await prepareJettonDeployment({
+        adminAddress: address,
+        name: name.trim(),
+        symbol: symbol.trim().toUpperCase(),
+        description: description.trim(),
+        supply,
+        decimals: Number(decimals),
+      });
+
+      setDeployment(result);
+      setDeploymentStatus("READY");
+      setMessage(
+        "Deployment prepared. Review the destination and TON amount before approving."
+      );
+    } catch (error) {
+      setMessage(
         error instanceof Error
           ? error.message
-          : "Could not check payment status."
+          : "Could not prepare token deployment."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deployToken() {
+    if (!wallet || !address || !order || !isPaid || !deployment || busy) {
+      return;
+    }
+
+    if (!isMainnet) {
+      setMessage("Switch your wallet to TON Mainnet first.");
+      return;
+    }
+
+    if (deploymentStatus === "SUBMITTED") return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      // Recheck that the service fee is verified before deployment.
+      await verifyPayment(order.id);
+
+      if (paidStatus !== "PAID — VERIFIED ON-CHAIN") {
+        throw new Error(
+          "Service-fee verification must be confirmed before deployment."
+        );
+      }
+
+      setMessage("Review and approve the deployment transaction in your wallet.");
+
+      await tonConnectUI.sendTransaction({
+        validUntil: Math.floor(Date.now() / 1000) + 300,
+        network: "-239",
+        messages: [
+          {
+            address: deployment.address,
+            amount: deployment.deployValueNano,
+            stateInit: deployment.stateInit,
+            payload: deployment.payload,
+          },
+        ],
+      });
+
+      setDeploymentStatus("SUBMITTED");
+      setMessage(
+        "Wallet submitted the deployment transaction. Submission alone does not confirm successful on-chain deployment."
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Deployment was not confirmed. Check your wallet and transaction history."
       );
     } finally {
       setBusy(false);
@@ -282,7 +392,7 @@ export default function App() {
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="e.g. Magroxin Token"
-              maxLength={40}
+              maxLength={100}
             />
           </label>
 
@@ -328,7 +438,7 @@ export default function App() {
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Describe your token"
-            maxLength={500}
+            maxLength={1000}
           />
         </label>
 
@@ -359,9 +469,8 @@ export default function App() {
         </div>
 
         <p className="note">
-          The service fee is paid separately from blockchain deployment
-          costs. The TON amount is calculated by the API. Only approve a
-          transaction after reviewing its destination and amount in your wallet.
+          The service fee is separate from blockchain deployment costs.
+          Only approve transactions you have reviewed in your wallet.
         </p>
 
         <label className="check">
@@ -371,21 +480,22 @@ export default function App() {
             onChange={(event) => setAccepted(event.target.checked)}
           />
           <span>
-            I have reviewed the service fee, separate deployment
-            costs, and refund policy.
+            I have reviewed the service fee, separate deployment costs,
+            and refund policy.
           </span>
         </label>
 
         <button
           className="primary"
-          disabled={busy || !valid || !accepted || !wallet}
+          disabled={busy || !valid || !accepted || !wallet || !isMainnet}
           onClick={createOrder}
         >
           {busy ? "Please wait…" : "Prepare service-fee order"}
         </button>
 
-        {!wallet && (
-          <p className="hint">Connect your TON wallet to continue.</p>
+        {!wallet && <p className="hint">Connect your TON wallet to continue.</p>}
+        {wallet && !isMainnet && (
+          <p className="hint">Switch your connected wallet to TON Mainnet.</p>
         )}
 
         {order && (
@@ -403,7 +513,7 @@ export default function App() {
 
             <button
               className="primary"
-              disabled={busy || paidStatus === "PAID — VERIFIED ON-CHAIN"}
+              disabled={busy || isPaid}
               onClick={payServiceFee}
             >
               {busy ? "Processing…" : "Pay $100 service fee"}
@@ -411,27 +521,84 @@ export default function App() {
 
             <button
               className="secondary"
-              disabled={busy || paidStatus === "PAID — VERIFIED ON-CHAIN"}
+              disabled={busy || isPaid}
               onClick={checkPayment}
             >
               Check payment status
             </button>
-
-            {paidStatus === "PAID — VERIFIED ON-CHAIN" && (
-              <p className="note">
-                The service fee is verified. Token deployment is not yet
-                enabled, and no token has been deployed by this page.
-              </p>
-            )}
           </div>
         )}
-
-        {message && (
-          <p className="message" role="status">
-            {message}
-          </p>
-        )}
       </section>
+
+      {isPaid && order && (
+        <section className="panel">
+          <div className="section-head">
+            <div>
+              <span className="step">03</span>
+              <h2>Deploy token</h2>
+            </div>
+            <span className="chip">MAINNET</span>
+          </div>
+
+          <p className="note">
+            Service fee verified. Blockchain deployment requires a separate
+            wallet transaction and TON for network costs.
+          </p>
+
+          <button
+            className="primary"
+            disabled={busy || deploymentStatus === "SUBMITTED"}
+            onClick={prepareDeployment}
+          >
+            {busy ? "Preparing…" : "Prepare deployment"}
+          </button>
+
+          {deployment && (
+            <div className="order">
+              <strong>Deployment review</strong>
+              <p className="note">Jetton master address</p>
+              <p className="message">{deployment.address}</p>
+
+              <div className="order-amount">
+                {(Number(deployment.deployValueNano) / 1e9).toFixed(3)} TON
+                <small> attached deployment amount, not a gas quote</small>
+              </div>
+
+              <p className="note">
+                Initial supply: {supply} {symbol.toUpperCase()}
+                <br />
+                Wallet: {address}
+              </p>
+
+              <button
+                className="primary"
+                disabled={busy || deploymentStatus === "SUBMITTED"}
+                onClick={deployToken}
+              >
+                {busy
+                  ? "Processing…"
+                  : deploymentStatus === "SUBMITTED"
+                    ? "Transaction submitted"
+                    : "Approve deployment in wallet"}
+              </button>
+            </div>
+          )}
+
+          {deploymentStatus === "SUBMITTED" && (
+            <p className="note">
+              Transaction submitted. Verify the transaction and token master
+              address on a TON Mainnet explorer before treating deployment
+              as successful.
+            </p>
+          )}
+        </section>
+      )}
+
+      {message && (
+        <p className="message" role="status">
+          {message}
+        </p>
+      )}
 
       <footer>
         MAGROXIN · Secure transaction flow · Never share your wallet
