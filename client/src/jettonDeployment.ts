@@ -33,9 +33,8 @@ const MINTER_CODE_URL =
 const WALLET_CODE_URL =
   "https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/main/contracts/build/jetton-wallet.boc";
 
-// Provisional only. Do not use for a real Mainnet transaction until verified.
-const DEPLOY_VALUE_NANO = "500000000";
-const WALLET_FUNDING_NANO = "100000000";
+const DEPLOY_VALUE_NANO = "1500000000";
+const WALLET_FUNDING_NANO = "300000000";
 const MAX_SUPPLY_UNITS = 10n ** 30n;
 
 async function loadContractCode(url: string): Promise<Cell> {
@@ -59,6 +58,7 @@ async function loadContractCode(url: string): Promise<Cell> {
 function validateInput(input: JettonDeploymentInput) {
   const name = input.name.trim();
   const symbol = input.symbol.trim();
+  const description = input.description.trim();
 
   if (name.length < 2 || name.length > 100) {
     throw new Error("Token name must contain 2–100 characters.");
@@ -68,7 +68,7 @@ function validateInput(input: JettonDeploymentInput) {
     throw new Error("Token symbol must contain 2–10 valid characters.");
   }
 
-  if (input.description.trim().length > 1000) {
+  if (description.length > 1000) {
     throw new Error("Description must be at most 1000 characters.");
   }
 
@@ -115,9 +115,13 @@ function snakeString(value: string): Cell {
 
   for (let offset = bytes.length; offset > 0; offset -= 127) {
     const start = Math.max(0, offset - 127);
-    const builder = beginCell().storeBuffer(bytes.subarray(start, offset));
+    const builder = beginCell().storeBuffer(
+      bytes.subarray(start, offset),
+    );
 
-    if (next) builder.storeRef(next);
+    if (next) {
+      builder.storeRef(next);
+    }
 
     next = builder.endCell();
   }
@@ -141,10 +145,16 @@ async function buildMetadata(
   ];
 
   for (const [key, value] of fields) {
-    dictionary.set(await metadataKey(key), snakeString(value));
+    dictionary.set(
+      await metadataKey(key),
+      snakeString(value),
+    );
   }
 
-  return beginCell().storeUint(0, 8).storeDict(dictionary).endCell();
+  return beginCell()
+    .storeUint(0, 8)
+    .storeDict(dictionary)
+    .endCell();
 }
 
 export async function prepareJettonDeployment(
@@ -158,7 +168,6 @@ export async function prepareJettonDeployment(
     buildMetadata(input),
   ]);
 
-  // Must match load_data() in jetton-minter.fc.
   const data = beginCell()
     .storeCoins(0)
     .storeAddress(admin)
@@ -173,7 +182,6 @@ export async function prepareJettonDeployment(
 
   const address = contractAddress(0, stateInit);
 
-  // Initial supply is encoded in the internal_transfer message.
   const internalTransfer = beginCell()
     .storeUint(0x178d4519, 32)
     .storeUint(0, 64)
@@ -184,7 +192,6 @@ export async function prepareJettonDeployment(
     .storeBit(0)
     .endCell();
 
-  // Must match the mint handler in jetton-minter.fc.
   const mintPayload = beginCell()
     .storeUint(21, 32)
     .storeUint(0, 64)
