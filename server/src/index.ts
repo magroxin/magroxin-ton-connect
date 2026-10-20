@@ -217,40 +217,32 @@ function decodeComment(body: unknown): string | null {
 function transactionSucceeded(tx: any): boolean {
   const description = tx?.description;
 
-  // A complete transaction description is mandatory.
   if (!description || typeof description !== "object") {
     return false;
   }
 
-  // Reject aborted or destroyed transactions.
+  // Reject failed or aborted transactions.
   if (description.aborted !== false) return false;
-  if (description.destroyed !== false) return false;
 
-  // Reject missing, unsuccessful, or skipped compute phases.
+  if (description.destroyed === true) return false;
+
   const compute = description.compute_ph;
 
   if (!compute || compute.success !== true) {
     return false;
   }
 
-  if (compute.skipped !== false) {
+  if (compute.skipped === true) {
     return false;
   }
 
   // If an action phase exists, it must have succeeded.
   const action = description.action;
 
-  if (action !== undefined && action !== null) {
+  if (action != null) {
     if (action.success !== true) return false;
     if (action.valid !== true) return false;
-    if (action.no_funds !== false) return false;
-  }
-
-  // The inbound message must exist and not be bounced.
-  const message = tx?.in_msg;
-
-  if (!message || message.bounced !== false) {
-    return false;
+    if (action.no_funds === true) return false;
   }
 
   return true;
