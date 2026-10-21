@@ -1,56 +1,66 @@
-# MAGROXIN TON Connect
+# MAGROXIN TON Token Creator
 
-Starter repository for the MAGROXIN token-creation flow. It contains a React/TON Connect client, a small Express API, fee/order configuration, and a clear integration boundary for Jetton deployment.
+MAGROXIN is a TON Mainnet Jetton-creation web app with a React/TON Connect client, an Express API, and PostgreSQL-backed orders.
 
-## Important status
+## Current safety status
 
-This repository is a **starter implementation, not a production-ready token launch service**. Payment verification is intentionally disabled by default. Do not enable Mainnet payments until you have deployed the API over HTTPS, configured a TON provider key, implemented and tested provider-specific transaction/comment decoding, and completed end-to-end tests. The Jetton deployment step is intentionally a separate next integration; do not tell users a token was deployed merely because a fee transaction was submitted.
+**Real payments and token deployment remain disabled by default. Do not enable them until the required production checks below are completed.**
 
-## Fee rules
+- Network: TON Mainnet only.
+- Service fee target: $100 USD equivalent in TON.
+- Order data: PostgreSQL; order IDs are UUIDs.
+- Payment verification: server-side TON Center lookup checks sender, recipient, exact amount, order comment, time window, transaction success, and duplicate transaction use.
+- Abuse controls: per-wallet order creation limit and per-order payment-verification cooldown, enforced in PostgreSQL across API instances.
+- Jetton deployment: transaction preparation exists, but successful Mainnet deployment has not been validated end-to-end. The API hard-disables deployment.
+- No seed phrase or private key is requested or stored.
 
-- Mainnet token creation service fee: $100 equivalent in **Mainnet TON**.
-- Testnet token creation service fee: $1 equivalent in **Mainnet TON**.
-- Jetton deployment costs are separate and paid on the selected deployment network.
-- The receiving address is configured server-side in `server/.env`, not displayed in the UI.
-- Do not use a user's wallet seed phrase. TON Connect never needs it.
+## Before enabling real payments
 
-## Requirements
+1. Configure a production PostgreSQL database and back it up.
+2. Configure the fee wallet and TON Center API key on the API host; independently verify the fee wallet address.
+3. Set CLIENT_ORIGIN to the exact HTTPS origin serving the frontend.
+4. Validate TON Center transaction response fields against real Mainnet transactions and complete end-to-end tests.
+5. Add published terms, privacy, refund, and customer-support information.
+6. Confirm monitoring, provider quota handling, database backups, and incident procedures.
+7. Keep ENABLE_PAYMENT_REQUESTS=false and ENABLE_PAYMENT_VERIFICATION=false until all checks pass.
 
-- Node.js 20+
-- A public HTTPS host for the frontend and API in production
-- A publicly accessible HTTPS `tonconnect-manifest.json`
-- A TON Center API key for production transaction lookup/verification
-- Legal/fee/refund policy pages before collecting real funds
+## Before enabling token deployment
 
-## Local setup
+The Jetton contracts compile in CI and committed BOCs are checked against the source. This is not a substitute for an independent contract review or an end-to-end Mainnet deployment test. Verify deployment transaction construction, attached TON amount, minting, resulting total supply, wallet address, and on-chain confirmation. Only then should the hardcoded deployment block be reconsidered.
 
-1. Copy `.env.example` to `server/.env`.
-2. Review the fee wallet address and network settings carefully.
-3. Install packages from the repository root: `npm install`
-4. Run locally: `npm run dev`
-5. Open `http://localhost:5173`.
+## API configuration
 
-The wallet manifest is at `client/public/tonconnect-manifest.json`. Update its `url`, icon, terms and privacy URLs before deployment. TON Connect wallets require the manifest to be publicly accessible over HTTPS in production.
+See server/.env.example. In production, use the actual database URL and secrets in the hosting provider's environment settings; never commit them to Git.
 
-## What currently works
+Important settings:
+- DATABASE_URL: required PostgreSQL connection string.
+- DATABASE_SSL: set to true only when required by the database provider.
+- CLIENT_ORIGIN: exact frontend origin permitted by CORS and returned in the TON Connect manifest.
+- MAGROXIN_FEE_WALLET: Mainnet service-fee recipient.
+- MAINNET_SERVICE_FEE_USD: service fee in USD, default 100.
+- ENABLE_PAYMENT_REQUESTS: keep false until payment flow is validated.
+- ENABLE_PAYMENT_VERIFICATION: keep false until provider verification is validated.
+- TONCENTER_API_KEY: provider key used for transaction lookup.
 
-- Token details form and review screen
-- TON Connect wallet UI
-- Separate service-fee order creation
-- Explicit wallet transaction request with unique order reference
-- API endpoint structure for payment verification
-- Fee/network rules kept separate from the visible UI
+The API health endpoint is /health. It reports database connectivity and feature flags; a healthy response alone does not prove that payment or deployment flows are safe.
 
-## Not production-complete yet
+## Development
 
-- Provider-specific transaction verification is deliberately disabled by default; the API refuses to mark a payment paid until configured.
-- Live USD-to-TON conversion needs a trusted, time-sensitive price source and a documented quote expiry.
-- Jetton minter/wallet contract compilation, audit, deploy transaction construction, minting and end-to-end testing are not included as a claimed working feature.
-- Persist orders in a database before launch; the included in-memory store is lost on restart.
-- Add rate limiting, monitoring, abuse prevention, terms/privacy pages and operational support.
+Requirements: Node.js 22+ and npm.
 
-## Suggested production architecture
+```sh
+npm install
+npm run build -w client
+npm run check -w server
+npm test -w server
+npm run build -w server
+```
 
-Frontend (TON Connect) -> authenticated API -> persistent database -> TON provider transaction verification -> one-time paid order state -> user-approved deployment transaction on selected network.
+GitHub Actions also compiles the Jetton contracts and verifies that the committed BOCs match the compiled sources.
 
-Never accept a frontend success callback as proof of payment. Verify destination, sender, amount, chain, order reference, transaction finality and duplicate processing on the server.
+## Security notes
+
+- Never ask users for wallet recovery phrases or private keys.
+- A wallet submission is not proof that a transaction succeeded on-chain.
+- A fee payment must never automatically be treated as proof of token deployment.
+- Do not enable deployment until the backend can verify successful deployment on-chain and the client displays a confirmed master address.
