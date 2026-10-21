@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
+import { transactionSucceeded } from "./transactionSucceeded.js";
 
 const app = express();
 
@@ -62,10 +63,15 @@ const orderSchema = z.object({
   walletAddress: z.string().min(10).max(150),
   deploymentNetwork: z.literal("mainnet"),
   token: z.object({
-    name: z.string().trim().min(1).max(100),
-    symbol: z.string().trim().min(1).max(20),
-    supply: z.string().trim().regex(/^\d+(\.\d+)?$/).max(80),
-    decimals: z.number().int().min(0).max(18),
+    name: z.string().trim().min(2).max(100),
+    symbol: z.string().trim().regex(/^[A-Za-z0-9._-]{2,10}$/),
+    supply: z
+      .string()
+      .trim()
+      .regex(/^[1-9]\d*$/)
+      .max(16)
+      .refine((value) => Number.isSafeInteger(Number(value))),
+    decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
   }),
 });
@@ -89,11 +95,7 @@ app.disable("x-powered-by");
 app.use(
   cors({
     origin(origin, callback) {
-      if (
-        !origin ||
-        origin === CLIENT_ORIGIN ||
-        origin.endsWith(".blogspot.com")
-      ) {
+      if (!origin || origin === CLIENT_ORIGIN) {
         callback(null, true);
       } else {
         callback(new Error("Origin not allowed by CORS."));
@@ -102,7 +104,7 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "16kb" }));
 
 function normalizeAddress(value: string): string {
   return Address.parse(value).toRawString().toLowerCase();
@@ -213,41 +215,6 @@ function decodeComment(body: unknown): string | null {
  * Fail closed: missing or incomplete transaction data
  * must never be treated as successful payment.
  */
-
-function transactionSucceeded(tx: any): boolean {
-  const description = tx?.description;
-
-  if (!description || typeof description !== "object") {
-    return false;
-  }
-
-  // Reject failed or aborted transactions.
-  if (description.aborted !== false) return false;
-
-  if (description.destroyed === true) return false;
-
-  const compute = description.compute_ph;
-
-  if (!compute || compute.success !== true) {
-    return false;
-  }
-
-  if (compute.skipped === true) {
-    return false;
-  }
-
-  // If an action phase exists, it must have succeeded.
-  const action = description.action;
-
-  if (action != null) {
-    if (action.success !== true) return false;
-    if (action.valid !== true) return false;
-    if (action.no_funds === true) return false;
-  }
-
-  return true;
-}
-
 
 async function findVerifiedPayment(
   order: Order,
@@ -441,8 +408,14 @@ async function initializeDatabase(): Promise<void> {
       expires_at BIGINT NOT NULL,
       payment_tx_hash TEXT UNIQUE,
       token_data JSONB NOT NULL,
+      last_verification_at BIGINT,
       created_on TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE magroxin_orders
+    ADD COLUMN IF NOT EXISTS last_verification_at BIGINT;
   `);
 
   await pool.query(`
@@ -553,26 +526,74 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       description: parsed.data.token.description ?? "",
     };
 
-    const result = await pool.query(
-      `INSERT INTO magroxin_orders (
-        id, wallet_address, deployment_network,
-        service_fee_network, fee_usd, fee_ton,
-        amount_nano, status, created_at, expires_at, token_data
-      )
-      VALUES ($1, $2, 'mainnet', 'mainnet', $3, $4, $5,
-              'created', $6, $7, $8)
-      RETURNING *`,
-      [
-        id,
-        walletAddress,
-        MAINNET_FEE,
-        feeTon,
-        amountNano,
-        now,
-        expiresAt,
-        JSON.stringify(token),
-      ],
-    );
+    // Apply a shared PostgreSQL-backed per-wallet limit. Advisory locking keeps
+    // concurrent requests from bypassing the count on multiple Render instances.
+    const client = await pool.connect();
+    let transactionOpen = false;
+    let result;
+
+    try {
+      await client.query("BEGIN");
+      transactionOpen = true;
+
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtext($1)::bigint)",
+        [walletAddress],
+      );
+
+      const recent = await client.query(
+        `SELECT COUNT(*)::int AS count
+         FROM magroxin_orders
+         WHERE wallet_address = $1
+           AND created_on >= NOW() - INTERVAL '1 hour'`,
+        [walletAddress],
+      );
+
+      if (Number(recent.rows[0]?.count ?? 0) >= 5) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+        return res.status(429).json({
+          ok: false,
+          error: "Order limit reached for this wallet. Try again later.",
+          paymentSent: false,
+        });
+      }
+
+      result = await client.query(
+        `INSERT INTO magroxin_orders (
+          id, wallet_address, deployment_network,
+          service_fee_network, fee_usd, fee_ton,
+          amount_nano, status, created_at, expires_at, token_data
+        )
+        VALUES ($1, $2, 'mainnet', 'mainnet', $3, $4, $5,
+                'created', $6, $7, $8)
+        RETURNING *`,
+        [
+          id,
+          walletAddress,
+          MAINNET_FEE,
+          feeTon,
+          amountNano,
+          now,
+          expiresAt,
+          JSON.stringify(token),
+        ],
+      );
+
+      await client.query("COMMIT");
+      transactionOpen = false;
+    } catch (error) {
+      if (transactionOpen) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          // Preserve the original error.
+        }
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
 
     const order = rowToOrder(result.rows[0]);
 
@@ -779,6 +800,41 @@ app.post(
         ok: false,
         status: expired.status,
         error: "Order expired. Create a new order.",
+        paymentMarkedPaid: false,
+      });
+    }
+
+    // Throttle provider lookups per order across all API instances.
+    // The conditional update is atomic, so simultaneous requests cannot all
+    // start expensive TON Center scans for the same order.
+    const verificationWindowStart = Date.now();
+    let verificationClaim;
+
+    try {
+      verificationClaim = await pool.query(
+        `UPDATE magroxin_orders
+         SET last_verification_at = $2
+         WHERE id = $1
+           AND status = 'created'
+           AND (
+             last_verification_at IS NULL OR
+             last_verification_at <= $3
+           )
+         RETURNING id`,
+        [id, verificationWindowStart, verificationWindowStart - 30000],
+      );
+    } catch {
+      return res.status(503).json({
+        ok: false,
+        error: "Unable to prepare payment verification.",
+        paymentMarkedPaid: false,
+      });
+    }
+
+    if (verificationClaim.rowCount !== 1) {
+      return res.status(429).json({
+        ok: false,
+        error: "Payment was checked recently. Wait 30 seconds before checking again.",
         paymentMarkedPaid: false,
       });
     }
