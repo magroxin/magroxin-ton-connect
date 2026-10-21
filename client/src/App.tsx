@@ -67,6 +67,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [paidStatus, setPaidStatus] = useState("");
+  const [paymentEnabled, setPaymentEnabled] = useState(false);
   const [deploymentEnabled, setDeploymentEnabled] = useState(false);
   const [deployment, setDeployment] =
     useState<DeploymentResult | null>(null);
@@ -111,6 +112,7 @@ export default function App() {
     setBusy(true);
     setMessage("");
     setOrder(null);
+    setPaymentEnabled(false);
     setPaidStatus("");
     setDeployment(null);
     setDeploymentStatus("");
@@ -139,8 +141,16 @@ export default function App() {
       }
 
       setOrder(data.order);
+      const canPay =
+        data.payment?.paymentRequestEnabled === true &&
+        data.payment?.paymentVerificationEnabled === true;
+      setPaymentEnabled(canPay);
       setPaidStatus("UNPAID");
-      setMessage("Order created. Continue to pay the service fee.");
+      setMessage(
+        canPay
+          ? "Order created. Continue to pay the service fee."
+          : "Order created, but Mainnet payment is disabled until payment verification is ready."
+      );
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not create order."
@@ -548,15 +558,15 @@ export default function App() {
 
             <button
               className="primary"
-              disabled={busy || isPaid}
+              disabled={busy || isPaid || !paymentEnabled}
               onClick={payServiceFee}
             >
-              {busy ? "Processing…" : "Pay $100 service fee"}
+              {busy ? "Processing…" : paymentEnabled ? "Pay $100 service fee" : "Payments not enabled yet"}
             </button>
 
             <button
               className="secondary"
-              disabled={busy || isPaid}
+              disabled={busy || isPaid || !paymentEnabled}
               onClick={checkPayment}
             >
               Check payment status
