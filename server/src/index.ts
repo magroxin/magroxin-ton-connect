@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
+import { transactionSucceeded } from "./transactionSucceeded.js";
 
 const app = express();
 
@@ -213,41 +214,6 @@ function decodeComment(body: unknown): string | null {
  * Fail closed: missing or incomplete transaction data
  * must never be treated as successful payment.
  */
-
-function transactionSucceeded(tx: any): boolean {
-  const description = tx?.description;
-
-  if (!description || typeof description !== "object") {
-    return false;
-  }
-
-  // Reject failed or aborted transactions.
-  if (description.aborted !== false) return false;
-
-  if (description.destroyed === true) return false;
-
-  const compute = description.compute_ph;
-
-  if (!compute || compute.success !== true) {
-    return false;
-  }
-
-  if (compute.skipped === true) {
-    return false;
-  }
-
-  // If an action phase exists, it must have succeeded.
-  const action = description.action;
-
-  if (action != null) {
-    if (action.success !== true) return false;
-    if (action.valid !== true) return false;
-    if (action.no_funds === true) return false;
-  }
-
-  return true;
-}
-
 
 async function findVerifiedPayment(
   order: Order,
