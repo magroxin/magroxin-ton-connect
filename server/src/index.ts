@@ -808,18 +808,28 @@ app.post(
     // The conditional update is atomic, so simultaneous requests cannot all
     // start expensive TON Center scans for the same order.
     const verificationWindowStart = Date.now();
-    const verificationClaim = await pool.query(
-      `UPDATE magroxin_orders
-       SET last_verification_at = $2
-       WHERE id = $1
-         AND status = 'created'
-         AND (
-           last_verification_at IS NULL OR
-           last_verification_at <= $3
-         )
-       RETURNING id`,
-      [id, verificationWindowStart, verificationWindowStart - 30000],
-    );
+    let verificationClaim;
+
+    try {
+      verificationClaim = await pool.query(
+        `UPDATE magroxin_orders
+         SET last_verification_at = $2
+         WHERE id = $1
+           AND status = 'created'
+           AND (
+             last_verification_at IS NULL OR
+             last_verification_at <= $3
+           )
+         RETURNING id`,
+        [id, verificationWindowStart, verificationWindowStart - 30000],
+      );
+    } catch {
+      return res.status(503).json({
+        ok: false,
+        error: "Unable to prepare payment verification.",
+        paymentMarkedPaid: false,
+      });
+    }
 
     if (verificationClaim.rowCount !== 1) {
       return res.status(429).json({
