@@ -54,6 +54,11 @@ test("rejects a failed or skipped compute phase", () => {
   );
 });
 
+test("rejects a missing destroyed status", () => {
+  const { destroyed: _destroyed, ...description } = successfulTransaction.description;
+  assert.equal(transactionSucceeded({ description }), false);
+});
+
 test("rejects a destroyed transaction", () => {
   assert.equal(
     transactionSucceeded({
