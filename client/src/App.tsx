@@ -85,7 +85,7 @@ export default function App() {
   function orderMatchesConnectedWallet(): boolean {
     if (!address || !order?.walletAddress) return false;
     try {
-      return Address.parse(address).toRawString() === order.walletAddress;
+      return Address.parse(address).toRawString().toLowerCase() === order.walletAddress.toLowerCase();
     } catch {
       return false;
     }
