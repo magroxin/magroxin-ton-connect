@@ -179,7 +179,11 @@ export default function App() {
 
     const response = await fetch(
       `${API}/api/orders/${encodeURIComponent(orderId)}/verify`,
-      { method: "POST" }
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address }),
+      }
     );
 
     const data = await response.json().catch(() => ({}));
