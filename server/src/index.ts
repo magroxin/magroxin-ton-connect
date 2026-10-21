@@ -95,11 +95,7 @@ app.disable("x-powered-by");
 app.use(
   cors({
     origin(origin, callback) {
-      if (
-        !origin ||
-        origin === CLIENT_ORIGIN ||
-        origin.endsWith(".blogspot.com")
-      ) {
+      if (!origin || origin === CLIENT_ORIGIN) {
         callback(null, true);
       } else {
         callback(new Error("Origin not allowed by CORS."));
@@ -108,7 +104,7 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "16kb" }));
 
 function normalizeAddress(value: string): string {
   return Address.parse(value).toRawString().toLowerCase();
