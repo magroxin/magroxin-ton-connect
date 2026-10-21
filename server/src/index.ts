@@ -6,7 +6,6 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
-import { transactionSucceeded } from "./transactionSucceeded.js";
 import { matchIncomingPaymentTransaction } from "./paymentTransactionMatcher.js";
 
 const app = express();
