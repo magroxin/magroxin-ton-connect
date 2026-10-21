@@ -63,10 +63,15 @@ const orderSchema = z.object({
   walletAddress: z.string().min(10).max(150),
   deploymentNetwork: z.literal("mainnet"),
   token: z.object({
-    name: z.string().trim().min(1).max(100),
-    symbol: z.string().trim().min(1).max(20),
-    supply: z.string().trim().regex(/^\d+(\.\d+)?$/).max(80),
-    decimals: z.number().int().min(0).max(18),
+    name: z.string().trim().min(2).max(100),
+    symbol: z.string().trim().regex(/^[A-Za-z0-9._-]{2,10}$/),
+    supply: z
+      .string()
+      .trim()
+      .regex(/^[1-9]\d*$/)
+      .max(16)
+      .refine((value) => Number.isSafeInteger(Number(value))),
+    decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
   }),
 });
