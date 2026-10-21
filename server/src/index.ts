@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
-import { transactionSucceeded } from "./transactionSucceeded.js";
+import { matchIncomingPaymentTransaction } from "./paymentTransactionMatcher.js";
 
 const app = express();
 
@@ -287,66 +287,20 @@ async function findVerifiedPayment(
     ).transactions;
 
     for (const tx of transactions) {
-      if (
-        typeof tx?.hash !== "string" ||
-        !tx.hash ||
-        !Number.isSafeInteger(Number(tx.now)) ||
-        !transactionSucceeded(tx)
-      ) {
-        continue;
-      }
+      const match = matchIncomingPaymentTransaction(
+        tx,
+        {
+          sender,
+          recipient,
+          expectedAmount,
+          start,
+          end,
+          expectedComment,
+        },
+        { normalizeAddress, decodeComment },
+      );
 
-      const msg = tx.in_msg;
-
-      if (
-        !msg ||
-        msg.bounced !== false ||
-        typeof msg.source !== "string" ||
-        typeof msg.destination !== "string" ||
-        msg.value == null
-      ) {
-        continue;
-      }
-
-      let actualSender: string;
-      let actualRecipient: string;
-
-      try {
-        actualSender = normalizeAddress(msg.source);
-        actualRecipient = normalizeAddress(msg.destination);
-      } catch {
-        continue;
-      }
-
-      if (actualSender !== sender) continue;
-      if (actualRecipient !== recipient) continue;
-
-      let actualAmount: bigint;
-
-      try {
-        actualAmount = BigInt(String(msg.value));
-      } catch {
-        continue;
-      }
-
-      if (actualAmount !== expectedAmount) continue;
-
-      const txTime = Number(tx.now);
-
-      if (txTime < start || txTime > end) continue;
-
-      const decoded = msg.message_content?.decoded;
-
-      const comment =
-        typeof decoded?.comment === "string"
-          ? decoded.comment
-          : typeof decoded?.text === "string"
-            ? decoded.text
-            : decodeComment(msg.message_content?.body);
-
-      if (comment !== expectedComment) continue;
-
-      return { hash: tx.hash };
+      if (match) return match;
     }
 
     if (transactions.length < pageSize) {
