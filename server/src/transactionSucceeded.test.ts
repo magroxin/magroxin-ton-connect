@@ -15,76 +15,57 @@ test("accepts a successful transaction using the production validator", () => {
   assert.equal(transactionSucceeded(successfulTransaction), true);
 });
 
-test("rejects an aborted transaction", () => {
-  assert.equal(
-    transactionSucceeded({
-      description: {
-        ...successfulTransaction.description,
-        aborted: true,
-      },
-    }),
-    false,
-  );
-});
-
 test("rejects missing transaction details", () => {
   assert.equal(transactionSucceeded({}), false);
   assert.equal(transactionSucceeded(null), false);
   assert.equal(transactionSucceeded({ description: {} }), false);
 });
 
-test("rejects a failed or skipped compute phase", () => {
-  assert.equal(
-    transactionSucceeded({
-      description: {
-        ...successfulTransaction.description,
-        compute_ph: { success: false },
-      },
-    }),
-    false,
-  );
-  assert.equal(
-    transactionSucceeded({
-      description: {
-        ...successfulTransaction.description,
-        compute_ph: { success: true, skipped: true },
-      },
-    }),
-    false,
-  );
+test("rejects aborted, destroyed, or incomplete transaction status", () => {
+  for (const description of [
+    { ...successfulTransaction.description, aborted: true },
+    { ...successfulTransaction.description, destroyed: true },
+    (({ destroyed: _destroyed, ...rest }) => rest)(successfulTransaction.description),
+    { ...successfulTransaction.description, aborted: undefined },
+  ]) {
+    assert.equal(transactionSucceeded({ description }), false);
+  }
 });
 
-test("rejects a missing destroyed status", () => {
-  const { destroyed: _destroyed, ...description } = successfulTransaction.description;
-  assert.equal(transactionSucceeded({ description }), false);
-});
-
-test("rejects a destroyed transaction", () => {
-  assert.equal(
-    transactionSucceeded({
-      description: {
-        ...successfulTransaction.description,
-        destroyed: true,
-      },
-    }),
-    false,
-  );
-});
-
-test("rejects a failed or invalid action phase", () => {
-  for (const action of [
-    { success: false, valid: true, no_funds: false },
-    { success: true, valid: false, no_funds: false },
-    { success: true, valid: true, no_funds: true },
+test("requires an explicit successful compute phase and skipped=false", () => {
+  for (const compute_ph of [
+    undefined,
+    { success: false, skipped: false },
+    { success: true, skipped: true },
+    { success: true },
   ]) {
     assert.equal(
       transactionSucceeded({
-        description: {
-          ...successfulTransaction.description,
-          action,
-        },
+        description: { ...successfulTransaction.description, compute_ph },
       }),
       false,
     );
   }
+});
+
+test("rejects a failed or incomplete action phase", () => {
+  for (const action of [
+    { success: false, valid: true, no_funds: false },
+    { success: true, valid: false, no_funds: false },
+    { success: true, valid: true, no_funds: true },
+    { success: true, valid: true },
+    "invalid",
+  ]) {
+    assert.equal(
+      transactionSucceeded({
+        description: { ...successfulTransaction.description, action },
+      }),
+      false,
+    );
+  }
+});
+
+test("allows a successful simple transfer without an action phase", () => {
+  const { action: _action, ...description } = successfulTransaction.description;
+  assert.equal(transactionSucceeded({ description }), true);
 });
