@@ -772,6 +772,34 @@ app.post(
       });
     }
 
+    const requestedWallet = req.body?.walletAddress;
+    if (typeof requestedWallet !== "string") {
+      return res.status(400).json({
+        ok: false,
+        error: "Wallet address is required to verify this order.",
+        paymentMarkedPaid: false,
+      });
+    }
+
+    let normalizedRequestedWallet: string;
+    try {
+      normalizedRequestedWallet = normalizeAddress(requestedWallet);
+    } catch {
+      return res.status(400).json({
+        ok: false,
+        error: "Invalid wallet address.",
+        paymentMarkedPaid: false,
+      });
+    }
+
+    if (normalizedRequestedWallet !== order.walletAddress) {
+      return res.status(403).json({
+        ok: false,
+        error: "This order belongs to a different wallet.",
+        paymentMarkedPaid: false,
+      });
+    }
+
     if (order.status === "paid") {
       return res.json({
         ok: true,
