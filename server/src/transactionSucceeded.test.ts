@@ -1,83 +1,26 @@
-
 import test from "node:test";
 import assert from "node:assert/strict";
+import { transactionSucceeded } from "./transactionSucceeded.js";
 
-function transactionSucceeded(tx: any): boolean {
-  const description = tx?.description;
+const successfulTransaction = {
+  description: {
+    aborted: false,
+    destroyed: false,
+    compute_ph: { success: true, skipped: false },
+    action: { success: true, valid: true, no_funds: false },
+  },
+};
 
-  if (!description || typeof description !== "object") {
-    return false;
-  }
-
-  if (description.aborted !== false) return false;
-  if (description.destroyed !== false) return false;
-
-  const compute = description.compute_ph;
-
-  if (!compute || compute.success !== true) {
-    return false;
-  }
-
-  if (compute.skipped === true) return false;
-
-  const action = description.action;
-
-  if (
-    action !== undefined &&
-    (
-      !action ||
-      action.success !== true ||
-      action.valid !== true ||
-      action.no_funds === true
-    )
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
-test("accepts a successful transaction", () => {
-  assert.equal(
-    transactionSucceeded({
-      description: {
-        aborted: false,
-        destroyed: false,
-        compute_ph: {
-          success: true,
-          skipped: false,
-        },
-        action: {
-          success: true,
-          valid: true,
-          no_funds: false,
-        },
-      },
-    }),
-    true,
-  );
+test("accepts a successful transaction using the production validator", () => {
+  assert.equal(transactionSucceeded(successfulTransaction), true);
 });
 
 test("rejects an aborted transaction", () => {
   assert.equal(
     transactionSucceeded({
       description: {
+        ...successfulTransaction.description,
         aborted: true,
-        destroyed: false,
-        compute_ph: { success: true },
-      },
-    }),
-    false,
-  );
-});
-
-test("rejects a failed compute phase", () => {
-  assert.equal(
-    transactionSucceeded({
-      description: {
-        aborted: false,
-        destroyed: false,
-        compute_ph: { success: false },
       },
     }),
     false,
@@ -87,22 +30,56 @@ test("rejects a failed compute phase", () => {
 test("rejects missing transaction details", () => {
   assert.equal(transactionSucceeded({}), false);
   assert.equal(transactionSucceeded(null), false);
+  assert.equal(transactionSucceeded({ description: {} }), false);
 });
 
-test("rejects a failed action phase", () => {
+test("rejects a failed or skipped compute phase", () => {
   assert.equal(
     transactionSucceeded({
       description: {
-        aborted: false,
-        destroyed: false,
-        compute_ph: { success: true },
-        action: {
-          success: false,
-          valid: true,
-          no_funds: false,
-        },
+        ...successfulTransaction.description,
+        compute_ph: { success: false },
       },
     }),
     false,
   );
+  assert.equal(
+    transactionSucceeded({
+      description: {
+        ...successfulTransaction.description,
+        compute_ph: { success: true, skipped: true },
+      },
+    }),
+    false,
+  );
+});
+
+test("rejects a destroyed transaction", () => {
+  assert.equal(
+    transactionSucceeded({
+      description: {
+        ...successfulTransaction.description,
+        destroyed: true,
+      },
+    }),
+    false,
+  );
+});
+
+test("rejects a failed or invalid action phase", () => {
+  for (const action of [
+    { success: false, valid: true, no_funds: false },
+    { success: true, valid: false, no_funds: false },
+    { success: true, valid: true, no_funds: true },
+  ]) {
+    assert.equal(
+      transactionSucceeded({
+        description: {
+          ...successfulTransaction.description,
+          action,
+        },
+      }),
+      false,
+    );
+  }
 });
