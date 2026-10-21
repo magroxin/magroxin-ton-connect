@@ -408,8 +408,14 @@ async function initializeDatabase(): Promise<void> {
       expires_at BIGINT NOT NULL,
       payment_tx_hash TEXT UNIQUE,
       token_data JSONB NOT NULL,
+      last_verification_at BIGINT,
       created_on TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE magroxin_orders
+    ADD COLUMN IF NOT EXISTS last_verification_at BIGINT;
   `);
 
   await pool.query(`
@@ -794,6 +800,31 @@ app.post(
         ok: false,
         status: expired.status,
         error: "Order expired. Create a new order.",
+        paymentMarkedPaid: false,
+      });
+    }
+
+    // Throttle provider lookups per order across all API instances.
+    // The conditional update is atomic, so simultaneous requests cannot all
+    // start expensive TON Center scans for the same order.
+    const verificationWindowStart = Date.now();
+    const verificationClaim = await pool.query(
+      `UPDATE magroxin_orders
+       SET last_verification_at = $2
+       WHERE id = $1
+         AND status = 'created'
+         AND (
+           last_verification_at IS NULL OR
+           last_verification_at <= $3
+         )
+       RETURNING id`,
+      [id, verificationWindowStart, verificationWindowStart - 30000],
+    );
+
+    if (verificationClaim.rowCount !== 1) {
+      return res.status(429).json({
+        ok: false,
+        error: "Payment was checked recently. Wait 30 seconds before checking again.",
         paymentMarkedPaid: false,
       });
     }
