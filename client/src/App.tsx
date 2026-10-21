@@ -67,6 +67,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [paidStatus, setPaidStatus] = useState("");
+  const [deploymentEnabled, setDeploymentEnabled] = useState(false);
   const [deployment, setDeployment] =
     useState<DeploymentResult | null>(null);
   const [deploymentStatus, setDeploymentStatus] = useState("");
@@ -163,8 +164,11 @@ export default function App() {
       data.paymentMarkedPaid === true
     ) {
       setPaidStatus(PAID_STATUS);
+      setDeploymentEnabled(data.deploymentEnabled === true);
       setMessage(
-        "Service fee verified on-chain. Deployment still requires a separate transaction."
+        data.deploymentEnabled === true
+          ? "Service fee verified on-chain. Deployment requires a separate wallet transaction."
+          : "Service fee verified on-chain, but Mainnet token deployment is not enabled yet. No deployment transaction should be sent."
       );
       return true;
     }
@@ -274,6 +278,11 @@ export default function App() {
   async function prepareDeployment() {
     if (!wallet || !address || !order || !isPaid || busy) return;
 
+    if (!deploymentEnabled) {
+      setMessage("Mainnet token deployment is not enabled by the API yet.");
+      return;
+    }
+
     if (!isMainnet) {
       setMessage("Switch your wallet to TON Mainnet first.");
       return;
@@ -312,6 +321,11 @@ export default function App() {
 
   async function deployToken() {
     if (!wallet || !address || !order || !deployment || busy) return;
+
+    if (!deploymentEnabled) {
+      setMessage("Mainnet token deployment is not enabled by the API yet.");
+      return;
+    }
 
     if (!isMainnet) {
       setMessage("Switch your wallet to TON Mainnet first.");
@@ -560,10 +574,10 @@ export default function App() {
 
           <button
             className="primary"
-            disabled={busy || deploymentStatus === "SUBMITTED"}
+            disabled={busy || !deploymentEnabled || deploymentStatus === "SUBMITTED"}
             onClick={prepareDeployment}
           >
-            {busy ? "Preparing…" : "Prepare deployment"}
+            {!deploymentEnabled ? "Deployment not enabled yet" : busy ? "Preparing…" : "Prepare deployment"}
           </button>
 
           {deployment && (
