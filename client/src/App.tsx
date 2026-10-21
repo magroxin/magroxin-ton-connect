@@ -151,6 +151,9 @@ export default function App() {
   }
 
   async function verifyPayment(orderId: string): Promise<boolean> {
+    // Fail closed while each verification request is in flight.
+    setDeploymentEnabled(false);
+
     const response = await fetch(
       `${API}/api/orders/${encodeURIComponent(orderId)}/verify`,
       { method: "POST" }
