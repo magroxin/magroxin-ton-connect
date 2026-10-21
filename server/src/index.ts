@@ -520,26 +520,74 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       description: parsed.data.token.description ?? "",
     };
 
-    const result = await pool.query(
-      `INSERT INTO magroxin_orders (
-        id, wallet_address, deployment_network,
-        service_fee_network, fee_usd, fee_ton,
-        amount_nano, status, created_at, expires_at, token_data
-      )
-      VALUES ($1, $2, 'mainnet', 'mainnet', $3, $4, $5,
-              'created', $6, $7, $8)
-      RETURNING *`,
-      [
-        id,
-        walletAddress,
-        MAINNET_FEE,
-        feeTon,
-        amountNano,
-        now,
-        expiresAt,
-        JSON.stringify(token),
-      ],
-    );
+    // Apply a shared PostgreSQL-backed per-wallet limit. Advisory locking keeps
+    // concurrent requests from bypassing the count on multiple Render instances.
+    const client = await pool.connect();
+    let transactionOpen = false;
+    let result;
+
+    try {
+      await client.query("BEGIN");
+      transactionOpen = true;
+
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtext($1)::bigint)",
+        [walletAddress],
+      );
+
+      const recent = await client.query(
+        `SELECT COUNT(*)::int AS count
+         FROM magroxin_orders
+         WHERE wallet_address = $1
+           AND created_on >= NOW() - INTERVAL '1 hour'`,
+        [walletAddress],
+      );
+
+      if (Number(recent.rows[0]?.count ?? 0) >= 5) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+        return res.status(429).json({
+          ok: false,
+          error: "Order limit reached for this wallet. Try again later.",
+          paymentSent: false,
+        });
+      }
+
+      result = await client.query(
+        `INSERT INTO magroxin_orders (
+          id, wallet_address, deployment_network,
+          service_fee_network, fee_usd, fee_ton,
+          amount_nano, status, created_at, expires_at, token_data
+        )
+        VALUES ($1, $2, 'mainnet', 'mainnet', $3, $4, $5,
+                'created', $6, $7, $8)
+        RETURNING *`,
+        [
+          id,
+          walletAddress,
+          MAINNET_FEE,
+          feeTon,
+          amountNano,
+          now,
+          expiresAt,
+          JSON.stringify(token),
+        ],
+      );
+
+      await client.query("COMMIT");
+      transactionOpen = false;
+    } catch (error) {
+      if (transactionOpen) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          // Preserve the original error.
+        }
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
 
     const order = rowToOrder(result.rows[0]);
 
