@@ -7,13 +7,15 @@
 - [x] Persist orders in PostgreSQL with a unique payment transaction hash.
 - [x] Add PostgreSQL-backed per-wallet order creation limits and per-order verification cooldowns.
 - [ ] Add general API rate limits for unauthenticated routes, with correct proxy/IP handling for Render.
-- [ ] Add security headers, structured request/error logs, monitoring, alerting, and documented incident response.
+- [x] Add baseline API response security headers (MIME sniffing, framing, referrer policy, browser permissions).
+- [ ] Add structured request/error logs, monitoring, alerting, and documented incident response.
 - [ ] Verify production PostgreSQL backups, restore procedure, connection limits, and migrations.
 - [ ] Confirm the deployed API uses HTTPS and exact production `CLIENT_ORIGIN` CORS configuration.
 - [ ] Verify `/health` against the actual deployed service and confirm feature flags are disabled.
 
 ## Mainnet payment verification
 
+- [x] Add unit tests for the fail-closed payment matcher covering malformed provider data, bounced/missing flags, invalid addresses, sender/recipient/amount/comment mismatches, time boundaries, and decoded-comment fallback.
 - [ ] Validate the TON Center v3 response schema using representative successful, failed, bounced, and malformed Mainnet transactions.
 - [ ] Confirm inbound transfer sender, fee-wallet destination, exact nanoTON amount, order comment, transaction timestamp, and transaction success fields.
 - [ ] Verify transaction hash canonicalization and duplicate/replay behavior against real provider responses.
@@ -34,7 +36,8 @@
 
 ## Website and customer disclosures
 
-- [ ] Replace placeholder TON Connect manifest/domain values with the actual production HTTPS domain and a valid public icon.
+- [x] Replace the placeholder TON Connect manifest/domain value with the production Blogger HTTPS origin.
+- [ ] Verify that the manifest icon URL resolves to a valid public icon and is accepted by TON Connect.
 - [ ] Publish accurate terms of service, privacy notice, refund policy, and support contact before accepting payments.
 - [ ] Ensure the displayed fee, TON quote, quote expiry, and network costs are clearly explained.
 
