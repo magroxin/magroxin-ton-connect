@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -18,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -124,25 +124,6 @@ jobs:
             echo "::error::Committed wallet BOC does not match the compiled source."
             exit 1
           }
-
-      - name: Update contract BOCs
-        run: |
-          mkdir -p contracts/build
-          cp build/jetton-minter.boc contracts/build/jetton-minter.boc
-          cp build/jetton-wallet.boc contracts/build/jetton-wallet.boc
-
-      - name: Commit updated BOCs
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        run: |
-          if [[ -n "$(git status --porcelain contracts/build/jetton-minter.boc contracts/build/jetton-wallet.boc)" ]]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add contracts/build/jetton-minter.boc contracts/build/jetton-wallet.boc
-            git commit -m "Build updated Jetton contract BOCs"
-            git push
-          else
-            echo "Contract BOCs are already up to date."
-          fi
 
       - name: Upload compiled contract artifacts
         uses: actions/upload-artifact@v4
