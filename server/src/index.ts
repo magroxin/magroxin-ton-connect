@@ -92,6 +92,16 @@ const pool = new Pool({
 
 app.disable("x-powered-by");
 
+// Baseline security headers for API responses. HSTS is intentionally omitted
+// here because HTTPS termination is managed by the production hosting proxy.
+app.use((_req: Request, res: Response, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+});
+
 app.use(
   cors({
     origin(origin, callback) {
