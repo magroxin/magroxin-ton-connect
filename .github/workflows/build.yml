@@ -112,6 +112,19 @@ jobs:
           test -s build/jetton-minter.fif
           test -s build/jetton-wallet.fif
 
+      - name: Verify committed contract BOCs match compiled sources
+        run: |
+          test -s contracts/build/jetton-minter.boc
+          test -s contracts/build/jetton-wallet.boc
+          cmp --silent build/jetton-minter.boc contracts/build/jetton-minter.boc || {
+            echo "::error::Committed minter BOC does not match the compiled source."
+            exit 1
+          }
+          cmp --silent build/jetton-wallet.boc contracts/build/jetton-wallet.boc || {
+            echo "::error::Committed wallet BOC does not match the compiled source."
+            exit 1
+          }
+
       - name: Update contract BOCs
         run: |
           mkdir -p contracts/build
