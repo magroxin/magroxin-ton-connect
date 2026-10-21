@@ -1,5 +1,6 @@
 
 import { useMemo, useState } from "react";
+import { Address } from "@ton/core";
 import {
   TonConnectButton,
   useTonAddress,
@@ -10,6 +11,7 @@ import { prepareJettonDeployment } from "./jettonDeployment";
 
 type Order = {
   id: string;
+  walletAddress: string;
   feeUsd: number;
   feeTon: string;
   serviceFeeNetwork: "mainnet";
@@ -79,6 +81,15 @@ export default function App() {
 
   const isMainnet = wallet?.account.chain === "-239";
   const isPaid = paidStatus === PAID_STATUS;
+
+  function orderMatchesConnectedWallet(): boolean {
+    if (!address || !order?.walletAddress) return false;
+    try {
+      return Address.parse(address).toRawString() === order.walletAddress;
+    } catch {
+      return false;
+    }
+  }
 
   const valid = useMemo(
     () =>
@@ -211,6 +222,11 @@ export default function App() {
   async function payServiceFee() {
     if (!order || !wallet || !address || busy) return;
 
+    if (!orderMatchesConnectedWallet()) {
+      setMessage("Reconnect the same Mainnet wallet used to create this order.");
+      return;
+    }
+
     if (!isMainnet) {
       setMessage("Switch your wallet to TON Mainnet first.");
       return;
@@ -279,6 +295,11 @@ export default function App() {
   async function checkPayment() {
     if (!order || busy) return;
 
+    if (!orderMatchesConnectedWallet()) {
+      setMessage("Reconnect the same Mainnet wallet used to create this order.");
+      return;
+    }
+
     setBusy(true);
     setMessage("");
 
@@ -295,6 +316,11 @@ export default function App() {
 
   async function prepareDeployment() {
     if (!wallet || !address || !order || !isPaid || busy) return;
+
+    if (!orderMatchesConnectedWallet()) {
+      setMessage("Reconnect the same Mainnet wallet used to create this order.");
+      return;
+    }
 
     if (!deploymentEnabled) {
       setMessage("Mainnet token deployment is not enabled by the API yet.");
@@ -339,6 +365,11 @@ export default function App() {
 
   async function deployToken() {
     if (!wallet || !address || !order || !deployment || busy) return;
+
+    if (!orderMatchesConnectedWallet()) {
+      setMessage("Reconnect the same Mainnet wallet used to create this order.");
+      return;
+    }
 
     if (!deploymentEnabled) {
       setMessage("Mainnet token deployment is not enabled by the API yet.");
