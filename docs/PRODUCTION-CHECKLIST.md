@@ -1,16 +1,48 @@
-# Production checklist — do not skip
+# Mainnet production-readiness checklist
 
-- [ ] Replace in-memory order storage with a persistent database and unique transaction-hash constraint.
-- [ ] Add request rate limits, structured logs, security headers, API timeouts and monitoring.
-- [ ] Set the correct production origin and deploy the API over HTTPS.
-- [ ] Update the TON Connect manifest to the final public HTTPS domain and valid PNG icon.
-- [ ] Implement a TON provider adapter and test parsing inbound transactions, sender, destination, exact nanogram amount, comment payload, chain, confirmations/finality and duplicate hashes.
-- [ ] Reconcile order references from actual on-chain transaction data; never trust client-submitted hashes alone.
-- [ ] Implement reliable USD/TON quote source, caching, quote expiry, source timestamp and rounding policy.
-- [ ] Add explicit terms, privacy, refund policy and support contact.
-- [ ] Build and audit the Jetton minter/wallet contract; test metadata, mint supply, decimals, ownership and recipient.
-- [ ] Implement user-approved deployment transaction on selected network only after service-fee verification.
-- [ ] Ensure testnet service fee still goes to Mainnet while testnet deployment cost uses Testnet TON.
-- [ ] Test failure, cancel, stale quote, underpayment, overpayment, replay, duplicate callback and server restart.
-- [ ] Keep all wallet secrets out of the browser and repository.
-- [ ] Start with testnet; do not enable real payments until independent end-to-end testing passes.
+**Safety rule:** keep payment requests, payment verification, and token deployment disabled until every relevant item below is completed and reviewed. This project is Mainnet-only; do not introduce a Testnet workflow.
+
+## API and operations
+
+- [x] Persist orders in PostgreSQL with a unique payment transaction hash.
+- [x] Add PostgreSQL-backed per-wallet order creation limits and per-order verification cooldowns.
+- [ ] Add general API rate limits for unauthenticated routes, with correct proxy/IP handling for Render.
+- [ ] Add security headers, structured request/error logs, monitoring, alerting, and documented incident response.
+- [ ] Verify production PostgreSQL backups, restore procedure, connection limits, and migrations.
+- [ ] Confirm the deployed API uses HTTPS and exact production `CLIENT_ORIGIN` CORS configuration.
+- [ ] Verify `/health` against the actual deployed service and confirm feature flags are disabled.
+
+## Mainnet payment verification
+
+- [ ] Validate the TON Center v3 response schema using representative successful, failed, bounced, and malformed Mainnet transactions.
+- [ ] Confirm inbound transfer sender, fee-wallet destination, exact nanoTON amount, order comment, transaction timestamp, and transaction success fields.
+- [ ] Verify transaction hash canonicalization and duplicate/replay behavior against real provider responses.
+- [ ] Add integration tests for underpayment, overpayment, wrong sender, wrong recipient, wrong comment, expired orders, provider errors, pagination cap, and duplicate payment attempts.
+- [ ] Add a reliable quote policy: provider timestamp, maximum quote age, rounding behavior, and handling of price-source disagreement.
+- [ ] Confirm rate limits and provider quotas cannot cause a payment to be marked paid without a conclusive on-chain match.
+- [ ] Keep `ENABLE_PAYMENT_REQUESTS=false` and `ENABLE_PAYMENT_VERIFICATION=false` until independent end-to-end verification is complete.
+
+## Jetton deployment
+
+- [x] CI compiles the Jetton contracts and verifies committed BOCs match the compiled source.
+- [ ] Obtain an independent review of the Jetton minter and wallet contracts.
+- [ ] Test metadata encoding, owner/admin address, decimals, initial supply, mint behavior, and resulting master address.
+- [ ] Implement server-side on-chain deployment confirmation; wallet submission alone must never be shown as success.
+- [ ] Verify the fresh paid-order status and wallet Mainnet chain before presenting a deployment transaction.
+- [ ] Validate deployment amount and transaction payload with a reviewed, reproducible Mainnet procedure before enabling deployment.
+- [ ] Keep the hardcoded deployment block in place until all deployment checks pass.
+
+## Website and customer disclosures
+
+- [ ] Replace placeholder TON Connect manifest/domain values with the actual production HTTPS domain and a valid public icon.
+- [ ] Publish accurate terms of service, privacy notice, refund policy, and support contact before accepting payments.
+- [ ] Ensure the displayed fee, TON quote, quote expiry, and network costs are clearly explained.
+
+## Final release gate
+
+- [ ] All CI checks pass on the exact release commit.
+- [ ] Production API health and database connectivity are verified after deployment.
+- [ ] Independent end-to-end security review is complete.
+- [ ] Only then decide whether to enable payment requests and verification. Token deployment remains separately disabled until its own review is complete.
+
+Never ask users for recovery phrases or private keys. Do not claim payment or deployment success from a wallet submission alone.
