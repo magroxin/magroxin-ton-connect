@@ -8,7 +8,8 @@ export function transactionSucceeded(tx: any): boolean {
   // Reject failed or aborted transactions.
   if (description.aborted !== false) return false;
 
-  if (description.destroyed === true) return false;
+  // Require the API to explicitly confirm the transaction was not destroyed.
+  if (description.destroyed !== false) return false;
 
   const compute = description.compute_ph;
 
