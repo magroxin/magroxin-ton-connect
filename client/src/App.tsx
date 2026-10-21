@@ -150,7 +150,9 @@ export default function App() {
     }
   }
 
-  async function verifyPayment(orderId: string): Promise<boolean> {
+  async function verifyPayment(
+    orderId: string
+  ): Promise<{ paid: boolean; deploymentEnabled: boolean }> {
     // Fail closed while each verification request is in flight.
     setDeploymentEnabled(false);
 
@@ -173,7 +175,10 @@ export default function App() {
           ? "Service fee verified on-chain. Deployment requires a separate wallet transaction."
           : "Service fee verified on-chain, but Mainnet token deployment is not enabled yet. No deployment transaction should be sent."
       );
-      return true;
+      return {
+        paid: true,
+        deploymentEnabled: data.deploymentEnabled === true,
+      };
     }
 
     if (response.status === 202 || data.status === "pending") {
@@ -181,7 +186,7 @@ export default function App() {
       setMessage(
         data.message || "Payment confirmation is still pending."
       );
-      return false;
+      return { paid: false, deploymentEnabled: false };
     }
 
     if (!response.ok) {
@@ -190,7 +195,7 @@ export default function App() {
 
     setPaidStatus(data.status || "UNCONFIRMED");
     setMessage(data.message || "Payment is not confirmed yet.");
-    return false;
+    return { paid: false, deploymentEnabled: false };
   }
 
   async function payServiceFee() {
@@ -243,9 +248,9 @@ export default function App() {
       setPaidStatus("TRANSACTION SUBMITTED — VERIFYING");
       setMessage("Transaction submitted. Checking Mainnet confirmation...");
 
-      const verified = await verifyPayment(order.id);
+      const verification = await verifyPayment(order.id);
 
-      if (!verified) {
+      if (!verification.paid) {
         setMessage(
           "Payment transaction submitted. On-chain verification is still pending; check again shortly."
         );
@@ -342,11 +347,11 @@ export default function App() {
 
     try {
       // Use the fresh return value instead of stale React state.
-      const verified = await verifyPayment(order.id);
+      const verification = await verifyPayment(order.id);
 
-      if (!verified) {
+      if (!verification.paid || !verification.deploymentEnabled) {
         throw new Error(
-          "Service-fee verification is not confirmed. Deployment is blocked."
+          "Payment may be verified, but the API has not enabled token deployment. Deployment is blocked."
         );
       }
 
