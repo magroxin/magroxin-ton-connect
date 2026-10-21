@@ -5,29 +5,23 @@ export function transactionSucceeded(tx: any): boolean {
     return false;
   }
 
-  // Reject failed or aborted transactions.
+  // Fail closed: require explicit successful transaction status fields.
   if (description.aborted !== false) return false;
-
-  // Require the API to explicitly confirm the transaction was not destroyed.
   if (description.destroyed !== false) return false;
 
   const compute = description.compute_ph;
-
-  if (!compute || compute.success !== true) {
+  if (!compute || compute.success !== true || compute.skipped !== false) {
     return false;
   }
 
-  if (compute.skipped === true) {
-    return false;
-  }
-
-  // If an action phase exists, it must have succeeded.
+  // An action phase may be absent for a simple transfer, but if present
+  // every field used to establish success must explicitly indicate success.
   const action = description.action;
-
   if (action != null) {
+    if (typeof action !== "object") return false;
     if (action.success !== true) return false;
     if (action.valid !== true) return false;
-    if (action.no_funds === true) return false;
+    if (action.no_funds !== false) return false;
   }
 
   return true;
