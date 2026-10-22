@@ -14,7 +14,8 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 ## Required before enabling payments
 
 - [x] Verify the live Render `/health` endpoint and PostgreSQL connectivity; owner confirmed `ok: true`, `databaseConnected: true`, Mainnet, $100 service fee, and payment/deployment flags disabled (2026-10-22).
-- [x] Verify the live `/tonconnect-manifest.json` response returns the expected Blogger HTTPS origin and Magroxin name (owner confirmed 2026-10-22).\n- [ ] Verify the manifest `iconUrl` (`https://magroxin.blogspot.com/favicon.ico`) loads as a valid public icon and is accepted by TON Connect.
+- [x] Verify the live `/tonconnect-manifest.json` response returns the expected Blogger HTTPS origin and Magroxin name (owner confirmed 2026-10-22).
+- [ ] Verify the manifest `iconUrl` (`https://magroxin.blogspot.com/favicon.ico`) loads as a valid public icon and is accepted by TON Connect.
 - [ ] Verify Render environment variables and PostgreSQL backups; never place secrets in source control.
 - [ ] Validate TON Center Mainnet responses against a real, known transaction and confirm pagination behavior.
 - [x] Add shared, production-safe API rate limits for order creation and payment verification; unit tests pass in CI (PR #18, commit `7d07874cc00faed56cc1a23dc79ee755b66d402c`).
