@@ -16,6 +16,7 @@
 ## Mainnet payment verification
 
 - [x] Add unit tests for the fail-closed payment matcher covering malformed provider data, bounced/missing flags, invalid addresses, sender/recipient/amount/comment mismatches, time boundaries, failed transaction phases, malformed timestamps/hashes, and decoded-comment fallback.
+- [x] Test strict transaction-success flags, including explicit compute/action phase success and fail-closed handling of missing or malformed fields (PR #23).
 - [x] Require the verification wallet to match the wallet recorded on the order, using normalized TON addresses (PR #19); this is a consistency check, not cryptographic proof of wallet ownership.
 - [ ] Validate the TON Center v3 response schema using representative successful, failed, bounced, and malformed Mainnet transactions.
 - [ ] Confirm inbound transfer sender, fee-wallet destination, exact nanoTON amount, order comment, transaction timestamp, and transaction success fields.
@@ -44,7 +45,7 @@
 
 ## Final release gate
 
-- [x] CI passed on main after the latest checklist update (commit `f1a2236ff6fdb8dc9db563d004ba4c27d2ad403c`; [run 39748403303](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39748403303)).
+- [x] CI passed on main after strict transaction-success tests (commit `47dcd82a4c8375abe2e30f48d0eac26214fc29e7`; [run 39834517226](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39834517226)).
 - [ ] Production API health and database connectivity are verified after deployment.
 - [ ] Independent end-to-end security review is complete.
 - [ ] Only then decide whether to enable payment requests and verification. Token deployment remains separately disabled until its own review is complete.
