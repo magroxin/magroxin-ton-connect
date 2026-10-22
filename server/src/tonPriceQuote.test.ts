@@ -41,7 +41,7 @@ test("uses the highest price when sources agree within five percent", () => {
   ]), 3.3);
 });
 
-test("accepts source prices exactly at the five-percent disagreement boundary", () => {
+test("accepts source prices within the five-percent disagreement threshold", () => {
   assert.equal(selectTonUsdPrice([
     { source: "a", priceUsd: 100, timestampMs: now },
     { source: "b", priceUsd: 105.1, timestampMs: now },
