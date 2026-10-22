@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { matchIncomingPaymentTransaction } from "./paymentTransactionMatcher.js";
+import { transactionSucceeded } from "./transactionSucceeded.js";
 
 const validHash = "KkpVTX9RwiZcug8KQuOFUF8+eNoxuHVuIFpGQqufCWU=";
 
@@ -243,4 +244,34 @@ test("validates TON Center transaction pages and distinguishes a terminal page",
   const parsed = parseTransactionPage({ transactions: fullPage }, 1000);
   assert.equal(parsed.transactions.length, 1000);
   assert.equal(parsed.hasMore, true);
+});
+
+
+test("requires explicit success flags and rejects malformed transaction phases", () => {
+  const successful = {
+    description: {
+      aborted: false,
+      destroyed: false,
+      compute_ph: { success: true, skipped: false },
+    },
+  };
+
+  assert.equal(transactionSucceeded(successful), true);
+
+  const invalidTransactions = [
+    null,
+    {},
+    { description: null },
+    { description: { aborted: undefined, destroyed: false, compute_ph: { success: true, skipped: false } } },
+    { description: { aborted: false, destroyed: undefined, compute_ph: { success: true, skipped: false } } },
+    { description: { aborted: false, destroyed: false, compute_ph: { success: undefined, skipped: false } } },
+    { description: { aborted: false, destroyed: false, compute_ph: { success: true, skipped: true } } },
+    { description: { ...successful.description, action: "invalid" } },
+    { description: { ...successful.description, action: { success: true, valid: true } } },
+    { description: { ...successful.description, action: { success: true, valid: true, no_funds: true } } },
+  ];
+
+  for (const tx of invalidTransactions) {
+    assert.equal(transactionSucceeded(tx), false);
+  }
 });
