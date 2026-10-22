@@ -557,7 +557,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
 
     if (
       error instanceof Error &&
-      error.message === "Unable to obtain a valid TON/USD quote."
+      error.message.includes("TON/USD")
     ) {
       return res.status(503).json({
         ok: false,
