@@ -6,10 +6,12 @@ import {
   useTonConnectUI,
   useTonWallet,
 } from "@tonconnect/ui-react";
+import { Address } from "@ton/core";
 import { prepareJettonDeployment } from "./jettonDeployment";
 
 type Order = {
   id: string;
+  walletAddress: string;
   feeUsd: number;
   feeTon: string;
   serviceFeeNetwork: "mainnet";
@@ -160,15 +162,32 @@ export default function App() {
     }
   }
 
+  function orderWalletMatchesConnectedWallet(): boolean {
+    if (!address || !order?.walletAddress) return false;
+    try {
+      return Address.parse(address).toRawString().toLowerCase() ===
+        Address.parse(order.walletAddress).toRawString().toLowerCase();
+    } catch {
+      return false;
+    }
+  }
+
   async function verifyPayment(
     orderId: string
   ): Promise<{ paid: boolean; deploymentEnabled: boolean }> {
-    // Fail closed while each verification request is in flight.
+    // A wallet switch or stale order must never be treated as this wallet's payment.
     setDeploymentEnabled(false);
+    if (!order || order.id !== orderId || !orderWalletMatchesConnectedWallet()) {
+      throw new Error("Reconnect the wallet that created this order before checking payment.");
+    }
 
     const response = await fetch(
       `${API}/api/orders/${encodeURIComponent(orderId)}/verify`,
-      { method: "POST" }
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address }),
+      }
     );
 
     const data = await response.json().catch(() => ({}));
