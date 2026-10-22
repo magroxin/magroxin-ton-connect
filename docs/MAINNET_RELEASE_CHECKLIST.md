@@ -8,7 +8,8 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 - [x] Payment request and payment verification are disabled by default.
 - [x] Order creation accepts Mainnet only.
 - [x] Payment verification fails closed on malformed/incomplete TON Center data.
-- [x] CI passed on main after wallet-binding changes (commit `b6a0368eb89360b5e73cde4b0deebd4aae2b079e`; run [39725566419](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39725566419)).
+- [x] Payment verification requires the connected wallet address to match the order wallet (PR #19); this is a consistency guard, not cryptographic ownership proof.
+- [x] CI passed on main after the strict transaction-success tests and checklist updates (commit `b0bcbb6c0fd7c0c34521ee14958c147410c18724`; run [39834964846](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39834964846)).
 
 ## Required before enabling payments
 
@@ -17,7 +18,8 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 - [ ] Verify Render environment variables and PostgreSQL backups; never place secrets in source control.
 - [ ] Validate TON Center Mainnet responses against a real, known transaction and confirm pagination behavior.
 - [x] Add shared, production-safe API rate limits for order creation and payment verification; unit tests pass in CI (PR #18, commit `7d07874cc00faed56cc1a23dc79ee755b66d402c`).
-- [ ] Run automated tests against representative TON Center response fixtures and database state transitions.
+- [x] Add strict unit coverage requiring explicit successful TON transaction phase flags (PR #23; included in successful main CI run [39834517226](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39834517226)).
+- [ ] Run automated integration tests against representative TON Center response fixtures and database state transitions.
 - [ ] Review request logging, alerting, database retention, and incident recovery.
 - [ ] Publish clear terms, privacy, refund, and support information.
 - [ ] Perform an independent review of Jetton contract/deployment logic and wallet-delivery behavior.
