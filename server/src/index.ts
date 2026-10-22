@@ -307,17 +307,16 @@ async function findVerifiedPayment(
 
 
 async function getTonUsdPrice(): Promise<number> {
-  const nowMs = Date.now();
   const requests = [
     fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=TONUSDT", {
       headers: { accept: "application/json" },
       signal: AbortSignal.timeout(7000),
-    }).then(async (response) => response.ok ? parseBinanceQuote(await response.json(), nowMs) : null)
+    }).then(async (response) => response.ok ? parseBinanceQuote(await response.json(), Date.now()) : null)
       .catch(() => null),
     fetch("https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_last_updated_at=true", {
       headers: { accept: "application/json" },
       signal: AbortSignal.timeout(7000),
-    }).then(async (response) => response.ok ? parseCoinGeckoQuote(await response.json(), nowMs) : null)
+    }).then(async (response) => response.ok ? parseCoinGeckoQuote(await response.json(), Date.now()) : null)
       .catch(() => null),
   ];
 
