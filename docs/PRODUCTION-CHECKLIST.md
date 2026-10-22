@@ -15,7 +15,7 @@
 
 ## Mainnet payment verification
 
-- [x] Add unit tests for the fail-closed payment matcher covering malformed provider data, bounced/missing flags, invalid addresses, sender/recipient/amount/comment mismatches, time boundaries, and decoded-comment fallback.
+- [x] Add unit tests for the fail-closed payment matcher covering malformed provider data, bounced/missing flags, invalid addresses, sender/recipient/amount/comment mismatches, time boundaries, failed transaction phases, malformed timestamps/hashes, and decoded-comment fallback.
 - [ ] Validate the TON Center v3 response schema using representative successful, failed, bounced, and malformed Mainnet transactions.
 - [ ] Confirm inbound transfer sender, fee-wallet destination, exact nanoTON amount, order comment, transaction timestamp, and transaction success fields.
 - [ ] Verify transaction hash canonicalization and duplicate/replay behavior against real provider responses.
