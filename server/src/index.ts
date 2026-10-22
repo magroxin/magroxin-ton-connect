@@ -7,6 +7,7 @@ import { Pool } from "pg";
 import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
+import { calculateFeeTon } from "./feeQuote.js";
 
 const app = express();
 
@@ -464,7 +465,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
     }
 
     const tonUsd = await getTonUsdPrice();
-    const feeTon = (MAINNET_FEE / tonUsd).toFixed(6);
+    const feeTon = calculateFeeTon(MAINNET_FEE, tonUsd);
     const amountNano = toNano(feeTon).toString();
 
     const now = Date.now();
