@@ -6,7 +6,7 @@
 
 - [x] Persist orders in PostgreSQL with a unique payment transaction hash.
 - [x] Add PostgreSQL-backed per-wallet order creation limits and per-order verification cooldowns.
-- [ ] Add general API rate limits for unauthenticated routes, with correct proxy/IP handling for Render.
+- [x] Add shared PostgreSQL-backed API rate limits for order creation, payment-request retrieval, verification, and order reads; trust the Render proxy hop and fail closed if rate-limit storage is unavailable (PR #18).
 - [x] Add baseline API response security headers (MIME sniffing, framing, referrer policy, browser permissions).
 - [ ] Add structured request/error logs, monitoring, alerting, and documented incident response.
 - [ ] Verify production PostgreSQL backups, restore procedure, connection limits, and migrations.
@@ -16,6 +16,7 @@
 ## Mainnet payment verification
 
 - [x] Add unit tests for the fail-closed payment matcher covering malformed provider data, bounced/missing flags, invalid addresses, sender/recipient/amount/comment mismatches, time boundaries, failed transaction phases, malformed timestamps/hashes, and decoded-comment fallback.
+- [x] Require the verification wallet to match the wallet recorded on the order, using normalized TON addresses (PR #19); this is a consistency check, not cryptographic proof of wallet ownership.
 - [ ] Validate the TON Center v3 response schema using representative successful, failed, bounced, and malformed Mainnet transactions.
 - [ ] Confirm inbound transfer sender, fee-wallet destination, exact nanoTON amount, order comment, transaction timestamp, and transaction success fields.
 - [ ] Verify transaction hash canonicalization and duplicate/replay behavior against real provider responses.
@@ -43,7 +44,7 @@
 
 ## Final release gate
 
-- [ ] All CI checks pass on the exact release commit.
+- [x] CI passed on main after the latest checklist update (commit `f1a2236ff6fdb8dc9db563d004ba4c27d2ad403c`; [run 39748403303](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39748403303)).
 - [ ] Production API health and database connectivity are verified after deployment.
 - [ ] Independent end-to-end security review is complete.
 - [ ] Only then decide whether to enable payment requests and verification. Token deployment remains separately disabled until its own review is complete.
