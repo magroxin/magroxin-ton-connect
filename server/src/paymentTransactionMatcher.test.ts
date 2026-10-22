@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { matchIncomingPaymentTransaction } from "./paymentTransactionMatcher.js";
 
+const validHash = "KkpVTX9RwiZcug8KQuOFUF8+eNoxuHVuIFpGQqufCWU=";
+
 const expected = {
   sender: "sender",
   recipient: "fee-wallet",
@@ -22,7 +24,7 @@ const dependencies = {
 };
 
 const validTx = {
-  hash: "abc123",
+  hash: validHash,
   now: 1_800_000_100,
   description: {
     aborted: false,
@@ -44,8 +46,17 @@ const validTx = {
 test("accepts an exact successful incoming payment", () => {
   assert.deepEqual(
     matchIncomingPaymentTransaction(validTx, expected, dependencies),
-    { hash: "abc123" },
+    { hash: validHash },
   );
+});
+
+test("canonicalizes valid base64url transaction hashes", async () => {
+  const { normalizeTransactionHash } = await import("./paymentTransactionMatcher.js");
+  const base64url = validHash.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  assert.equal(normalizeTransactionHash(validHash), validHash);
+  assert.equal(normalizeTransactionHash(base64url), validHash);
+  assert.equal(normalizeTransactionHash("not-a-valid-ton-hash"), null);
+  assert.equal(normalizeTransactionHash(123), null);
 });
 
 test("rejects missing or malformed transactions and messages", () => {
@@ -53,6 +64,7 @@ test("rejects missing or malformed transactions and messages", () => {
     null,
     {},
     { ...validTx, hash: "" },
+    { ...validTx, hash: "not-a-valid-ton-hash" },
     { ...validTx, now: "not-a-time" },
     { ...validTx, in_msg: null },
     { ...validTx, in_msg: { ...validTx.in_msg, bounced: undefined } },
@@ -109,7 +121,7 @@ test("uses decoded text and falls back to a decoded body comment", () => {
   };
   assert.deepEqual(
     matchIncomingPaymentTransaction(textTx, expected, dependencies),
-    { hash: "abc123" },
+    { hash: validHash },
   );
 
   const bodyTx = {
@@ -124,7 +136,7 @@ test("uses decoded text and falls back to a decoded body comment", () => {
   };
   assert.deepEqual(
     matchIncomingPaymentTransaction(bodyTx, expected, bodyDependencies),
-    { hash: "abc123" },
+    { hash: validHash },
   );
 });
 
