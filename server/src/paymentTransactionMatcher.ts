@@ -79,3 +79,34 @@ export function matchIncomingPaymentTransaction(
 
   return { hash: tx.hash };
 }
+
+
+export interface ParsedTransactionPage {
+  transactions: unknown[];
+  hasMore: boolean;
+}
+
+/**
+ * Validate TON Center v3 pagination responses. A short page proves the
+ * requested time range has been exhausted; a full page may have more results.
+ * Malformed responses throw so callers fail closed rather than mark unpaid.
+ */
+export function parseTransactionPage(
+  value: unknown,
+  pageSize: number,
+): ParsedTransactionPage {
+  if (!Number.isSafeInteger(pageSize) || pageSize < 1) {
+    throw new Error("Invalid transaction page size.");
+  }
+
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !Array.isArray((value as { transactions?: unknown }).transactions)
+  ) {
+    throw new Error("Invalid TON Center transaction response.");
+  }
+
+  const transactions = (value as { transactions: unknown[] }).transactions;
+  return { transactions, hasMore: transactions.length >= pageSize };
+}

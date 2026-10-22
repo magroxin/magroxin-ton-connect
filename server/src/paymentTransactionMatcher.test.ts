@@ -212,3 +212,23 @@ test("does not accept a payment comment from an unrelated decoded field", () => 
     null,
   );
 });
+
+
+test("validates TON Center transaction pages and distinguishes a terminal page", async () => {
+  const { parseTransactionPage } = await import("./paymentTransactionMatcher.js");
+
+  assert.throws(() => parseTransactionPage(null, 1000));
+  assert.throws(() => parseTransactionPage({}, 1000));
+  assert.throws(() => parseTransactionPage({ transactions: {} }, 1000));
+  assert.throws(() => parseTransactionPage({ transactions: [] }, 0));
+
+  assert.deepEqual(parseTransactionPage({ transactions: [{ hash: "one" }] }, 1000), {
+    transactions: [{ hash: "one" }],
+    hasMore: false,
+  });
+
+  const fullPage = Array.from({ length: 1000 }, (_, i) => ({ hash: String(i) }));
+  const parsed = parseTransactionPage({ transactions: fullPage }, 1000);
+  assert.equal(parsed.transactions.length, 1000);
+  assert.equal(parsed.hasMore, true);
+});
