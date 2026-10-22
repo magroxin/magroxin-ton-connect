@@ -786,6 +786,30 @@ app.post(
       });
     }
 
+    // Require the caller to identify the wallet attached to the order before
+    // exposing payment status or initiating a TON Center scan.
+    let submittedWalletAddress: string;
+    try {
+      if (typeof req.body?.walletAddress !== "string") {
+        throw new Error("Missing wallet address.");
+      }
+      submittedWalletAddress = normalizeAddress(req.body.walletAddress);
+    } catch {
+      return res.status(400).json({
+        ok: false,
+        error: "A valid connected wallet address is required.",
+        paymentMarkedPaid: false,
+      });
+    }
+
+    if (submittedWalletAddress !== normalizeAddress(order.walletAddress)) {
+      return res.status(403).json({
+        ok: false,
+        error: "Connected wallet does not match this order.",
+        paymentMarkedPaid: false,
+      });
+    }
+
     if (order.status === "paid") {
       return res.json({
         ok: true,
