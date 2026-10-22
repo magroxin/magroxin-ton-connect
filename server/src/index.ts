@@ -8,6 +8,7 @@ import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
 import { calculateFeeTon } from "./feeQuote.js";
+import { parseBinanceQuote, parseCoinGeckoQuote, selectTonUsdPrice } from "./tonPriceQuote.js";
 
 const app = express();
 
@@ -306,42 +307,24 @@ async function findVerifiedPayment(
 
 
 async function getTonUsdPrice(): Promise<number> {
-  const urls = [
-    "https://data-api.binance.vision/api/v3/ticker/price?symbol=TONUSDT",
-    "https://api.binance.com/api/v3/ticker/price?symbol=TONUSDT",
-    "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
+  const nowMs = Date.now();
+  const requests = [
+    fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=TONUSDT", {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(7000),
+    }).then(async (response) => response.ok ? parseBinanceQuote(await response.json(), nowMs) : null)
+      .catch(() => null),
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_last_updated_at=true", {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(7000),
+    }).then(async (response) => response.ok ? parseCoinGeckoQuote(await response.json(), nowMs) : null)
+      .catch(() => null),
   ];
 
-  for (const url of urls) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
-
-    try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: { accept: "application/json" },
-      });
-
-      if (!response.ok) continue;
-
-      const data: any = await response.json();
-
-      const price =
-        Number(data?.price) ||
-        Number(data?.["the-open-network"]?.usd);
-
-      if (Number.isFinite(price) && price > 0) {
-        console.log("[MAGROXIN] Valid TON/USD quote received.");
-        return price;
-      }
-    } catch {
-      // Try the next provider.
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  throw new Error("Unable to obtain a valid TON/USD quote.");
+  const quotes = (await Promise.all(requests)).filter((quote) => quote !== null);
+  const price = selectTonUsdPrice(quotes);
+  console.log("[MAGROXIN] Fresh TON/USD quote accepted.");
+  return price;
 }
 
 async function initializeDatabase(): Promise<void> {
@@ -574,7 +557,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
 
     if (
       error instanceof Error &&
-      error.message === "Unable to obtain a valid TON/USD quote."
+      error.message.includes("TON/USD")
     ) {
       return res.status(503).json({
         ok: false,
