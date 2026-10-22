@@ -20,7 +20,7 @@
 - [ ] Confirm inbound transfer sender, fee-wallet destination, exact nanoTON amount, order comment, transaction timestamp, and transaction success fields.
 - [ ] Verify transaction hash canonicalization and duplicate/replay behavior against real provider responses.
 - [ ] Add integration tests for underpayment, overpayment, wrong sender, wrong recipient, wrong comment, expired orders, provider errors, pagination cap, and duplicate payment attempts.
-- [ ] Complete the reliable quote policy: upward six-decimal fee rounding is implemented and unit-tested; provider timestamp, maximum quote age, and handling of price-source disagreement remain open.
+- [x] Implement and unit-test reliable quote policy: upward six-decimal fee rounding; provider timestamps; 120-second maximum quote age; rejection of quotes more than 30 seconds in the future; and rejection when available price sources differ by more than 5%. The API uses the highest agreeing fresh quote to avoid under-quoting the USD fee. Live provider behavior and end-to-end order creation still require production verification.
 - [ ] Confirm rate limits and provider quotas cannot cause a payment to be marked paid without a conclusive on-chain match.
 - [ ] Keep `ENABLE_PAYMENT_REQUESTS=false` and `ENABLE_PAYMENT_VERIFICATION=false` until independent end-to-end verification is complete.
 
