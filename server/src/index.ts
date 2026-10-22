@@ -9,8 +9,12 @@ import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
 import { calculateFeeTon } from "./feeQuote.js";
 import { parseBinanceQuote, parseCoinGeckoQuote, selectTonUsdPrice } from "./tonPriceQuote.js";
+import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
 
 const app = express();
+
+// Render terminates HTTPS in front of the service; trust only its immediate proxy hop for client IPs.
+app.set("trust proxy", 1);
 
 const PORT = Number(process.env.PORT || 10000);
 const DATABASE_URL = process.env.DATABASE_URL || "";
@@ -117,6 +121,65 @@ app.use(
 );
 
 app.use(express.json({ limit: "16kb" }));
+
+let rateLimitCleanupCounter = 0;
+
+app.use(async (req: Request, res: Response, next) => {
+  const path = req.originalUrl.split("?")[0] || req.path;
+  const rule = getApiRateLimitRule(req.method, path);
+  if (!rule) return next();
+
+  const now = Date.now();
+  const windowStart = Math.floor(now / (rule.windowSeconds * 1000)) * rule.windowSeconds;
+  const clientKey = hashRateLimitClientKey(req.ip || "unknown", rule.scope);
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO magroxin_rate_limits
+         (window_start, scope, client_key, request_count)
+       VALUES ($1, $2, $3, 1)
+       ON CONFLICT (window_start, scope, client_key)
+       DO UPDATE SET request_count = magroxin_rate_limits.request_count + 1
+       RETURNING request_count`,
+      [windowStart, rule.scope, clientKey],
+    );
+
+    const count = Number(result.rows[0]?.request_count ?? rule.maxRequests + 1);
+    const remaining = Math.max(0, rule.maxRequests - count);
+    const resetSeconds = Math.max(
+      1,
+      rule.windowSeconds - Math.floor((now / 1000) % rule.windowSeconds),
+    );
+    res.setHeader("RateLimit-Limit", String(rule.maxRequests));
+    res.setHeader("RateLimit-Remaining", String(remaining));
+    res.setHeader("RateLimit-Reset", String(resetSeconds));
+
+    if (count > rule.maxRequests) {
+      res.setHeader("Retry-After", String(resetSeconds));
+      return res.status(429).json({
+        ok: false,
+        error: "Too many requests. Please wait before trying again.",
+      });
+    }
+
+    // Periodically prune old buckets without adding a cleanup query to every request.
+    rateLimitCleanupCounter += 1;
+    if (rateLimitCleanupCounter % 1000 === 0) {
+      void pool.query(
+        "DELETE FROM magroxin_rate_limits WHERE window_start < $1",
+        [windowStart - 3600],
+      ).catch(() => {});
+    }
+
+    return next();
+  } catch {
+    // Fail closed for endpoints that can create orders or trigger payment lookups.
+    return res.status(503).json({
+      ok: false,
+      error: "Request protection is temporarily unavailable. Please retry shortly.",
+    });
+  }
+});
 
 function normalizeAddress(value: string): string {
   return Address.parse(value).toRawString().toLowerCase();
@@ -357,6 +420,21 @@ async function initializeDatabase(): Promise<void> {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS magroxin_orders_status_expiry_idx
     ON magroxin_orders (status, expires_at);
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS magroxin_rate_limits (
+      window_start BIGINT NOT NULL,
+      scope TEXT NOT NULL,
+      client_key TEXT NOT NULL,
+      request_count INTEGER NOT NULL CHECK (request_count > 0),
+      PRIMARY KEY (window_start, scope, client_key)
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS magroxin_rate_limits_window_idx
+    ON magroxin_rate_limits (window_start);
   `);
 
   console.log("[MAGROXIN] PostgreSQL initialized.");
