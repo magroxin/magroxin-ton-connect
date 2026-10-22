@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
-import { matchIncomingPaymentTransaction } from "./paymentTransactionMatcher.js";
+import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
 
 const app = express();
 
@@ -272,19 +272,8 @@ async function findVerifiedPayment(
 
     const data: unknown = await response.json();
 
-    if (
-      !data ||
-      typeof data !== "object" ||
-      !Array.isArray(
-        (data as { transactions?: unknown }).transactions,
-      )
-    ) {
-      throw new Error("Invalid TON Center transaction response.");
-    }
-
-    const transactions = (
-      data as { transactions: any[] }
-    ).transactions;
+    const pageData = parseTransactionPage(data, pageSize);
+    const transactions = pageData.transactions as any[];
 
     for (const tx of transactions) {
       const match = matchIncomingPaymentTransaction(
@@ -303,7 +292,7 @@ async function findVerifiedPayment(
       if (match) return match;
     }
 
-    if (transactions.length < pageSize) {
+    if (!pageData.hasMore) {
       return null;
     }
   }
