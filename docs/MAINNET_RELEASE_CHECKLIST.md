@@ -8,7 +8,7 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 - [x] Payment request and payment verification are disabled by default.
 - [x] Order creation accepts Mainnet only.
 - [x] Payment verification fails closed on malformed/incomplete TON Center data.
-- [x] CI passed on main after transaction-hash canonicalization (commit `dc2a887c2607790c9b9d443ffce03e984a96a9fe`).
+- [x] CI passed on main at wallet-consistency commit `b6a0368eb89360b5e73cde4b0deebd4aae2b079e`, including frontend/backend builds, backend tests, contract compilation, and BOC/source matching.
 
 ## Required before enabling payments
 
@@ -16,7 +16,7 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 - [ ] Verify the live `/tonconnect-manifest.json` response and that its `iconUrl` loads successfully from the public Blogger site.
 - [ ] Verify Render environment variables and PostgreSQL backups; never place secrets in source control.
 - [ ] Validate TON Center Mainnet responses against a real, known transaction and confirm pagination behavior.
-- [ ] Add and test shared, production-safe API rate limits for order creation and payment verification.
+- [x] Add and test shared, production-safe API rate limits for order creation and payment verification (PostgreSQL-backed route limits and unit tests are in main).
 - [ ] Run automated tests against representative TON Center response fixtures and database state transitions.
 - [ ] Review request logging, alerting, database retention, and incident recovery.
 - [ ] Publish clear terms, privacy, refund, and support information.
