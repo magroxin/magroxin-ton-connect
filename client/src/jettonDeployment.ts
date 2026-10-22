@@ -28,10 +28,10 @@ export type JettonDeploymentResult = {
 };
 
 const MINTER_CODE_URL =
-  "https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/main/contracts/build/jetton-minter.boc";
+  "https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/cf176793e04d17580599c7e083fcd7af8f050035/contracts/build/jetton-minter.boc";
 
 const WALLET_CODE_URL =
-  "https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/main/contracts/build/jetton-wallet.boc";
+  "https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/cf176793e04d17580599c7e083fcd7af8f050035/contracts/build/jetton-wallet.boc";
 
 const DEPLOY_VALUE_NANO = "1500000000";
 const WALLET_FUNDING_NANO = "300000000";
