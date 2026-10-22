@@ -14,6 +14,25 @@ export interface PaymentMatcherDependencies {
   decodeComment(body: unknown): string | null;
 }
 
+/**
+ * TON Center v3 transaction hashes are 32-byte base64 values. Normalize
+ * base64url and unpadded variants to canonical padded base64 so the database's
+ * unique transaction-hash constraint cannot be bypassed by representation.
+ */
+export function normalizeTransactionHash(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const input = value.trim();
+  if (!/^[A-Za-z0-9+/_-]{43}=?$/.test(input)) return null;
+
+  const standard = input.replace(/-/g, "+").replace(/_/g, "/").replace(/=+$/, "");
+  const decoded = Buffer.from(standard, "base64");
+  if (decoded.length !== 32) return null;
+
+  const canonical = decoded.toString("base64");
+  if (canonical.replace(/=+$/, "") !== standard) return null;
+  return canonical;
+}
+
 export function matchIncomingPaymentTransaction(
   value: unknown,
   expected: ExpectedPayment,
@@ -21,10 +40,10 @@ export function matchIncomingPaymentTransaction(
 ): { hash: string } | null {
   if (!value || typeof value !== "object") return null;
   const tx = value as Record<string, any>;
+  const transactionHash = normalizeTransactionHash(tx.hash);
 
   if (
-    typeof tx.hash !== "string" ||
-    tx.hash.length === 0 ||
+    transactionHash === null ||
     !Number.isSafeInteger(Number(tx.now)) ||
     !transactionSucceeded(tx)
   ) {
@@ -77,7 +96,7 @@ export function matchIncomingPaymentTransaction(
 
   if (comment !== expected.expectedComment) return null;
 
-  return { hash: tx.hash };
+  return { hash: transactionHash };
 }
 
 
