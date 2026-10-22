@@ -127,3 +127,88 @@ test("uses decoded text and falls back to a decoded body comment", () => {
     { hash: "abc123" },
   );
 });
+
+
+test("rejects transactions whose compute or action phase failed", () => {
+  const variants = [
+    {
+      ...validTx,
+      description: {
+        ...validTx.description,
+        aborted: true,
+      },
+    },
+    {
+      ...validTx,
+      description: {
+        ...validTx.description,
+        destroyed: true,
+      },
+    },
+    {
+      ...validTx,
+      description: {
+        ...validTx.description,
+        compute_ph: { success: false, skipped: false },
+      },
+    },
+    {
+      ...validTx,
+      description: {
+        ...validTx.description,
+        compute_ph: { success: true, skipped: true },
+      },
+    },
+    {
+      ...validTx,
+      description: {
+        ...validTx.description,
+        action: { success: false, valid: true, no_funds: false },
+      },
+    },
+    {
+      ...validTx,
+      description: {
+        ...validTx.description,
+        action: { success: true, valid: true, no_funds: true },
+      },
+    },
+  ];
+
+  for (const tx of variants) {
+    assert.equal(
+      matchIncomingPaymentTransaction(tx, expected, dependencies),
+      null,
+    );
+  }
+});
+
+test("rejects fractional timestamps and missing transaction hashes", () => {
+  for (const tx of [
+    { ...validTx, now: 1_800_000_100.5 },
+    { ...validTx, hash: undefined },
+    { ...validTx, hash: 123 },
+  ]) {
+    assert.equal(
+      matchIncomingPaymentTransaction(tx, expected, dependencies),
+      null,
+    );
+  }
+});
+
+test("does not accept a payment comment from an unrelated decoded field", () => {
+  const tx = {
+    ...validTx,
+    in_msg: {
+      ...validTx.in_msg,
+      message_content: {
+        decoded: { comment: "MAGROXIN:another-order", text: expected.expectedComment },
+      },
+    },
+  };
+
+  assert.equal(
+    matchIncomingPaymentTransaction(tx, expected, dependencies),
+    null,
+  );
+});
