@@ -10,6 +10,7 @@ import { matchIncomingPaymentTransaction, parseTransactionPage } from "./payment
 import { calculateFeeTon } from "./feeQuote.js";
 import { parseBinanceQuote, parseCoinGeckoQuote, selectTonUsdPrice } from "./tonPriceQuote.js";
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
+import { isSupportedJettonSupply } from "./tokenSupply.js";
 
 const app = express();
 
@@ -79,20 +80,11 @@ const orderSchema = z.object({
     decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
   }).superRefine((token, ctx) => {
-    try {
-      const units = BigInt(token.supply) * 10n ** BigInt(token.decimals);
-      if (units > 10n ** 30n) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["supply"],
-          message: "Token supply exceeds the supported limit.",
-        });
-      }
-    } catch {
+    if (!isSupportedJettonSupply(token.supply, token.decimals)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["supply"],
-        message: "Token supply is invalid.",
+        message: "Token supply or decimals are outside the supported limit.",
       });
     }
   }),
