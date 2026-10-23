@@ -15,6 +15,8 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 - [x] Payment matcher accepts only canonical decimal-string nanoTON values and rejects ambiguous encodings; PR #37 merged after CI passed (run [39962088932](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39962088932)).
 - [x] CI verifies committed Jetton BOCs match compiled contract sources (run [39921165222](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39921165222)); independent contract/security review and Mainnet deployment validation remain required.
 
+- [x] Payment matcher boundary regression tests for unsafe timestamps and hash normalization passed in PR #40; merged main CI run [40017114105](https://github.com/magroxin/magroxin-ton-connect/actions/runs/40017114105) succeeded (commit `99fce958fc9c12a51c1dd15fb23dc9da777e6a6f`).
+
 ## Required before enabling payments
 
 - [x] Verify the live Render `/health` endpoint and PostgreSQL connectivity; owner confirmed `ok: true`, `databaseConnected: true`, Mainnet, $100 service fee, and payment/deployment flags disabled (2026-10-22).
