@@ -641,6 +641,12 @@ export default function App() {
                 Wallet: {address}
               </p>
 
+              <p className="note">
+                Token admin: your connected wallet. Unless admin rights are
+                revoked or transferred, this wallet can change token metadata
+                and change the admin address. This is not an immutable token.
+              </p>
+
               <button
                 className="primary"
                 disabled={busy || deploymentStatus === "SUBMITTED"}
