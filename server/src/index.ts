@@ -75,10 +75,26 @@ const orderSchema = z.object({
       .string()
       .trim()
       .regex(/^[1-9]\d*$/)
-      .max(16)
-      .refine((value) => Number.isSafeInteger(Number(value))),
+      .max(31),
     decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
+  }).superRefine((token, ctx) => {
+    try {
+      const units = BigInt(token.supply) * 10n ** BigInt(token.decimals);
+      if (units > 10n ** 30n) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["supply"],
+          message: "Token supply exceeds the supported limit.",
+        });
+      }
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["supply"],
+        message: "Token supply is invalid.",
+      });
+    }
   }),
 });
 
