@@ -58,7 +58,7 @@ export function matchIncomingPaymentTransaction(
     typeof msg.source !== "string" ||
     typeof msg.destination !== "string" ||
     typeof msg.value !== "string" ||
-    !/^(0|[1-9]\\d*)$/.test(msg.value)
+    !/^(0|[1-9]\d*)$/.test(msg.value)
   ) {
     return null;
   }
