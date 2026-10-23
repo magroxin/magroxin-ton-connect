@@ -280,7 +280,7 @@ test("requires explicit success flags and rejects malformed transaction phases",
 
 test("rejects malformed TON Center transaction pages instead of treating them as empty", async () => {
   const { parseTransactionPage } = await import("./paymentTransactionMatcher.js");
-  for (const value of [null, undefined, {}, [], { transactions: null }, { transactions: "[]" }]) {
+  for (const value of [null, undefined, {}, [], { transactions: null }, { transactions: "[]" }, { transactions: [null] }, { transactions: ["invalid"] }, { transactions: [[]] }]) {
     assert.throws(() => parseTransactionPage(value, 1000), /Invalid TON Center transaction response/);
   }
 });

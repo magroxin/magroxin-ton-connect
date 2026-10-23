@@ -128,5 +128,8 @@ export function parseTransactionPage(
   }
 
   const transactions = (value as { transactions: unknown[] }).transactions;
+  if (transactions.some((transaction) => !transaction || typeof transaction !== "object" || Array.isArray(transaction))) {
+    throw new Error("Invalid TON Center transaction response.");
+  }
   return { transactions, hasMore: transactions.length >= pageSize };
 }
