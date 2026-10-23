@@ -44,7 +44,8 @@ export function matchIncomingPaymentTransaction(
 
   if (
     transactionHash === null ||
-    !Number.isSafeInteger(Number(tx.now)) ||
+    typeof tx.now !== "number" ||
+    !Number.isSafeInteger(tx.now) ||
     !transactionSucceeded(tx)
   ) {
     return null;
