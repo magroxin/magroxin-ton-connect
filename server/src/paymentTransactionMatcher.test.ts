@@ -278,19 +278,22 @@ test("requires explicit success flags and rejects malformed transaction phases",
 });
 
 
-test("rejects malformed TON Center transaction pages instead of treating them as empty", () => {
+test("rejects malformed TON Center transaction pages instead of treating them as empty", async () => {
+  const { parseTransactionPage } = await import("./paymentTransactionMatcher.js");
   for (const value of [null, undefined, {}, [], { transactions: null }, { transactions: "[]" }]) {
     assert.throws(() => parseTransactionPage(value, 1000), /Invalid TON Center transaction response/);
   }
 });
 
-test("rejects invalid pagination page sizes", () => {
+test("rejects invalid pagination page sizes", async () => {
+  const { parseTransactionPage } = await import("./paymentTransactionMatcher.js");
   for (const pageSize of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
     assert.throws(() => parseTransactionPage({ transactions: [] }, pageSize), /Invalid transaction page size/);
   }
 });
 
-test("treats a short transaction page as exhausted and an exact full page as possibly having more", () => {
+test("treats a short transaction page as exhausted and an exact full page as possibly having more", async () => {
+  const { parseTransactionPage } = await import("./paymentTransactionMatcher.js");
   assert.deepEqual(parseTransactionPage({ transactions: [{ hash: validHash }] }, 2), {
     transactions: [{ hash: validHash }],
     hasMore: false,
