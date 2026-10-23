@@ -303,3 +303,34 @@ test("treats a short transaction page as exhausted and an exact full page as pos
     hasMore: true,
   });
 });
+
+
+test("rejects timestamps outside the safe integer range", () => {
+  for (const now of [Number.MAX_SAFE_INTEGER + 1, Number.MIN_SAFE_INTEGER - 1, Number.POSITIVE_INFINITY, Number.NaN]) {
+    assert.equal(
+      matchIncomingPaymentTransaction({ ...validTx, now }, expected, dependencies),
+      null,
+    );
+  }
+});
+
+test("rejects non-canonical base64 hash encodings", async () => {
+  const { normalizeTransactionHash } = await import("./paymentTransactionMatcher.js");
+  for (const hash of [
+    "KkpVTX9RwiZcug8KQuOFUF8+eNoxuHVuIFpGQqufCWU==",
+    "KkpVTX9RwiZcug8KQuOFUF8+eNoxuHVuIFpGQqufCWU!",
+    "KkpVTX9RwiZcug8KQuOFUF8+eNoxuHVuIFpGQqufCWA=",
+    " KkpVTX9RwiZcug8KQuOFUF8+eNoxuHVuIFpGQqufCWU= ",
+  ]) {
+    assert.equal(normalizeTransactionHash(hash), null, `should reject hash: ${hash}`);
+  }
+});
+
+test("rejects payments when transaction time is exactly outside either boundary", () => {
+  for (const now of [expected.start - 1, expected.end + 1]) {
+    assert.equal(
+      matchIncomingPaymentTransaction({ ...validTx, now }, expected, dependencies),
+      null,
+    );
+  }
+});
