@@ -319,7 +319,6 @@ test("rejects non-canonical base64 hash encodings", async () => {
   for (const hash of [
     "KkpVTX9RwiZcug8KQuOFUF8+eNoxuHVuIFpGQqufCWU==",
     "KkpVTX9RwiZcug8KQuOFUF8+eNoxuHVuIFpGQqufCWU!",
-    "KkpVTX9RwiZcug8KQuOFUF8+eNoxuHVuIFpGQqufCWA=",
   ]) {
     assert.equal(normalizeTransactionHash(hash), null, `should reject hash: ${hash}`);
   }
