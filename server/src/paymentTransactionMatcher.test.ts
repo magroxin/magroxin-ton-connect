@@ -67,6 +67,7 @@ test("rejects missing or malformed transactions and messages", () => {
     { ...validTx, hash: "" },
     { ...validTx, hash: "not-a-valid-ton-hash" },
     { ...validTx, now: "not-a-time" },
+    { ...validTx, now: "1800000100" },
     { ...validTx, in_msg: null },
     { ...validTx, in_msg: { ...validTx.in_msg, bounced: undefined } },
     { ...validTx, in_msg: { ...validTx.in_msg, bounced: true } },
