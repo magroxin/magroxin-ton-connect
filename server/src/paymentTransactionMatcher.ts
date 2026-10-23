@@ -57,7 +57,8 @@ export function matchIncomingPaymentTransaction(
     msg.bounced !== false ||
     typeof msg.source !== "string" ||
     typeof msg.destination !== "string" ||
-    msg.value == null
+    typeof msg.value !== "string" ||
+    !/^(0|[1-9]\d*)$/.test(msg.value)
   ) {
     return null;
   }
@@ -75,16 +76,12 @@ export function matchIncomingPaymentTransaction(
   if (actualSender !== expected.sender) return null;
   if (actualRecipient !== expected.recipient) return null;
 
-  let actualAmount: bigint;
-  try {
-    actualAmount = BigInt(String(msg.value));
-  } catch {
-    return null;
-  }
-
+  // Accept only the provider's decimal nanoTON representation. BigInt alone
+  // also accepts hexadecimal, signed, and whitespace-padded strings.
+  const actualAmount = BigInt(msg.value);
   if (actualAmount !== expected.expectedAmount) return null;
 
-  const txTime = Number(tx.now);
+  const txTime = tx.now;
   if (txTime < expected.start || txTime > expected.end) return null;
 
   const decoded = msg.message_content?.decoded;
@@ -99,7 +96,6 @@ export function matchIncomingPaymentTransaction(
 
   return { hash: transactionHash };
 }
-
 
 export interface ParsedTransactionPage {
   transactions: unknown[];
