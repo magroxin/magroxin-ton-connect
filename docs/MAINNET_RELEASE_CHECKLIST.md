@@ -10,6 +10,7 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 - [x] Payment verification fails closed on malformed/incomplete TON Center data.
 - [x] Payment verification requires the connected wallet address to match the order wallet (PR #19); this is a consistency guard, not cryptographic ownership proof.
 - [x] CI passed on main after the strict transaction-success tests and checklist updates (commit `b0bcbb6c0fd7c0c34521ee14958c147410c18724`; run [39834964846](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39834964846)).
+- [x] Latest main CI passed after the strict payment amount validation documentation update (commit `238ead9b51e367e63d54d6d697a3ee4e60198041`; run [39969662050](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39969662050)).
 - [x] Payment matcher rejects string-typed transaction timestamps; PR #30 CI passed (run [39921165222](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39921165222)).
 - [x] Payment matcher accepts only canonical decimal-string nanoTON values and rejects ambiguous encodings; PR #37 merged after CI passed (run [39962088932](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39962088932)).
 - [x] CI verifies committed Jetton BOCs match compiled contract sources (run [39921165222](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39921165222)); independent contract/security review and Mainnet deployment validation remain required.
