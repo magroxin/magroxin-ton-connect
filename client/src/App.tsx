@@ -87,10 +87,17 @@ export default function App() {
       name.trim().length >= 2 &&
       /^[A-Za-z0-9._-]{2,10}$/.test(symbol.trim()) &&
       /^[1-9]\d*$/.test(supply) &&
-      Number.isSafeInteger(Number(supply)) &&
+      supply.length <= 31 &&
       Number.isInteger(Number(decimals)) &&
       Number(decimals) >= 0 &&
       Number(decimals) <= 9 &&
+      (() => {
+        try {
+          return BigInt(supply) * 10n ** BigInt(decimals) <= 10n ** 30n;
+        } catch {
+          return false;
+        }
+      })() &&
       description.trim().length <= 1000,
     [name, symbol, supply, decimals, description]
   );
