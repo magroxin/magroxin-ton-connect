@@ -7,7 +7,7 @@ MAGROXIN is a TON Mainnet Jetton-creation web app with a React/TON Connect clien
 **Real payments and token deployment remain disabled by default. Do not enable them until the required production checks below are completed.**
 
 - Network: TON Mainnet only.
-- Service fee target: $100 USD equivalent in TON.
+- Current code behavior: fixed 100 TON service fee (not a live $100 USD-equivalent quote). Confirm the intended pricing before enabling payments.
 - Order data: PostgreSQL; order IDs are UUIDs.
 - Payment verification: server-side TON Center lookup checks sender, recipient, exact amount, order comment, time window, transaction success, and duplicate transaction use.
 - Abuse controls: per-wallet order creation limit and per-order payment-verification cooldown, enforced in PostgreSQL across API instances.
@@ -28,7 +28,7 @@ MAGROXIN is a TON Mainnet Jetton-creation web app with a React/TON Connect clien
 
 The production flow must use three server-verified stages, in this order:
 
-1. **Service fee:** create an order bound to the connected Mainnet wallet; request the quoted $100 USD-equivalent TON payment; verify the incoming transaction on-chain before advancing.
+1. **Service fee:** create an order bound to the connected Mainnet wallet; request the currently hardcoded 100 TON payment; verify the incoming transaction on-chain before advancing.
 2. **Deployment cost:** create a separate, expiring deployment-payment request tied to the same order and wallet; verify its exact amount, destination, comment, transaction success, and uniqueness independently. A verified service-fee transaction must not satisfy this stage.
 3. **Deploy and confirm:** only after both payments are verified, prepare the Jetton deployment transaction. Treat wallet submission as pending—not success—until the chain confirms the master contract and the intended initial supply is minted/transferred to the requested wallet. Persist transaction identifiers and expose a recoverable status for refreshes/retries.
 
@@ -47,7 +47,7 @@ Important settings:
 - DATABASE_SSL: set to true only when required by the database provider.
 - CLIENT_ORIGIN: exact frontend origin permitted by CORS and returned in the TON Connect manifest.
 - MAGROXIN_FEE_WALLET: Mainnet service-fee recipient.
-- MAINNET_SERVICE_FEE_USD: service fee in USD, default 100.
+- Service fee: currently hardcoded to 100 TON in `server/src/index.ts`; `MAINNET_SERVICE_FEE_USD` is not the active pricing source. Do not enable payments until the intended fee policy is confirmed and code/docs agree.
 - ENABLE_PAYMENT_REQUESTS: keep false until payment flow is validated.
 - ENABLE_PAYMENT_VERIFICATION: keep false until provider verification is validated.
 - TONCENTER_API_KEY: provider key used for transaction lookup.
