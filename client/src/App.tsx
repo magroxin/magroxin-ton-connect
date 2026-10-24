@@ -27,7 +27,8 @@ type PaymentRequest = {
   address: string;
   amountNano: string;
   payload: string;
-  validUntil: number;
+  validUntil?: number;
+  paymentStatus?: string;
   error?: string;
 };
 
@@ -74,6 +75,8 @@ export default function App() {
   const [deployment, setDeployment] =
     useState<DeploymentResult | null>(null);
   const [deploymentStatus, setDeploymentStatus] = useState("");
+  const [deploymentPaymentEnabled, setDeploymentPaymentEnabled] = useState(false);
+  const [deploymentPaymentStatus, setDeploymentPaymentStatus] = useState("UNPAID");
 
   const address = useTonAddress();
   const wallet = useTonWallet();
@@ -125,6 +128,8 @@ export default function App() {
     setPaidStatus("");
     setDeployment(null);
     setDeploymentStatus("");
+    setDeploymentPaymentEnabled(false);
+    setDeploymentPaymentStatus("UNPAID");
 
     try {
       const response = await fetch(`${API}/api/orders`, {
@@ -314,6 +319,86 @@ export default function App() {
       setMessage(
         error instanceof Error ? error.message : "Could not check payment."
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyDeploymentPayment(): Promise<boolean> {
+    if (!order || !address || !orderWalletMatchesConnectedWallet()) {
+      throw new Error("Reconnect the wallet that created this order.");
+    }
+    const response = await fetch(
+      `${API}/api/orders/${encodeURIComponent(order.id)}/verify-deployment-payment`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address }),
+      }
+    );
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && data.paymentMarkedPaid === true && data.status === "paid") {
+      setDeploymentPaymentStatus("PAID — VERIFIED ON-CHAIN");
+      setDeploymentEnabled(false);
+      setMessage("Deployment cost verified. Token deployment is still disabled pending final deployment testing.");
+      return true;
+    }
+    if (response.status === 202 || data.status === "pending") {
+      setDeploymentPaymentStatus("VERIFICATION PENDING");
+      setMessage(data.message || "Deployment payment verification is pending.");
+      return false;
+    }
+    if (!response.ok) throw new Error(data.error || "Could not verify deployment payment.");
+    return false;
+  }
+
+  async function payDeploymentCost() {
+    if (!order || !wallet || !address || !isPaid || busy) return;
+    if (!isMainnet) {
+      setMessage("Switch your wallet to TON Mainnet first.");
+      return;
+    }
+    if (!orderWalletMatchesConnectedWallet()) {
+      setMessage("Reconnect the wallet that created this order.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(
+        `${API}/api/orders/${encodeURIComponent(order.id)}/deployment-payment-request`
+      );
+      const payment = (await readResponse(response)) as PaymentRequest;
+      if (!payment.address || !payment.amountNano || !payment.payload || payment.network !== "-239") {
+        throw new Error("The API returned an incomplete Mainnet deployment payment request.");
+      }
+      if (!/^[1-9]\\d*$/.test(payment.amountNano)) {
+        throw new Error("The deployment payment amount is invalid.");
+      }
+      await tonConnectUI.sendTransaction({
+        validUntil: Math.floor(Date.now() / 1000) + 300,
+        network: "-239",
+        messages: [{ address: payment.address, amount: payment.amountNano, payload: payment.payload }],
+      });
+      setDeploymentPaymentStatus("TRANSACTION SUBMITTED — VERIFYING");
+      setMessage("Deployment-cost transaction submitted. Checking Mainnet confirmation...");
+      const paid = await verifyDeploymentPayment();
+      if (!paid) setMessage("Deployment payment submitted; on-chain verification is still pending.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Deployment payment was not confirmed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function checkDeploymentPayment() {
+    if (!order || busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await verifyDeploymentPayment();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not check deployment payment.");
     } finally {
       setBusy(false);
     }
@@ -612,16 +697,32 @@ export default function App() {
           </div>
 
           <p className="note">
-            Service fee verified. Blockchain deployment requires a separate
-            wallet transaction and TON for network costs.
+            Service fee verified. Blockchain deployment cost is a separate Mainnet payment.
+            Pay only the exact amount and destination returned by the API.
           </p>
 
           <button
             className="primary"
-            disabled={busy || !deploymentEnabled || deploymentStatus === "SUBMITTED"}
+            disabled={busy || !isPaid || !wallet || !isMainnet || deploymentPaymentStatus === "PAID — VERIFIED ON-CHAIN"}
+            onClick={payDeploymentCost}
+          >
+            {busy ? "Processing…" : deploymentPaymentStatus === "PAID — VERIFIED ON-CHAIN" ? "Deployment cost verified" : "Pay deployment cost"}
+          </button>
+          <button
+            className="secondary"
+            disabled={busy || !isPaid || !wallet || !isMainnet}
+            onClick={checkDeploymentPayment}
+          >
+            Check deployment payment
+          </button>
+          <p className="hint">Deployment payment status: {deploymentPaymentStatus}. Token deployment remains disabled until its separate final safety checks pass.</p>
+
+          <button
+            className="secondary"
+            disabled={busy || !deploymentEnabled || deploymentPaymentStatus !== "PAID — VERIFIED ON-CHAIN" || deploymentStatus === "SUBMITTED"}
             onClick={prepareDeployment}
           >
-            {!deploymentEnabled ? "Deployment not enabled yet" : busy ? "Preparing…" : "Prepare deployment"}
+            {!deploymentEnabled ? "Token deployment not enabled yet" : busy ? "Preparing…" : "Prepare deployment"}
           </button>
 
           {deployment && (
