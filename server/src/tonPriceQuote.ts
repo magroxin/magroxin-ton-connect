@@ -12,7 +12,8 @@ export function parseBinanceQuote(value: unknown, nowMs = Date.now()): TonPriceQ
   if (!value || typeof value !== "object") return null;
   const data = value as Record<string, unknown>;
   const priceUsd = Number(data.price);
-  const timestampMs = Number(data.closeTime);
+  if (typeof data.closeTime !== "number") return null;
+  const timestampMs = data.closeTime;
   if (!Number.isFinite(priceUsd) || priceUsd <= 0 || !Number.isFinite(timestampMs)) return null;
   if (timestampMs > nowMs + MAX_FUTURE_SKEW_MS || nowMs - timestampMs > MAX_QUOTE_AGE_MS) return null;
   return { source: "binance", priceUsd, timestampMs };
@@ -25,7 +26,8 @@ export function parseCoinGeckoQuote(value: unknown, nowMs = Date.now()): TonPric
   if (!ton || typeof ton !== "object") return null;
   const record = ton as Record<string, unknown>;
   const priceUsd = Number(record.usd);
-  const timestampMs = Number(record.last_updated_at) * 1000;
+  if (typeof record.last_updated_at !== "number") return null;
+  const timestampMs = record.last_updated_at * 1000;
   if (!Number.isFinite(priceUsd) || priceUsd <= 0 || !Number.isFinite(timestampMs)) return null;
   if (timestampMs > nowMs + MAX_FUTURE_SKEW_MS || nowMs - timestampMs > MAX_QUOTE_AGE_MS) return null;
   return { source: "coingecko", priceUsd, timestampMs };
