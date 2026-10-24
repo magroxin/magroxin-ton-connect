@@ -23,7 +23,10 @@ const CLIENT_ORIGIN =
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
 const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
-const MAINNET_FEE_TON = "100";
+const MAINNET_FEE_TON = process.env.MAINNET_SERVICE_FEE_TON || "100";
+if (MAINNET_FEE_TON !== "100") {
+  throw new Error("MAINNET_SERVICE_FEE_TON must be exactly 100; the service fee is fixed.");
+}
 const MAINNET_FEE_NANO = toNano(MAINNET_FEE_TON).toString();
 
 const PAYMENT_REQUEST_ENABLED =
