@@ -70,7 +70,6 @@ export default function App() {
   const [logoError, setLogoError] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
-  const [feeQuoteInfo, setFeeQuoteInfo] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [paidStatus, setPaidStatus] = useState("");
@@ -667,7 +666,7 @@ export default function App() {
             <small>Mainnet token creation</small>
           </div>
           <div className="fee">
-            $100 USD <small>converted to TON using a fresh price quote</small>
+            100 TON <small>fixed Mainnet service fee</small>
           </div>
         </div>
 
@@ -709,10 +708,9 @@ export default function App() {
             </div>
 
             <div className="order-amount">
-              {order.feeTon} TON <small>$100 USD equivalent at order creation</small>
+              {order.feeTon} TON <small>fixed service fee</small>
             </div>
 
-            <p className="hint">{feeQuoteInfo}</p>
             <p className="hint">Payment status: {paidStatus || "UNPAID"}</p>
 
             <button
@@ -720,7 +718,7 @@ export default function App() {
               disabled={busy || isPaid || !paymentEnabled}
               onClick={payServiceFee}
             >
-              {busy ? "Processing…" : paymentEnabled ? `Pay ${order.feeTon} TON service fee` : "Payments not enabled yet"}
+              {busy ? "Processing…" : paymentEnabled ? "Pay 100 TON service fee" : "Payments not enabled yet"}
             </button>
 
             <button
