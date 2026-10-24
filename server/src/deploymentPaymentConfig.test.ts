@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Address } from "@ton/core";
 import { readDeploymentPaymentConfig } from "./deploymentPaymentConfig.js";
 
 const validWallet = "UQBTg_3TAIDodXCiptBQjrRGR7JRfVK7nLBLL93LOfxsCx-5";
@@ -44,5 +45,5 @@ test("accepts a valid explicit config and normalizes the recipient", () => {
   });
   assert.equal(result.enabled, true);
   assert.equal(result.amountNano, "1500000000");
-  assert.equal(result.recipient, "0:" + "d1b2d0c3b2f2c8c0a5b6d8f5d8e6c3b0a2c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3");
+  assert.equal(result.recipient, Address.parse(validWallet).toRawString().toLowerCase());
 });
