@@ -324,3 +324,28 @@ test("rejects non-canonical base64 hash encodings", async () => {
   }
 });
 
+
+test("rejects malformed decimal values without throwing", () => {
+  for (const value of ["", " ", "+123456789", "-123456789", "0123456789", "1e8", "0x75bcd15", "123456789.0"]) {
+    assert.equal(
+      matchIncomingPaymentTransaction(
+        { ...validTx, in_msg: { ...validTx.in_msg, value } },
+        expected,
+        dependencies,
+      ),
+      null,
+      `should reject amount: ${JSON.stringify(value)}`,
+    );
+  }
+});
+
+test("rejects a decimal amount that is syntactically valid but does not match", () => {
+  assert.equal(
+    matchIncomingPaymentTransaction(
+      { ...validTx, in_msg: { ...validTx.in_msg, value: "123456790" } },
+      expected,
+      dependencies,
+    ),
+    null,
+  );
+});
