@@ -24,6 +24,16 @@ MAGROXIN is a TON Mainnet Jetton-creation web app with a React/TON Connect clien
 6. Confirm monitoring, provider quota handling, database backups, and incident procedures.
 7. Keep ENABLE_PAYMENT_REQUESTS=false and ENABLE_PAYMENT_VERIFICATION=false until all checks pass.
 
+## Required staged Mainnet flow (in progress)
+
+The production flow must use three server-verified stages, in this order:
+
+1. **Service fee:** create an order bound to the connected Mainnet wallet; request the quoted $100 USD-equivalent TON payment; verify the incoming transaction on-chain before advancing.
+2. **Deployment cost:** create a separate, expiring deployment-payment request tied to the same order and wallet; verify its exact amount, destination, comment, transaction success, and uniqueness independently. A verified service-fee transaction must not satisfy this stage.
+3. **Deploy and confirm:** only after both payments are verified, prepare the Jetton deployment transaction. Treat wallet submission as pending—not success—until the chain confirms the master contract and the intended initial supply is minted/transferred to the requested wallet. Persist transaction identifiers and expose a recoverable status for refreshes/retries.
+
+**Current implementation gap:** the API currently stores and verifies only the service-fee payment; it has no independent deployment-payment record/verification endpoint, and `DEPLOYMENT_ENABLED` is hardcoded to `false`. Therefore the three-stage production flow is not complete and real payments must remain disabled. Do not turn on the environment flags as a workaround.
+
 ## Before enabling token deployment
 
 The Jetton contracts compile in CI and committed BOCs are checked against the source. This is not a substitute for an independent contract review or an end-to-end Mainnet deployment test. Verify deployment transaction construction, attached TON amount, minting, resulting total supply, wallet address, and on-chain confirmation. Only then should the hardcoded deployment block be reconsidered.
