@@ -11,6 +11,7 @@ import { calculateFeeTon } from "./feeQuote.js";
 import { parseBinanceQuote, parseCoinGeckoQuote, selectTonUsdPrice } from "./tonPriceQuote.js";
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
 import { isSupportedJettonSupply } from "./tokenSupply.js";
+import { readDeploymentPaymentConfig } from "./deploymentPaymentConfig.js";
 
 const app = express();
 
@@ -37,6 +38,7 @@ const PAYMENT_VERIFICATION_ENABLED =
 
 // Keep deployment disabled until the complete deployment flow is tested.
 const DEPLOYMENT_ENABLED = false;
+const DEPLOYMENT_PAYMENT_CONFIG = readDeploymentPaymentConfig(process.env);
 
 const ORDER_LIFETIME_MS = 5 * 60 * 1000;
 const PAYMENT_GRACE_SECONDS = 120;
@@ -462,6 +464,7 @@ app.get("/health", async (_req: Request, res: Response) => {
       paymentVerificationEnabled: PAYMENT_VERIFICATION_ENABLED,
       paymentVerificationImplemented: true,
       deploymentEnabled: DEPLOYMENT_ENABLED,
+      deploymentPaymentConfigured: DEPLOYMENT_PAYMENT_CONFIG.enabled,
     });
   } catch {
     return res.status(503).json({
