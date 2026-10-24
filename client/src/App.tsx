@@ -374,14 +374,14 @@ export default function App() {
       if (!payment.address || !payment.amountNano || !payment.payload || payment.network !== "-239" || !Number.isSafeInteger(payment.expiresAt)) {
         throw new Error("The API returned an incomplete Mainnet deployment payment request.");
       }
-      if (payment.expiresAt <= Math.floor(Date.now() / 1000)) {
+      if (payment.expiresAt <= Date.now()) {
         throw new Error("Deployment payment request expired. Request a fresh one before paying.");
       }
       if (!/^[1-9]\d*$/.test(payment.amountNano)) {
         throw new Error("The deployment payment amount is invalid.");
       }
       await tonConnectUI.sendTransaction({
-        validUntil: payment.expiresAt,
+        validUntil: Math.floor(payment.expiresAt / 1000),
         network: "-239",
         messages: [{ address: payment.address, amount: payment.amountNano, payload: payment.payload }],
       });
