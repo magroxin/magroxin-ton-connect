@@ -12,7 +12,6 @@ import { prepareJettonDeployment } from "./jettonDeployment";
 type Order = {
   id: string;
   walletAddress: string;
-  feeUsd: number;
   feeTon: string;
   serviceFeeNetwork: "mainnet";
   deploymentNetwork: "mainnet";
@@ -28,8 +27,11 @@ type PaymentRequest = {
   amountNano: string;
   payload: string;
   validUntil: number;
+  paymentStatus?: string;
   error?: string;
 };
+
+type DeploymentPaymentRequest = Omit<PaymentRequest, "validUntil"> & { expiresAt: number };
 
 type DeploymentResult = {
   address: string;
@@ -64,6 +66,8 @@ export default function App() {
   const [supply, setSupply] = useState("1000000");
   const [decimals, setDecimals] = useState("9");
   const [description, setDescription] = useState("");
+  const [logoData, setLogoData] = useState("");
+  const [logoError, setLogoError] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
@@ -74,6 +78,7 @@ export default function App() {
   const [deployment, setDeployment] =
     useState<DeploymentResult | null>(null);
   const [deploymentStatus, setDeploymentStatus] = useState("");
+  const [deploymentPaymentStatus, setDeploymentPaymentStatus] = useState("UNPAID");
 
   const address = useTonAddress();
   const wallet = useTonWallet();
@@ -125,6 +130,7 @@ export default function App() {
     setPaidStatus("");
     setDeployment(null);
     setDeploymentStatus("");
+    setDeploymentPaymentStatus("UNPAID");
 
     try {
       const response = await fetch(`${API}/api/orders`, {
@@ -139,6 +145,7 @@ export default function App() {
             supply,
             decimals: Number(decimals),
             description: description.trim(),
+            ...(logoData ? { logoData } : {}),
           },
         }),
       });
@@ -314,6 +321,89 @@ export default function App() {
       setMessage(
         error instanceof Error ? error.message : "Could not check payment."
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyDeploymentPayment(): Promise<boolean> {
+    if (!order || !address || !orderWalletMatchesConnectedWallet()) {
+      throw new Error("Reconnect the wallet that created this order.");
+    }
+    const response = await fetch(
+      `${API}/api/orders/${encodeURIComponent(order.id)}/verify-deployment-payment`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address }),
+      }
+    );
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && data.paymentMarkedPaid === true && data.status === "paid") {
+      setDeploymentPaymentStatus("PAID — VERIFIED ON-CHAIN");
+      setDeploymentEnabled(false);
+      setMessage("Deployment cost verified. Token deployment is still disabled pending final deployment testing.");
+      return true;
+    }
+    if (response.status === 202 || data.status === "pending") {
+      setDeploymentPaymentStatus("VERIFICATION PENDING");
+      setMessage(data.message || "Deployment payment verification is pending.");
+      return false;
+    }
+    if (!response.ok) throw new Error(data.error || "Could not verify deployment payment.");
+    return false;
+  }
+
+  async function payDeploymentCost() {
+    if (!order || !wallet || !address || !isPaid || busy) return;
+    if (!isMainnet) {
+      setMessage("Switch your wallet to TON Mainnet first.");
+      return;
+    }
+    if (!orderWalletMatchesConnectedWallet()) {
+      setMessage("Reconnect the wallet that created this order.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(
+        `${API}/api/orders/${encodeURIComponent(order.id)}/deployment-payment-request`
+      );
+      const payment = (await readResponse(response)) as DeploymentPaymentRequest;
+      if (!payment.address || !payment.amountNano || !payment.payload || payment.network !== "-239" || !Number.isSafeInteger(payment.expiresAt)) {
+        throw new Error("The API returned an incomplete Mainnet deployment payment request.");
+      }
+      if (payment.expiresAt <= Date.now()) {
+        throw new Error("Deployment payment request expired. Request a fresh one before paying.");
+      }
+      if (!/^[1-9]\d*$/.test(payment.amountNano)) {
+        throw new Error("The deployment payment amount is invalid.");
+      }
+      await tonConnectUI.sendTransaction({
+        validUntil: Math.floor(payment.expiresAt / 1000),
+        network: "-239",
+        messages: [{ address: payment.address, amount: payment.amountNano, payload: payment.payload }],
+      });
+      setDeploymentPaymentStatus("TRANSACTION SUBMITTED — VERIFYING");
+      setMessage("Deployment-cost transaction submitted. Checking Mainnet confirmation...");
+      const paid = await verifyDeploymentPayment();
+      if (!paid) setMessage("Deployment payment submitted; on-chain verification is still pending.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Deployment payment was not confirmed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function checkDeploymentPayment() {
+    if (!order || busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await verifyDeploymentPayment();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not check deployment payment.");
     } finally {
       setBusy(false);
     }
@@ -504,6 +594,42 @@ export default function App() {
         </div>
 
         <label>
+          Token logo <span className="optional">Optional · PNG, JPEG, or WebP · max 1 MB</span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              setLogoError("");
+              setLogoData("");
+              if (!file) return;
+              if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+                setLogoError("Choose a PNG, JPEG, or WebP image.");
+                event.target.value = "";
+                return;
+              }
+              if (file.size > 1024 * 1024) {
+                setLogoError("Logo must be 1 MB or smaller.");
+                event.target.value = "";
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                if (typeof reader.result !== "string" || !reader.result.startsWith("data:image/")) {
+                  setLogoError("Could not read this image. Try another file.");
+                  return;
+                }
+                setLogoData(reader.result);
+              };
+              reader.onerror = () => setLogoError("Could not read this image. Try another file.");
+              reader.readAsDataURL(file);
+            }}
+          />
+          {logoData && <img src={logoData} alt="Token logo preview" style={{ width: 88, height: 88, objectFit: "contain", marginTop: 8, borderRadius: 12 }} />}
+          {logoError && <span className="hint" role="alert">{logoError}</span>}
+        </label>
+
+        <label>
           Description <span className="optional">Optional</span>
           <textarea
             value={description}
@@ -535,7 +661,7 @@ export default function App() {
             <small>Mainnet token creation</small>
           </div>
           <div className="fee">
-            $100 <small>USD equivalent</small>
+            100 TON <small>fixed Mainnet service fee</small>
           </div>
         </div>
 
@@ -577,7 +703,7 @@ export default function App() {
             </div>
 
             <div className="order-amount">
-              {order.feeTon} TON <small>estimated quote</small>
+              {order.feeTon} TON <small>fixed service fee</small>
             </div>
 
             <p className="hint">Payment status: {paidStatus || "UNPAID"}</p>
@@ -587,7 +713,7 @@ export default function App() {
               disabled={busy || isPaid || !paymentEnabled}
               onClick={payServiceFee}
             >
-              {busy ? "Processing…" : paymentEnabled ? "Pay $100 service fee" : "Payments not enabled yet"}
+              {busy ? "Processing…" : paymentEnabled ? "Pay 100 TON service fee" : "Payments not enabled yet"}
             </button>
 
             <button
@@ -612,16 +738,32 @@ export default function App() {
           </div>
 
           <p className="note">
-            Service fee verified. Blockchain deployment requires a separate
-            wallet transaction and TON for network costs.
+            Service fee verified. Blockchain deployment cost is a separate Mainnet payment.
+            Pay only the exact amount and destination returned by the API.
           </p>
 
           <button
             className="primary"
-            disabled={busy || !deploymentEnabled || deploymentStatus === "SUBMITTED"}
+            disabled={busy || !isPaid || !wallet || !isMainnet || deploymentPaymentStatus === "PAID — VERIFIED ON-CHAIN"}
+            onClick={payDeploymentCost}
+          >
+            {busy ? "Processing…" : deploymentPaymentStatus === "PAID — VERIFIED ON-CHAIN" ? "Deployment cost verified" : "Pay deployment cost"}
+          </button>
+          <button
+            className="secondary"
+            disabled={busy || !isPaid || !wallet || !isMainnet}
+            onClick={checkDeploymentPayment}
+          >
+            Check deployment payment
+          </button>
+          <p className="hint">Deployment payment status: {deploymentPaymentStatus}. Token deployment remains disabled until its separate final safety checks pass.</p>
+
+          <button
+            className="secondary"
+            disabled={busy || !deploymentEnabled || deploymentPaymentStatus !== "PAID — VERIFIED ON-CHAIN" || deploymentStatus === "SUBMITTED"}
             onClick={prepareDeployment}
           >
-            {!deploymentEnabled ? "Deployment not enabled yet" : busy ? "Preparing…" : "Prepare deployment"}
+            {!deploymentEnabled ? "Token deployment not enabled yet" : busy ? "Preparing…" : "Prepare deployment"}
           </button>
 
           {deployment && (
