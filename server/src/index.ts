@@ -427,6 +427,20 @@ async function initializeDatabase(): Promise<void> {
     ADD COLUMN IF NOT EXISTS last_verification_at BIGINT;
   `);
 
+  // Staged payment ledger fields are persisted independently. They remain
+  // unused until a separate on-chain verifier is wired and tested.
+  await pool.query(`
+    ALTER TABLE magroxin_orders
+    ADD COLUMN IF NOT EXISTS deployment_payment_status TEXT NOT NULL DEFAULT 'created'
+      CHECK (deployment_payment_status IN ('created', 'paid', 'expired', 'failed')),
+    ADD COLUMN IF NOT EXISTS deployment_payment_tx_hash TEXT UNIQUE,
+    ADD COLUMN IF NOT EXISTS deployment_payment_amount_nano NUMERIC(40, 0),
+    ADD COLUMN IF NOT EXISTS deployment_payment_last_verification_at BIGINT,
+    ADD COLUMN IF NOT EXISTS deployment_started_at BIGINT,
+    ADD COLUMN IF NOT EXISTS deployment_tx_hash TEXT,
+    ADD COLUMN IF NOT EXISTS token_delivery_confirmed BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS magroxin_orders_status_expiry_idx
     ON magroxin_orders (status, expires_at);
