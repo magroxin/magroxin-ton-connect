@@ -22,7 +22,7 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 
 ## Required before enabling payments
 
-- [x] Verify the live Render `/health` endpoint and PostgreSQL connectivity; owner confirmed `ok: true`, `databaseConnected: true`, Mainnet, $100 service fee, and payment/deployment flags disabled (2026-10-22).
+- [x] Verify the live Render `/health` endpoint and PostgreSQL connectivity; owner confirmed `ok: true`, `databaseConnected: true`, Mainnet, fixed 100 TON service fee, and payment/deployment flags disabled (2026-10-22).
 - [x] Verify the live `/tonconnect-manifest.json` response returns the expected Blogger HTTPS origin and Magroxin name (owner confirmed 2026-10-22).
 - [x] Owner confirmed the site icon appeared in the TON Connect flow (2026-10-24). Recheck if the manifest icon URL changes.
 - [ ] Verify Render environment variables and PostgreSQL backups; never place secrets in source control.
@@ -36,7 +36,7 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 
 ## Required end-to-end release test
 
-- [ ] On Mainnet, create an order and confirm the exact USD-equivalent TON amount and unique `MAGROXIN:<orderId>` comment.
+- [ ] On Mainnet, create an order and confirm the exact 100 TON amount and unique `MAGROXIN:<orderId>` comment.
 - [ ] Confirm an unrelated payment, wrong sender, wrong amount, wrong comment, bounced/failed transaction, or stale payment never marks an order paid.
 - [ ] Confirm the same transaction cannot pay two orders and concurrent verification cannot create duplicate state transitions.
 - [ ] Confirm payment verification remains inconclusive (not unpaid/paid) when TON Center is unavailable, malformed, or pagination is exhausted.
