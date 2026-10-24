@@ -7,8 +7,6 @@ import { Pool } from "pg";
 import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
-import { calculateFeeTon } from "./feeQuote.js";
-import { parseBinanceQuote, parseCoinGeckoQuote, selectTonUsdPrice } from "./tonPriceQuote.js";
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
 import { isSupportedJettonSupply } from "./tokenSupply.js";
 
@@ -25,9 +23,8 @@ const CLIENT_ORIGIN =
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
 const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
-const MAINNET_FEE = Number(
-  process.env.MAINNET_SERVICE_FEE_USD || 100,
-);
+const MAINNET_FEE_TON = "100";
+const MAINNET_FEE_NANO = toNano(MAINNET_FEE_TON).toString();
 
 const PAYMENT_REQUEST_ENABLED =
   process.env.ENABLE_PAYMENT_REQUESTS === "true";
@@ -56,7 +53,6 @@ interface Order {
   walletAddress: string;
   deploymentNetwork: "mainnet";
   serviceFeeNetwork: "mainnet";
-  feeUsd: number;
   feeTon: string;
   amountNano: string;
   status: OrderStatus;
@@ -217,7 +213,6 @@ function rowToOrder(row: Record<string, any>): Order {
     walletAddress: String(row.wallet_address),
     deploymentNetwork: "mainnet",
     serviceFeeNetwork: "mainnet",
-    feeUsd: Number(row.fee_usd),
     feeTon: String(row.fee_ton),
     amountNano: String(row.amount_nano),
     status: row.status as OrderStatus,
@@ -234,7 +229,6 @@ function publicOrder(order: Order) {
     walletAddress: order.walletAddress,
     deploymentNetwork: order.deploymentNetwork,
     serviceFeeNetwork: order.serviceFeeNetwork,
-    feeUsd: order.feeUsd,
     feeTon: order.feeTon,
     amountNano: order.amountNano,
     status: order.status,
@@ -377,26 +371,6 @@ async function findVerifiedPayment(
 
 
 
-async function getTonUsdPrice(): Promise<number> {
-  const requests = [
-    fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=TONUSDT", {
-      headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(7000),
-    }).then(async (response) => response.ok ? parseBinanceQuote(await response.json(), Date.now()) : null)
-      .catch(() => null),
-    fetch("https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_last_updated_at=true", {
-      headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(7000),
-    }).then(async (response) => response.ok ? parseCoinGeckoQuote(await response.json(), Date.now()) : null)
-      .catch(() => null),
-  ];
-
-  const quotes = (await Promise.all(requests)).filter((quote) => quote !== null);
-  const price = selectTonUsdPrice(quotes);
-  console.log("[MAGROXIN] Fresh TON/USD quote accepted.");
-  return price;
-}
-
 async function initializeDatabase(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS magroxin_orders (
@@ -457,7 +431,7 @@ app.get("/health", async (_req: Request, res: Response) => {
       service: "magroxin-api",
       databaseConnected: true,
       network: "mainnet",
-      serviceFeeUsd: MAINNET_FEE,
+      serviceFeeTon: MAINNET_FEE_TON,
       paymentRequestEnabled: PAYMENT_REQUEST_ENABLED,
       paymentVerificationEnabled: PAYMENT_VERIFICATION_ENABLED,
       paymentVerificationImplemented: true,
@@ -525,16 +499,8 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       });
     }
 
-    if (!Number.isFinite(MAINNET_FEE) || MAINNET_FEE <= 0) {
-      return res.status(503).json({
-        ok: false,
-        error: "Mainnet service fee configuration is invalid.",
-      });
-    }
-
-    const tonUsd = await getTonUsdPrice();
-    const feeTon = calculateFeeTon(MAINNET_FEE, tonUsd);
-    const amountNano = toNano(feeTon).toString();
+    const feeTon = MAINNET_FEE_TON;
+    const amountNano = MAINNET_FEE_NANO;
 
     const now = Date.now();
     const expiresAt = now + ORDER_LIFETIME_MS;
@@ -593,7 +559,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
         [
           id,
           walletAddress,
-          MAINNET_FEE,
+          0,
           feeTon,
           amountNano,
           now,
@@ -639,17 +605,6 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       "[MAGROXIN] Order creation failed:",
       error instanceof Error ? error.message : "Unknown error",
     );
-
-    if (
-      error instanceof Error &&
-      error.message.includes("TON/USD")
-    ) {
-      return res.status(503).json({
-        ok: false,
-        error: "Unable to obtain a valid TON/USD quote.",
-        paymentSent: false,
-      });
-    }
 
     return res.status(500).json({
       ok: false,
