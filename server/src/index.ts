@@ -4,7 +4,7 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { Address, beginCell, Cell, toNano } from "@ton/core";
+import { Address, beginCell, Cell } from "@ton/core";
 import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
@@ -235,7 +235,6 @@ function publicOrder(order: Order) {
     walletAddress: order.walletAddress,
     deploymentNetwork: order.deploymentNetwork,
     serviceFeeNetwork: order.serviceFeeNetwork,
-    feeUsd: order.feeUsd,
     feeTon: order.feeTon,
     amountNano: order.amountNano,
     status: order.status,
