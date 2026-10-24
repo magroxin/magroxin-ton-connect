@@ -998,6 +998,30 @@ app.get("/api/orders/:id", async (req: Request, res: Response) => {
   }
 });
 
+
+// Normalize JSON parser errors so clients always receive a safe, predictable API response.
+app.use((error: unknown, _req: Request, res: Response, next: (error?: unknown) => void) => {
+  const parserError = error as { type?: string; status?: number };
+
+  if (parserError?.type === "entity.too.large" || parserError?.status === 413) {
+    return res.status(413).json({
+      ok: false,
+      error: "Request body is too large. Reduce the request size and try again.",
+      paymentSent: false,
+    });
+  }
+
+  if (parserError instanceof SyntaxError && "status" in parserError) {
+    return res.status(400).json({
+      ok: false,
+      error: "Request body must contain valid JSON.",
+      paymentSent: false,
+    });
+  }
+
+  return next(error);
+});
+
 async function start(): Promise<void> {
   if (!DATABASE_URL) {
     throw new Error("DATABASE_URL is required.");
