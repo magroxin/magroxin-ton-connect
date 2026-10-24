@@ -32,6 +32,8 @@ type PaymentRequest = {
   error?: string;
 };
 
+type DeploymentPaymentRequest = Omit<PaymentRequest, "validUntil">;
+
 type DeploymentResult = {
   address: string;
   stateInit: string;
@@ -75,7 +77,6 @@ export default function App() {
   const [deployment, setDeployment] =
     useState<DeploymentResult | null>(null);
   const [deploymentStatus, setDeploymentStatus] = useState("");
-  const [deploymentPaymentEnabled, setDeploymentPaymentEnabled] = useState(false);
   const [deploymentPaymentStatus, setDeploymentPaymentStatus] = useState("UNPAID");
 
   const address = useTonAddress();
@@ -128,7 +129,6 @@ export default function App() {
     setPaidStatus("");
     setDeployment(null);
     setDeploymentStatus("");
-    setDeploymentPaymentEnabled(false);
     setDeploymentPaymentStatus("UNPAID");
 
     try {
@@ -368,7 +368,7 @@ export default function App() {
       const response = await fetch(
         `${API}/api/orders/${encodeURIComponent(order.id)}/deployment-payment-request`
       );
-      const payment = (await readResponse(response)) as PaymentRequest;
+      const payment = (await readResponse(response)) as DeploymentPaymentRequest;
       if (!payment.address || !payment.amountNano || !payment.payload || payment.network !== "-239") {
         throw new Error("The API returned an incomplete Mainnet deployment payment request.");
       }
