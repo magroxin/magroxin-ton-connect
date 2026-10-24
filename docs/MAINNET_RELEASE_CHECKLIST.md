@@ -36,7 +36,7 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 
 ## Required end-to-end release test
 
-- [ ] On Mainnet, create an order and confirm the exact exact 100 TON amount and unique `MAGROXIN:<orderId>` comment.
+- [ ] On Mainnet, create an order and confirm the exact 100 TON amount and unique `MAGROXIN:<orderId>` comment.
 - [ ] Confirm an unrelated payment, wrong sender, wrong amount, wrong comment, bounced/failed transaction, or stale payment never marks an order paid.
 - [ ] Confirm the same transaction cannot pay two orders and concurrent verification cannot create duplicate state transitions.
 - [ ] Confirm payment verification remains inconclusive (not unpaid/paid) when TON Center is unavailable, malformed, or pagination is exhausted.
