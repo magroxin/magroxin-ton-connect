@@ -157,11 +157,6 @@ export default function App() {
       }
 
       setOrder(data.order);
-      if (data.feeQuote && Number.isFinite(data.feeQuote.tonUsd)) {
-        setFeeQuoteInfo(`$100 USD equivalent · TON/USD ${Number(data.feeQuote.tonUsd).toFixed(4)} · quote source: ${String(data.feeQuote.source || "unavailable")}`);
-      } else {
-        setFeeQuoteInfo("USD price quote unavailable.");
-      }
       const canPay =
         data.payment?.paymentRequestEnabled === true &&
         data.payment?.paymentVerificationEnabled === true;
