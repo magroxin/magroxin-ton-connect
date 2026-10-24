@@ -372,7 +372,7 @@ export default function App() {
       if (!payment.address || !payment.amountNano || !payment.payload || payment.network !== "-239") {
         throw new Error("The API returned an incomplete Mainnet deployment payment request.");
       }
-      if (!/^[1-9]\\d*$/.test(payment.amountNano)) {
+      if (!/^[1-9]\d*$/.test(payment.amountNano)) {
         throw new Error("The deployment payment amount is invalid.");
       }
       await tonConnectUI.sendTransaction({
