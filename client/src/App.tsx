@@ -31,7 +31,7 @@ type PaymentRequest = {
   error?: string;
 };
 
-type DeploymentPaymentRequest = Omit<PaymentRequest, "validUntil">;
+type DeploymentPaymentRequest = Omit<PaymentRequest, "validUntil"> & { expiresAt: number };
 
 type DeploymentResult = {
   address: string;
@@ -378,7 +378,7 @@ export default function App() {
         throw new Error("The deployment payment amount is invalid.");
       }
       await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + 300,
+        validUntil: payment.expiresAt,
         network: "-239",
         messages: [{ address: payment.address, amount: payment.amountNano, payload: payment.payload }],
       });
