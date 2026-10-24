@@ -1018,6 +1018,160 @@ app.post(
   },
 );
 
+
+function deploymentPaymentComment(orderId: string): string {
+  return `MAGROXIN-DEPLOY:${orderId}`;
+}
+
+async function findVerifiedDeploymentPayment(
+  order: Order,
+): Promise<{ hash: string } | null> {
+  if (!TONCENTER_API_KEY || !DEPLOYMENT_PAYMENT_CONFIG.enabled) {
+    throw new Error("Deployment payment verification is not configured.");
+  }
+
+  const recipient = normalizeAddress(DEPLOYMENT_PAYMENT_CONFIG.recipient);
+  const sender = normalizeAddress(order.walletAddress);
+  const expectedAmount = BigInt(DEPLOYMENT_PAYMENT_CONFIG.amountNano);
+  const expectedComment = deploymentPaymentComment(order.id);
+  const start = Math.floor(order.createdAt / 1000);
+  const end = Math.floor(order.expiresAt / 1000) + PAYMENT_GRACE_SECONDS;
+  const pageSize = 1000;
+  const maxPages = 10;
+
+  for (let page = 0; page < maxPages; page++) {
+    const url = new URL(`${TONCENTER_V3}/transactions`);
+    url.searchParams.set("account", recipient);
+    url.searchParams.set("limit", String(pageSize));
+    url.searchParams.set("offset", String(page * pageSize));
+    url.searchParams.set("sort", "desc");
+    url.searchParams.set("start_utime", String(start));
+    url.searchParams.set("end_utime", String(end));
+
+    const response = await fetch(url, {
+      headers: { accept: "application/json", "X-API-Key": TONCENTER_API_KEY },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error(`TON Center returned HTTP ${response.status}.`);
+
+    const pageData = parseTransactionPage(await response.json(), pageSize);
+    for (const tx of pageData.transactions as any[]) {
+      const match = matchIncomingPaymentTransaction(
+        tx,
+        { sender, recipient, expectedAmount, start, end, expectedComment },
+        { normalizeAddress, decodeComment },
+      );
+      if (match) return match;
+    }
+    if (!pageData.hasMore) return null;
+  }
+  throw new Error("Deployment payment transaction search limit reached; verification is inconclusive.");
+}
+
+app.get("/api/orders/:id/deployment-payment-request", async (req: Request, res: Response) => {
+  try {
+    if (!DEPLOYMENT_PAYMENT_CONFIG.enabled || !TONCENTER_API_KEY) {
+      return res.status(503).json({ ok: false, error: "Deployment-cost payment is disabled pending configuration and end-to-end testing.", paymentSent: false });
+    }
+    const id = req.params.id;
+    if (!validOrderId(id)) return res.status(400).json({ ok: false, error: "Invalid order ID." });
+    const order = await getOrder(id);
+    if (!order) return res.status(404).json({ ok: false, error: "Order not found." });
+    if (order.status !== "paid") return res.status(409).json({ ok: false, error: "Verify the $100 service fee before requesting deployment payment." });
+
+    const ledger = await pool.query("SELECT deployment_payment_status, deployment_payment_tx_hash FROM magroxin_orders WHERE id = $1", [id]);
+    if (ledger.rows[0]?.deployment_payment_status === "paid") {
+      return res.status(409).json({ ok: false, error: "Deployment payment is already verified." });
+    }
+
+    let recipient;
+    try { recipient = Address.parse(DEPLOYMENT_PAYMENT_CONFIG.recipient).toString({ bounceable: true, urlSafe: true }); }
+    catch { return res.status(503).json({ ok: false, error: "Deployment payment wallet configuration is invalid." }); }
+
+    const payload = beginCell().storeUint(0, 32).storeStringTail(deploymentPaymentComment(order.id)).endCell().toBoc().toString("base64");
+    return res.json({
+      ok: true, orderId: order.id, network: "-239", address: recipient,
+      amountNano: DEPLOYMENT_PAYMENT_CONFIG.amountNano, payload,
+      paymentStatus: ledger.rows[0]?.deployment_payment_status ?? "created",
+      paymentSent: false,
+      message: "Send only the exact displayed amount from the connected wallet. Payment is not confirmed until on-chain verification succeeds.",
+    });
+  } catch (error) {
+    console.error("[MAGROXIN] Deployment payment request failed:", error instanceof Error ? error.message : "Unknown error");
+    return res.status(503).json({ ok: false, error: "Unable to create deployment payment request.", paymentSent: false });
+  }
+});
+
+app.post("/api/orders/:id/verify-deployment-payment", async (req: Request, res: Response) => {
+  const id = req.params.id;
+  if (!validOrderId(id)) return res.status(400).json({ ok: false, error: "Invalid order ID.", paymentMarkedPaid: false });
+  if (!DEPLOYMENT_PAYMENT_CONFIG.enabled || !TONCENTER_API_KEY) {
+    return res.status(503).json({ ok: false, error: "Deployment payment verification is disabled.", paymentMarkedPaid: false });
+  }
+
+  let order: Order | null;
+  try { order = await getOrder(id); }
+  catch { return res.status(503).json({ ok: false, error: "Unable to retrieve order.", paymentMarkedPaid: false }); }
+  if (!order) return res.status(404).json({ ok: false, error: "Order not found.", paymentMarkedPaid: false });
+  if (order.status !== "paid" || !order.paymentTxHash) {
+    return res.status(409).json({ ok: false, error: "The $100 service fee must be verified first.", paymentMarkedPaid: false });
+  }
+
+  let submittedWalletAddress: string;
+  try {
+    if (typeof req.body?.walletAddress !== "string") throw new Error("Missing wallet address.");
+    submittedWalletAddress = normalizeAddress(req.body.walletAddress);
+  } catch {
+    return res.status(400).json({ ok: false, error: "A valid connected wallet address is required.", paymentMarkedPaid: false });
+  }
+  if (submittedWalletAddress !== normalizeAddress(order.walletAddress)) {
+    return res.status(403).json({ ok: false, error: "Connected wallet does not match this order.", paymentMarkedPaid: false });
+  }
+
+  try {
+    const existing = await pool.query("SELECT deployment_payment_status, deployment_payment_tx_hash FROM magroxin_orders WHERE id = $1", [id]);
+    if (existing.rows[0]?.deployment_payment_status === "paid") {
+      return res.json({ ok: true, status: "paid", paymentMarkedPaid: true, paymentTxHash: existing.rows[0].deployment_payment_tx_hash, deploymentEnabled: false, message: "Deployment payment verified; token deployment is still disabled." });
+    }
+
+    const now = Date.now();
+    const claim = await pool.query(
+      `UPDATE magroxin_orders SET deployment_payment_last_verification_at = $2
+       WHERE id = $1 AND status = 'paid' AND deployment_payment_status = 'created'
+       AND (deployment_payment_last_verification_at IS NULL OR deployment_payment_last_verification_at <= $3)
+       RETURNING id`,
+      [id, now, now - 30000],
+    );
+    if (claim.rowCount !== 1) {
+      return res.status(429).json({ ok: false, error: "Deployment payment was checked recently or is no longer awaiting payment.", paymentMarkedPaid: false });
+    }
+
+    const payment = await findVerifiedDeploymentPayment(order);
+    if (!payment) return res.status(202).json({ ok: true, status: "pending", paymentMarkedPaid: false, message: "No matching successful deployment payment found yet." });
+    if (payment.hash === order.paymentTxHash) {
+      return res.status(409).json({ ok: false, error: "Deployment payment must be a separate transaction from the service fee.", paymentMarkedPaid: false });
+    }
+
+    const update = await pool.query(
+      `UPDATE magroxin_orders
+       SET deployment_payment_status = 'paid', deployment_payment_tx_hash = $1,
+           deployment_payment_amount_nano = $2
+       WHERE id = $3 AND status = 'paid' AND deployment_payment_status = 'created'
+         AND deployment_payment_tx_hash IS NULL AND payment_tx_hash <> $1
+       RETURNING id`,
+      [payment.hash, DEPLOYMENT_PAYMENT_CONFIG.amountNano, id],
+    );
+    if (update.rowCount !== 1) return res.status(409).json({ ok: false, error: "Payment state changed or transaction was already used.", paymentMarkedPaid: false });
+
+    return res.json({ ok: true, status: "paid", paymentMarkedPaid: true, paymentTxHash: payment.hash, deploymentEnabled: false, message: "Deployment cost verified. Token deployment is not enabled yet." });
+  } catch (error) {
+    const pgError = error as { code?: string };
+    if (pgError.code === "23505") return res.status(409).json({ ok: false, error: "This transaction has already been used.", paymentMarkedPaid: false });
+    console.error("[MAGROXIN] Deployment payment verification failed:", error instanceof Error ? error.message : "Unknown error");
+    return res.status(503).json({ ok: false, error: "Unable to verify deployment payment right now.", paymentMarkedPaid: false });
+  }
+});
+
 app.get("/api/orders/:id", async (req: Request, res: Response) => {
   try {
     const orderId = req.params.id;
