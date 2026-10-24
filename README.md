@@ -32,7 +32,7 @@ The production flow must use three server-verified stages, in this order:
 2. **Deployment cost:** create a separate, expiring deployment-payment request tied to the same order and wallet; verify its exact amount, destination, comment, transaction success, and uniqueness independently. A verified service-fee transaction must not satisfy this stage.
 3. **Deploy and confirm:** only after both payments are verified, prepare the Jetton deployment transaction. Treat wallet submission as pending—not success—until the chain confirms the master contract and the intended initial supply is minted/transferred to the requested wallet. Persist transaction identifiers and expose a recoverable status for refreshes/retries.
 
-**Current implementation gap:** the API currently stores and verifies only the service-fee payment; it has no independent deployment-payment record/verification endpoint, and `DEPLOYMENT_ENABLED` is hardcoded to `false`. Therefore the three-stage production flow is not complete and real payments must remain disabled. Do not turn on the environment flags as a workaround.
+**Current implementation gap:** the API now has a separate deployment-payment request and verification path, with independent ledger fields and transaction matching. However, deployment-cost payment remains disabled until the operator configures and verifies the exact recipient and nanoTON amount, and the full payment path is tested on Mainnet. `DEPLOYMENT_ENABLED` remains hardcoded to `false`; token deployment and confirmed delivery are not complete. Do not enable real payment flags as a workaround.
 
 ## Before enabling token deployment
 
@@ -51,6 +51,9 @@ Important settings:
 - ENABLE_PAYMENT_REQUESTS: keep false until payment flow is validated.
 - ENABLE_PAYMENT_VERIFICATION: keep false until provider verification is validated.
 - TONCENTER_API_KEY: provider key used for transaction lookup.
+- ENABLE_DEPLOYMENT_PAYMENT: keep false until deployment-payment configuration and end-to-end Mainnet verification are complete.
+- DEPLOYMENT_PAYMENT_WALLET: independently verified Mainnet recipient for the separate deployment-cost payment.
+- DEPLOYMENT_PAYMENT_AMOUNT_NANO: exact positive nanoTON amount for that payment; do not guess or use a placeholder.
 
 The API health endpoint is /health. It reports database connectivity and feature flags; a healthy response alone does not prove that payment or deployment flows are safe.
 
