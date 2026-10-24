@@ -16,12 +16,13 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 - [x] CI verifies committed Jetton BOCs match compiled contract sources (run [39921165222](https://github.com/magroxin/magroxin-ton-connect/actions/runs/39921165222)); independent contract/security review and Mainnet deployment validation remain required.
 
 - [x] Payment matcher boundary regression tests for unsafe timestamps and hash normalization passed in PR #40; merged main CI run [40017114105](https://github.com/magroxin/magroxin-ton-connect/actions/runs/40017114105) succeeded (commit `99fce958fc9c12a51c1dd15fb23dc9da777e6a6f`).
+- [x] Malformed payment amount encoding regression tests passed in PR #42; merged main CI run [40075324569](https://github.com/magroxin/magroxin-ton-connect/actions/runs/40075324569) succeeded (commit `7793ca5b0c9f29e4485cf0fbd36f44b9e6712ef0`).
 
 ## Required before enabling payments
 
 - [x] Verify the live Render `/health` endpoint and PostgreSQL connectivity; owner confirmed `ok: true`, `databaseConnected: true`, Mainnet, $100 service fee, and payment/deployment flags disabled (2026-10-22).
 - [x] Verify the live `/tonconnect-manifest.json` response returns the expected Blogger HTTPS origin and Magroxin name (owner confirmed 2026-10-22).
-- [ ] Verify the manifest `iconUrl` (`https://magroxin.blogspot.com/favicon.ico`) loads as a valid public icon and is accepted by TON Connect.
+- [x] Owner confirmed the site icon appeared in the TON Connect flow (2026-10-24). Recheck if the manifest icon URL changes.
 - [ ] Verify Render environment variables and PostgreSQL backups; never place secrets in source control.
 - [ ] Validate TON Center Mainnet responses against a real, known transaction and confirm pagination behavior.
 - [x] Add shared, production-safe API rate limits for order creation and payment verification; unit tests pass in CI (PR #18, commit `7d07874cc00faed56cc1a23dc79ee755b66d402c`).
