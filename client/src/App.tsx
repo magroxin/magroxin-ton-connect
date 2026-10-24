@@ -371,8 +371,11 @@ export default function App() {
         `${API}/api/orders/${encodeURIComponent(order.id)}/deployment-payment-request`
       );
       const payment = (await readResponse(response)) as DeploymentPaymentRequest;
-      if (!payment.address || !payment.amountNano || !payment.payload || payment.network !== "-239") {
+      if (!payment.address || !payment.amountNano || !payment.payload || payment.network !== "-239" || !Number.isSafeInteger(payment.expiresAt)) {
         throw new Error("The API returned an incomplete Mainnet deployment payment request.");
+      }
+      if (payment.expiresAt <= Math.floor(Date.now() / 1000)) {
+        throw new Error("Deployment payment request expired. Request a fresh one before paying.");
       }
       if (!/^[1-9]\d*$/.test(payment.amountNano)) {
         throw new Error("The deployment payment amount is invalid.");
