@@ -1063,7 +1063,7 @@ app.get("/api/orders/:id/deployment-payment-request", async (req: Request, res: 
     if (!validOrderId(id)) return res.status(400).json({ ok: false, error: "Invalid order ID." });
     const order = await getOrder(id);
     if (!order) return res.status(404).json({ ok: false, error: "Order not found." });
-    if (order.status !== "paid") return res.status(409).json({ ok: false, error: "Verify the $100 service fee before requesting deployment payment." });
+    if (order.status !== "paid") return res.status(409).json({ ok: false, error: "Verify the 100 TON service fee before requesting deployment payment." });
 
     const ledger = await pool.query("SELECT deployment_payment_status, deployment_payment_tx_hash FROM magroxin_orders WHERE id = $1", [id]);
     if (ledger.rows[0]?.deployment_payment_status === "paid") {
@@ -1116,7 +1116,7 @@ app.post("/api/orders/:id/verify-deployment-payment", async (req: Request, res: 
   catch { return res.status(503).json({ ok: false, error: "Unable to retrieve order.", paymentMarkedPaid: false }); }
   if (!order) return res.status(404).json({ ok: false, error: "Order not found.", paymentMarkedPaid: false });
   if (order.status !== "paid" || !order.paymentTxHash) {
-    return res.status(409).json({ ok: false, error: "The $100 service fee must be verified first.", paymentMarkedPaid: false });
+    return res.status(409).json({ ok: false, error: "The 100 TON service fee must be verified first.", paymentMarkedPaid: false });
   }
 
   let submittedWalletAddress: string;
