@@ -7,8 +7,6 @@ import { Pool } from "pg";
 import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
-import { calculateFeeTon } from "./feeQuote.js";
-import { parseBinanceQuote, parseCoinGeckoQuote, selectTonUsdPrice } from "./tonPriceQuote.js";
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
 import { isSupportedJettonSupply } from "./tokenSupply.js";
 import { readDeploymentPaymentConfig } from "./deploymentPaymentConfig.js";
@@ -26,9 +24,8 @@ const CLIENT_ORIGIN =
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
 const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
-const MAINNET_FEE = Number(
-  process.env.MAINNET_SERVICE_FEE_USD || 100,
-);
+const MAINNET_SERVICE_FEE_TON = "100";
+const MAINNET_SERVICE_FEE_NANO = "100000000000";
 
 const PAYMENT_REQUEST_ENABLED =
   process.env.ENABLE_PAYMENT_REQUESTS === "true";
@@ -51,6 +48,7 @@ interface TokenData {
   supply: string;
   decimals: number;
   description: string;
+  logoData?: string;
 }
 
 interface Order {
@@ -81,6 +79,7 @@ const orderSchema = z.object({
       .max(31),
     decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
+    logoData: z.string().max(1400000).optional().default(""),
   }).superRefine((token, ctx) => {
     if (!isSupportedJettonSupply(token.supply, token.decimals)) {
       ctx.addIssue({
@@ -130,7 +129,7 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "16kb" }));
+app.use(express.json({ limit: "2mb" }));
 
 let rateLimitCleanupCounter = 0;
 
@@ -379,26 +378,6 @@ async function findVerifiedPayment(
 
 
 
-async function getTonUsdPrice(): Promise<number> {
-  const requests = [
-    fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=TONUSDT", {
-      headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(7000),
-    }).then(async (response) => response.ok ? parseBinanceQuote(await response.json(), Date.now()) : null)
-      .catch(() => null),
-    fetch("https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_last_updated_at=true", {
-      headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(7000),
-    }).then(async (response) => response.ok ? parseCoinGeckoQuote(await response.json(), Date.now()) : null)
-      .catch(() => null),
-  ];
-
-  const quotes = (await Promise.all(requests)).filter((quote) => quote !== null);
-  const price = selectTonUsdPrice(quotes);
-  console.log("[MAGROXIN] Fresh TON/USD quote accepted.");
-  return price;
-}
-
 async function initializeDatabase(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS magroxin_orders (
@@ -474,7 +453,7 @@ app.get("/health", async (_req: Request, res: Response) => {
       service: "magroxin-api",
       databaseConnected: true,
       network: "mainnet",
-      serviceFeeUsd: MAINNET_FEE,
+      serviceFeeTon: MAINNET_SERVICE_FEE_TON,
       paymentRequestEnabled: PAYMENT_REQUEST_ENABLED,
       paymentVerificationEnabled: PAYMENT_VERIFICATION_ENABLED,
       paymentVerificationImplemented: true,
@@ -543,16 +522,12 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       });
     }
 
-    if (!Number.isFinite(MAINNET_FEE) || MAINNET_FEE <= 0) {
-      return res.status(503).json({
-        ok: false,
-        error: "Mainnet service fee configuration is invalid.",
-      });
+    const logoData = parsed.data.token.logoData ?? "";
+    if (logoData && !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(logoData)) {
+      return res.status(400).json({ ok: false, error: "Logo must be a PNG, JPEG, or WebP data image." });
     }
-
-    const tonUsd = await getTonUsdPrice();
-    const feeTon = calculateFeeTon(MAINNET_FEE, tonUsd);
-    const amountNano = toNano(feeTon).toString();
+    const feeTon = MAINNET_SERVICE_FEE_TON;
+    const amountNano = MAINNET_SERVICE_FEE_NANO;
 
     const now = Date.now();
     const expiresAt = now + ORDER_LIFETIME_MS;
@@ -564,6 +539,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       supply: parsed.data.token.supply,
       decimals: parsed.data.token.decimals,
       description: parsed.data.token.description ?? "",
+      ...(logoData ? { logoData } : {}),
     };
 
     // Apply a shared PostgreSQL-backed per-wallet limit. Advisory locking keeps
@@ -611,7 +587,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
         [
           id,
           walletAddress,
-          MAINNET_FEE,
+          100,
           feeTon,
           amountNano,
           now,
