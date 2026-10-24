@@ -20,6 +20,12 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 
 - [x] Reject coerced/non-numeric Binance and CoinGecko quote timestamps; regression tests passed in PR #44 and merged main CI run [40086371821](https://github.com/magroxin/magroxin-ton-connect/actions/runs/40086371821) succeeded (merge commit `a59ffecfd62827b75e642be65aba883af8272503`).
 
+## Current blocking mismatches
+
+- [ ] Resolve the service-fee policy before any production payment flag is enabled: the intended business price has been described as **$100 worth of TON**, but the current backend hardcodes **100 TON** (`MAINNET_SERVICE_FEE_TON` / `MAINNET_SERVICE_FEE_NANO`). These are not equivalent in general. Confirm the intended policy and implement/test it consistently in the API, UI, payment request, and order records. Do not enable payments while this mismatch remains.
+- [ ] Complete and independently verify server-side Mainnet Jetton deployment and token delivery. A submitted wallet transaction alone must not be reported as successful deployment; the API currently hard-disables deployment.
+- [ ] Reconcile the Blogger Gadget 3 integration with the API contract. The gadget source is not in this repository, so expected endpoint names and response shapes must be checked against the live gadget before integration is considered complete.
+
 ## Required before enabling payments
 
 - [x] Verify the live Render `/health` endpoint and PostgreSQL connectivity; owner confirmed `ok: true`, `databaseConnected: true`, Mainnet, $100 service fee, and payment/deployment flags disabled (2026-10-22).
