@@ -109,6 +109,7 @@ app.disable("x-powered-by");
 // here because HTTPS termination is managed by the production hosting proxy.
 app.use((_req: Request, res: Response, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
