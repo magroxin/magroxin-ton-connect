@@ -435,6 +435,7 @@ async function initializeDatabase(): Promise<void> {
       CHECK (deployment_payment_status IN ('created', 'paid', 'expired', 'failed')),
     ADD COLUMN IF NOT EXISTS deployment_payment_tx_hash TEXT UNIQUE,
     ADD COLUMN IF NOT EXISTS deployment_payment_amount_nano NUMERIC(40, 0),
+    ADD COLUMN IF NOT EXISTS deployment_payment_expires_at BIGINT,
     ADD COLUMN IF NOT EXISTS deployment_payment_last_verification_at BIGINT,
     ADD COLUMN IF NOT EXISTS deployment_started_at BIGINT,
     ADD COLUMN IF NOT EXISTS deployment_tx_hash TEXT,
@@ -1034,8 +1035,17 @@ async function findVerifiedDeploymentPayment(
   const sender = normalizeAddress(order.walletAddress);
   const expectedAmount = BigInt(DEPLOYMENT_PAYMENT_CONFIG.amountNano);
   const expectedComment = deploymentPaymentComment(order.id);
+  // The second payment occurs after the service fee; use its own persisted deadline.
+  const ledger = await pool.query(
+    "SELECT deployment_payment_expires_at FROM magroxin_orders WHERE id = $1",
+    [order.id],
+  );
+  const deploymentExpiresAt = Number(ledger.rows[0]?.deployment_payment_expires_at);
+  if (!Number.isSafeInteger(deploymentExpiresAt) || deploymentExpiresAt <= 0) {
+    throw new Error("Deployment payment deadline has not been initialized.");
+  }
   const start = Math.floor(order.createdAt / 1000);
-  const end = Math.floor(order.expiresAt / 1000) + PAYMENT_GRACE_SECONDS;
+  const end = Math.floor(deploymentExpiresAt / 1000);
   const pageSize = 1000;
   const maxPages = 10;
 
@@ -1088,10 +1098,26 @@ app.get("/api/orders/:id/deployment-payment-request", async (req: Request, res: 
     try { recipient = Address.parse(DEPLOYMENT_PAYMENT_CONFIG.recipient).toString({ bounceable: true, urlSafe: true }); }
     catch { return res.status(503).json({ ok: false, error: "Deployment payment wallet configuration is invalid." }); }
 
-    const payload = beginCell().storeUint(0, 32).storeStringTail(deploymentPaymentComment(order.id)).endCell().toBoc().toString("base64");
+    // Give the second payment its own 15-minute window, independent of the
+    // short service-fee order expiry. Preserve the first deadline on retries.
+    const paymentDeadline = Date.now() + 15 * 60 * 1000;
+    const deadlineResult = await pool.query(
+      `UPDATE magroxin_orders
+       SET deployment_payment_expires_at = COALESCE(deployment_payment_expires_at, $2)
+       WHERE id = $1 AND status = 'paid'
+       RETURNING deployment_payment_expires_at`,
+      [id, paymentDeadline],
+    );
+    const deploymentPaymentExpiresAt = Number(deadlineResult.rows[0]?.deployment_payment_expires_at);
+    if (!Number.isSafeInteger(deploymentPaymentExpiresAt) || deploymentPaymentExpiresAt <= Date.now()) {
+      return res.status(409).json({ ok: false, error: "Deployment payment request has expired. Contact support before retrying.", paymentSent: false });
+    }
+
+    const payload = beginCell().storeUint(0, 32).storeStringTail(deploymentPaymentComment(order.id)).endCell().toBoc().toString('base64');
     return res.json({
       ok: true, orderId: order.id, network: "-239", address: recipient,
       amountNano: DEPLOYMENT_PAYMENT_CONFIG.amountNano, payload,
+      expiresAt: deploymentPaymentExpiresAt,
       paymentStatus: ledger.rows[0]?.deployment_payment_status ?? "created",
       paymentSent: false,
       message: "Send only the exact displayed amount from the connected wallet. Payment is not confirmed until on-chain verification succeeds.",
