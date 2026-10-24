@@ -27,7 +27,7 @@ type PaymentRequest = {
   address: string;
   amountNano: string;
   payload: string;
-  validUntil?: number;
+  validUntil: number;
   paymentStatus?: string;
   error?: string;
 };
