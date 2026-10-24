@@ -18,6 +18,8 @@ This checklist is the release gate for the Mainnet-only token creator. A checked
 - [x] Payment matcher boundary regression tests for unsafe timestamps and hash normalization passed in PR #40; merged main CI run [40017114105](https://github.com/magroxin/magroxin-ton-connect/actions/runs/40017114105) succeeded (commit `99fce958fc9c12a51c1dd15fb23dc9da777e6a6f`).
 - [x] Malformed payment amount encoding regression tests passed in PR #42; merged main CI run [40075324569](https://github.com/magroxin/magroxin-ton-connect/actions/runs/40075324569) succeeded (commit `7793ca5b0c9f29e4485cf0fbd36f44b9e6712ef0`).
 
+- [x] Reject coerced/non-numeric Binance and CoinGecko quote timestamps; regression tests passed in PR #44 and merged main CI run [40086371821](https://github.com/magroxin/magroxin-ton-connect/actions/runs/40086371821) succeeded (merge commit `a59ffecfd62827b75e642be65aba883af8272503`).
+
 ## Required before enabling payments
 
 - [x] Verify the live Render `/health` endpoint and PostgreSQL connectivity; owner confirmed `ok: true`, `databaseConnected: true`, Mainnet, $100 service fee, and payment/deployment flags disabled (2026-10-22).
