@@ -67,6 +67,8 @@ export default function App() {
   const [supply, setSupply] = useState("1000000");
   const [decimals, setDecimals] = useState("9");
   const [description, setDescription] = useState("");
+  const [logoData, setLogoData] = useState("");
+  const [logoError, setLogoError] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
@@ -144,6 +146,7 @@ export default function App() {
             supply,
             decimals: Number(decimals),
             description: description.trim(),
+            ...(logoData ? { logoData } : {}),
           },
         }),
       });
@@ -589,6 +592,42 @@ export default function App() {
         </div>
 
         <label>
+          Token logo <span className="optional">Optional · PNG, JPEG, or WebP · max 1 MB</span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              setLogoError("");
+              setLogoData("");
+              if (!file) return;
+              if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+                setLogoError("Choose a PNG, JPEG, or WebP image.");
+                event.target.value = "";
+                return;
+              }
+              if (file.size > 1024 * 1024) {
+                setLogoError("Logo must be 1 MB or smaller.");
+                event.target.value = "";
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                if (typeof reader.result !== "string" || !reader.result.startsWith("data:image/")) {
+                  setLogoError("Could not read this image. Try another file.");
+                  return;
+                }
+                setLogoData(reader.result);
+              };
+              reader.onerror = () => setLogoError("Could not read this image. Try another file.");
+              reader.readAsDataURL(file);
+            }}
+          />
+          {logoData && <img src={logoData} alt="Token logo preview" style={{ width: 88, height: 88, objectFit: "contain", marginTop: 8, borderRadius: 12 }} />}
+          {logoError && <span className="hint" role="alert">{logoError}</span>}
+        </label>
+
+        <label>
           Description <span className="optional">Optional</span>
           <textarea
             value={description}
@@ -620,7 +659,7 @@ export default function App() {
             <small>Mainnet token creation</small>
           </div>
           <div className="fee">
-            $100 <small>USD equivalent</small>
+            100 TON <small>fixed Mainnet service fee</small>
           </div>
         </div>
 
@@ -662,7 +701,7 @@ export default function App() {
             </div>
 
             <div className="order-amount">
-              {order.feeTon} TON <small>estimated quote</small>
+              {order.feeTon} TON <small>fixed service fee</small>
             </div>
 
             <p className="hint">Payment status: {paidStatus || "UNPAID"}</p>
@@ -672,7 +711,7 @@ export default function App() {
               disabled={busy || isPaid || !paymentEnabled}
               onClick={payServiceFee}
             >
-              {busy ? "Processing…" : paymentEnabled ? "Pay $100 service fee" : "Payments not enabled yet"}
+              {busy ? "Processing…" : paymentEnabled ? "Pay 100 TON service fee" : "Payments not enabled yet"}
             </button>
 
             <button
