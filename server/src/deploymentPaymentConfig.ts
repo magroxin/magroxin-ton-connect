@@ -15,7 +15,7 @@ export function readDeploymentPaymentConfig(
 ): DeploymentPaymentConfig {
   const enabled = env.ENABLE_DEPLOYMENT_PAYMENT === "true";
   const recipient = env.DEPLOYMENT_PAYMENT_WALLET?.trim() ?? "";
-  const amountNano = env.DEPLOYMENT_PAYMENT_AMOUNT_NANO?.trim() ?? "";
+  const amountNano = env.DEPLOYMENT_PAYMENT_AMOUNT_NANO ?? "";
 
   if (!enabled) {
     return { enabled: false, recipient: "", amountNano: "" };
