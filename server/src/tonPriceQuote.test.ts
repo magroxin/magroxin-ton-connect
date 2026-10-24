@@ -18,6 +18,13 @@ test("rejects stale, future-dated, malformed, and non-positive Binance quotes", 
   assert.equal(parseBinanceQuote({ price: "3" }, now), null);
 });
 
+test("rejects coerced or non-numeric timestamp values", () => {
+  assert.equal(parseBinanceQuote({ price: "3", closeTime: String(now) }, now), null);
+  assert.equal(parseBinanceQuote({ price: "3", closeTime: true }, now), null);
+  assert.equal(parseCoinGeckoQuote({ "the-open-network": { usd: 3.5, last_updated_at: String(now / 1000) } }, now), null);
+  assert.equal(parseCoinGeckoQuote({ "the-open-network": { usd: 3.5, last_updated_at: true } }, now), null);
+});
+
 test("accepts quotes exactly at the maximum age and future-skew boundaries", () => {
   assert.notEqual(parseBinanceQuote({ price: "3", closeTime: now - 120_000 }, now), null);
   assert.notEqual(parseBinanceQuote({ price: "3", closeTime: now + 30_000 }, now), null);
