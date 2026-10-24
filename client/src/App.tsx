@@ -12,7 +12,6 @@ import { prepareJettonDeployment } from "./jettonDeployment";
 type Order = {
   id: string;
   walletAddress: string;
-  feeUsd: number;
   feeTon: string;
   serviceFeeNetwork: "mainnet";
   deploymentNetwork: "mainnet";
@@ -531,11 +530,11 @@ export default function App() {
 
         <div className="fee-row">
           <div>
-            <strong>Service fee</strong>
+            <strong>Fixed service fee</strong>
             <small>Mainnet token creation</small>
           </div>
           <div className="fee">
-            $100 <small>USD equivalent</small>
+            100 TON <small>fixed amount</small>
           </div>
         </div>
 
@@ -577,7 +576,7 @@ export default function App() {
             </div>
 
             <div className="order-amount">
-              {order.feeTon} TON <small>estimated quote</small>
+              {order.feeTon} TON <small>fixed service fee</small>
             </div>
 
             <p className="hint">Payment status: {paidStatus || "UNPAID"}</p>
@@ -587,7 +586,7 @@ export default function App() {
               disabled={busy || isPaid || !paymentEnabled}
               onClick={payServiceFee}
             >
-              {busy ? "Processing…" : paymentEnabled ? "Pay $100 service fee" : "Payments not enabled yet"}
+              {busy ? "Processing…" : paymentEnabled ? "Pay 100 TON service fee" : "Payments not enabled yet"}
             </button>
 
             <button
