@@ -12,7 +12,6 @@ import { prepareJettonDeployment } from "./jettonDeployment";
 type Order = {
   id: string;
   walletAddress: string;
-  feeUsd: number;
   feeTon: string;
   serviceFeeNetwork: "mainnet";
   deploymentNetwork: "mainnet";
