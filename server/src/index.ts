@@ -10,6 +10,8 @@ import { matchIncomingPaymentTransaction, parseTransactionPage } from "./payment
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
 import { isSupportedJettonSupply } from "./tokenSupply.js";
 import { readDeploymentPaymentConfig } from "./deploymentPaymentConfig.js";
+import { calculateFeeTon } from "./feeQuote.js";
+import { parseBinanceQuote, parseCoinGeckoQuote, selectTonUsdPrice } from "./tonPriceQuote.js";
 
 const app = express();
 
@@ -24,8 +26,7 @@ const CLIENT_ORIGIN =
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
 const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
-const MAINNET_SERVICE_FEE_TON = "100";
-const MAINNET_SERVICE_FEE_NANO = "100000000000";
+const MAINNET_SERVICE_FEE_USD = 100;
 
 const PAYMENT_REQUEST_ENABLED =
   process.env.ENABLE_PAYMENT_REQUESTS === "true";
@@ -189,6 +190,36 @@ app.use(async (req: Request, res: Response, next) => {
     });
   }
 });
+
+async function getTonUsdQuote(): Promise<{ priceUsd: number; source: string; timestampMs: number }> {
+  const now = Date.now();
+  const urls = [
+    { source: "binance", url: "https://api.binance.com/api/v3/ticker/24hr?symbol=TONUSDT" },
+    { source: "coingecko", url: "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_last_updated_at=true" },
+  ];
+  const quotes = await Promise.all(urls.map(async (source) => {
+    try {
+      const response = await fetch(source.url, {
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) return null;
+      const data: unknown = await response.json();
+      return source.source === "binance"
+        ? parseBinanceQuote(data, now)
+        : parseCoinGeckoQuote(data, now);
+    } catch {
+      return null;
+    }
+  }));
+  const validQuotes = quotes.filter((quote): quote is NonNullable<typeof quote> => quote !== null);
+  const priceUsd = selectTonUsdPrice(validQuotes);
+  return {
+    priceUsd,
+    source: validQuotes.map((quote) => quote.source).join(","),
+    timestampMs: Math.min(...validQuotes.map((quote) => quote.timestampMs)),
+  };
+}
 
 function normalizeAddress(value: string): string {
   return Address.parse(value).toRawString().toLowerCase();
@@ -452,7 +483,7 @@ app.get("/health", async (_req: Request, res: Response) => {
       service: "magroxin-api",
       databaseConnected: true,
       network: "mainnet",
-      serviceFeeTon: MAINNET_SERVICE_FEE_TON,
+      serviceFeeUsd: MAINNET_SERVICE_FEE_USD,
       paymentRequestEnabled: PAYMENT_REQUEST_ENABLED,
       paymentVerificationEnabled: PAYMENT_VERIFICATION_ENABLED,
       paymentVerificationImplemented: true,
@@ -525,8 +556,9 @@ app.post("/api/orders", async (req: Request, res: Response) => {
     if (logoData && !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(logoData)) {
       return res.status(400).json({ ok: false, error: "Logo must be a PNG, JPEG, or WebP data image." });
     }
-    const feeTon = MAINNET_SERVICE_FEE_TON;
-    const amountNano = MAINNET_SERVICE_FEE_NANO;
+    const quote = await getTonUsdQuote();
+    const feeTon = calculateFeeTon(MAINNET_SERVICE_FEE_USD, quote.priceUsd);
+    const amountNano = (BigInt(feeTon.replace(".", "").padEnd(6, "0")) * 1000n).toString();
 
     const now = Date.now();
     const expiresAt = now + ORDER_LIFETIME_MS;
@@ -586,7 +618,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
         [
           id,
           walletAddress,
-          100,
+          MAINNET_SERVICE_FEE_USD,
           feeTon,
           amountNano,
           now,
@@ -615,6 +647,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
     return res.status(201).json({
       ok: true,
       order: publicOrder(order),
+      feeQuote: { feeUsd: MAINNET_SERVICE_FEE_USD, tonUsd: quote.priceUsd, source: quote.source, quotedAt: quote.timestampMs },
       payment: {
         status: "not_requested",
         paymentRequestEnabled: PAYMENT_REQUEST_ENABLED,
