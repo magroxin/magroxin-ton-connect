@@ -11,7 +11,7 @@
 - [ ] Add structured request/error logs, monitoring, alerting, and documented incident response.
 - [ ] Verify production PostgreSQL backups, restore procedure, connection limits, and migrations.
 - [ ] Confirm the deployed API uses HTTPS and exact production `CLIENT_ORIGIN` CORS configuration.
-- [x] Verify the deployed `/health` endpoint and PostgreSQL connectivity; production response reports Mainnet, fixed 100 TON service fee, and payment requests, payment verification, and deployment disabled (user-checked 2026-10-22).
+- [ ] Redeploy the fixed-100-TON-fee branch and verify `/health` reports Mainnet, `serviceFeeTon: "100"`, and payment requests, payment verification, and deployment disabled.
 
 ## Mainnet payment verification
 
