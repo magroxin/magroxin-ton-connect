@@ -625,8 +625,9 @@ export default function App() {
           <p className="note">
             Service fee verified on-chain. Prepare the token deployment, then
             review the contract address and attached TON amount in the next step.
-            Deployment uses a separate wallet approval; never approve a transaction
-            unless its destination and amount are correct.
+            The deployment step sends the displayed TON amount with the Jetton contract
+            deployment transaction; it is not a separate payment to the service-fee wallet.
+            Review the destination and amount in your wallet before approving.
           </p>
 
           <button
@@ -645,7 +646,7 @@ export default function App() {
 
               <div className="order-amount">
                 {(Number(deployment.deployValueNano) / 1e9).toFixed(3)} TON
-                <small> attached deployment amount, not a gas quote</small>
+                <small> TON attached to the contract deployment (estimate, not a guaranteed total fee)</small>
               </div>
 
               <p className="note">
@@ -669,7 +670,7 @@ export default function App() {
                   ? "Processing…"
                   : deploymentStatus === "SUBMITTED"
                     ? "Transaction submitted"
-                    : "Approve deployment in wallet"}
+                    : "Pay deployment cost & deploy token"}
               </button>
             </div>
           )}
