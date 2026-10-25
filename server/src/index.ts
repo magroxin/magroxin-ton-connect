@@ -1043,7 +1043,9 @@ async function start(): Promise<void> {
         PAYMENT_VERIFICATION_ENABLED ? "enabled" : "disabled"
       }`,
     );
-    console.log("[MAGROXIN] Token deployment: disabled");
+    console.log(
+      `[MAGROXIN] Token deployment: ${DEPLOYMENT_ENABLED ? "enabled" : "disabled"}`,
+    );
   });
 }
 
