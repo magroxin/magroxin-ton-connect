@@ -260,8 +260,20 @@ export default function App() {
         throw new Error("The API returned an incomplete payment request.");
       }
 
+      // Never open a wallet approval for a fee other than the fixed 100 TON.
+      // 1 TON = 1,000,000,000 nanoTON.
+      if (payment.amountNano !== "100000000000") {
+        throw new Error("Unsafe payment amount. The service fee must be exactly 100 TON.");
+      }
+
       if (payment.network !== "-239") {
         throw new Error("This order is not configured for TON Mainnet.");
+      }
+
+      try {
+        Address.parse(payment.address);
+      } catch {
+        throw new Error("The API returned an invalid fee wallet address.");
       }
 
       if (payment.validUntil <= Math.floor(Date.now() / 1000)) {
@@ -611,16 +623,19 @@ export default function App() {
           </div>
 
           <p className="note">
-            Service fee verified. Blockchain deployment requires a separate
-            wallet transaction and TON for network costs.
+            Service fee verified on-chain. Prepare the token deployment, then
+            review the contract address and attached TON amount in the next step.
+            The deployment step sends the displayed TON amount with the Jetton contract
+            deployment transaction; it is not a separate payment to the service-fee wallet.
+            Review the destination and amount in your wallet before approving.
           </p>
 
           <button
             className="primary"
-            disabled={busy || !deploymentEnabled || deploymentStatus === "SUBMITTED"}
+            disabled={busy || !deploymentEnabled || !!deployment}
             onClick={prepareDeployment}
           >
-            {!deploymentEnabled ? "Deployment not enabled yet" : busy ? "Preparing…" : "Prepare deployment"}
+            {busy ? "Preparing…" : deploymentEnabled ? "Prepare token deployment" : "Deployment disabled by API"}
           </button>
 
           {deployment && (
@@ -631,7 +646,7 @@ export default function App() {
 
               <div className="order-amount">
                 {(Number(deployment.deployValueNano) / 1e9).toFixed(3)} TON
-                <small> attached deployment amount, not a gas quote</small>
+                <small> TON attached to the contract deployment (estimate, not a guaranteed total fee)</small>
               </div>
 
               <p className="note">
@@ -655,7 +670,7 @@ export default function App() {
                   ? "Processing…"
                   : deploymentStatus === "SUBMITTED"
                     ? "Transaction submitted"
-                    : "Approve deployment in wallet"}
+                    : "Pay deployment cost & deploy token"}
               </button>
             </div>
           )}
