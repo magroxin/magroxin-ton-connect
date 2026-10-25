@@ -17,12 +17,8 @@ export function deriveAddressFromStateInitBoc(
     throw new Error("Invalid StateInit BOC.");
   }
 
-  const cells = Cell.fromBase64(stateInitBocBase64);
-  if (cells.length !== 1) {
-    throw new Error("StateInit BOC must contain exactly one root cell.");
-  }
-
-  const root = cells[0];
+  // @ton/core Cell.fromBase64 returns the single root Cell directly.
+  const root = Cell.fromBase64(stateInitBocBase64);
   const slice = root.beginParse();
   const stateInit = loadStateInit(slice);
   if (slice.remainingBits !== 0 || slice.remainingRefs !== 0) {
