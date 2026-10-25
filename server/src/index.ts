@@ -25,9 +25,11 @@ const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
 const MAINNET_FEE_TON = process.env.MAINNET_SERVICE_FEE_TON || "100";
 if (MAINNET_FEE_TON !== "100") {
-  throw new Error("MAINNET_SERVICE_FEE_TON must be exactly 100; the service fee is fixed.");
+  throw new Error("MAINNET_SERVICE_FEE_TON must be exactly 100; the standard service fee is fixed.");
 }
-const MAINNET_FEE_NANO = toNano(MAINNET_FEE_TON).toString();
+// Temporary verification exception: only this exact connected sender wallet pays 1 TON.
+// Every other wallet continues to pay the standard 100 TON fee.
+const TEST_FEE_WALLET = "UQDHINaPSbeMY4JnZwSTn5FxzhATV4bmTTlv5wmueFUIJ40m";
 
 const PAYMENT_REQUEST_ENABLED =
   process.env.ENABLE_PAYMENT_REQUESTS === "true";
@@ -191,6 +193,13 @@ app.use(async (req: Request, res: Response, next) => {
 
 function normalizeAddress(value: string): string {
   return Address.parse(value).toRawString().toLowerCase();
+}
+
+function serviceFeeForWallet(walletAddress: string): { feeTon: string; amountNano: string } {
+  const isTestWallet =
+    normalizeAddress(walletAddress) === normalizeAddress(TEST_FEE_WALLET);
+  const feeTon = isTestWallet ? "1" : MAINNET_FEE_TON;
+  return { feeTon, amountNano: toNano(feeTon).toString() };
 }
 
 function paymentComment(orderId: string): string {
@@ -503,8 +512,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       });
     }
 
-    const feeTon = MAINNET_FEE_TON;
-    const amountNano = MAINNET_FEE_NANO;
+    const { feeTon, amountNano } = serviceFeeForWallet(walletAddress);
 
     const now = Date.now();
     const expiresAt = now + ORDER_LIFETIME_MS;
