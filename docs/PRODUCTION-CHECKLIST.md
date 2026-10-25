@@ -19,6 +19,9 @@
 - [x] Test strict transaction-success flags, including explicit compute/action phase success and fail-closed handling of missing or malformed fields (PR #23).
 - [x] Require the verification wallet to match the wallet recorded on the order, using normalized TON addresses (PR #19); this is a consistency check, not cryptographic proof of wallet ownership.
 - [ ] Validate the TON Center v3 response schema using representative successful, failed, bounced, and malformed Mainnet transactions.
+- [ ] Before enabling either payment flag, run a controlled Mainnet end-to-end test with a dedicated order and verify the provider's raw transaction fields against the matcher; record the transaction hash and test outcome without publishing secrets or wallet credentials.
+- [ ] Verify that a provider timeout, malformed response, pagination cap, or database write failure leaves the order unpaid and returns a non-success payment result.
+- [ ] Verify two concurrent verification requests and replay of the same transaction cannot pay two orders; confirm the unique `payment_tx_hash` constraint rejects cross-order reuse.
 - [ ] Confirm inbound transfer sender, fee-wallet destination, exact nanoTON amount, order comment, transaction timestamp, and transaction success fields.
 - [ ] Verify transaction hash canonicalization and duplicate/replay behavior against real provider responses.
 - [ ] Add integration tests for underpayment, overpayment, wrong sender, wrong recipient, wrong comment, expired orders, provider errors, pagination cap, and duplicate payment attempts.
