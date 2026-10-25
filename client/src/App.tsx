@@ -623,16 +623,18 @@ export default function App() {
           </div>
 
           <p className="note">
-            Service fee verified. The next step will be a separate deployment
-            payment. Deployment and token creation are not enabled in this stage.
+            Service fee verified on-chain. Prepare the token deployment, then
+            review the contract address and attached TON amount in the next step.
+            Deployment uses a separate wallet approval; never approve a transaction
+            unless its destination and amount are correct.
           </p>
 
           <button
             className="primary"
-            disabled
-            title="This next step will be enabled only after the service-fee flow is validated."
+            disabled={busy || !deploymentEnabled || !!deployment}
+            onClick={prepareDeployment}
           >
-            Deployment payment — coming next
+            {busy ? "Preparing…" : deploymentEnabled ? "Prepare token deployment" : "Deployment disabled by API"}
           </button>
 
           {deployment && (
