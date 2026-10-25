@@ -44,6 +44,7 @@ const API = (
 ).replace(/\/+$/, "");
 
 const PAID_STATUS = "PAID — VERIFIED ON-CHAIN";
+const TEST_FEE_WALLET_RAW = Address.parse("UQDHINaPSbeMY4JnZwSTn5FxzhATV4bmTTlv5wmueFUIJ40m").toRawString().toLowerCase();
 
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
@@ -80,6 +81,15 @@ export default function App() {
 
   const isMainnet = wallet?.account.chain === "-239";
   const isPaid = paidStatus === PAID_STATUS;
+  const isTestWallet = (() => {
+    if (!address) return false;
+    try {
+      return Address.parse(address).toRawString().toLowerCase() === TEST_FEE_WALLET_RAW;
+    } catch {
+      return false;
+    }
+  })();
+  const displayedFeeTon = order?.feeTon ?? (isTestWallet ? "1" : "100");
 
   const valid = useMemo(
     () =>
@@ -530,16 +540,16 @@ export default function App() {
 
         <div className="fee-row">
           <div>
-            <strong>Fixed service fee</strong>
-            <small>Mainnet token creation</small>
+            <strong>Service fee</strong>
+            <small>{isTestWallet ? "Test wallet fee" : "Mainnet token creation"}</small>
           </div>
           <div className="fee">
-            100 TON <small>fixed amount</small>
+            {displayedFeeTon} TON <small>{displayedFeeTon === "1" ? "test fee" : "standard fee"}</small>
           </div>
         </div>
 
         <p className="note">
-          The service fee is separate from blockchain deployment costs.
+          The service fee is separate from blockchain deployment costs. The designated test wallet pays 1 TON; all other wallets pay 100 TON.
           Only approve transactions you have reviewed in your wallet.
         </p>
 
@@ -586,7 +596,7 @@ export default function App() {
               disabled={busy || isPaid || !paymentEnabled}
               onClick={payServiceFee}
             >
-              {busy ? "Processing…" : paymentEnabled ? "Pay 100 TON service fee" : "Payments not enabled yet"}
+              {busy ? "Processing…" : paymentEnabled ? `Pay ${order.feeTon} TON service fee` : "Payments not enabled yet"}
             </button>
 
             <button
