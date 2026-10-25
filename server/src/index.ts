@@ -35,8 +35,8 @@ const PAYMENT_REQUEST_ENABLED =
 const PAYMENT_VERIFICATION_ENABLED =
   process.env.ENABLE_PAYMENT_VERIFICATION === "true";
 
-// Keep deployment disabled until the complete deployment flow is tested.
-const DEPLOYMENT_ENABLED = false;
+// Explicit opt-in deployment feature flag; enable only after reviewing the Mainnet deployment flow.
+const DEPLOYMENT_ENABLED = process.env.ENABLE_TOKEN_DEPLOYMENT === "true";
 
 const ORDER_LIFETIME_MS = 5 * 60 * 1000;
 const PAYMENT_GRACE_SECONDS = 120;
@@ -448,7 +448,7 @@ app.get("/health", async (_req: Request, res: Response) => {
       databaseConnected: false,
       paymentRequestEnabled: false,
       paymentVerificationEnabled: false,
-      deploymentEnabled: false,
+      deploymentEnabled: DEPLOYMENT_ENABLED,
     });
   }
 });
@@ -600,8 +600,8 @@ app.post("/api/orders", async (req: Request, res: Response) => {
         message: "Order created. No payment has been requested or sent.",
       },
       deployment: {
-        enabled: false,
-        message: "Token deployment is not available yet.",
+        enabled: DEPLOYMENT_ENABLED,
+        message: DEPLOYMENT_ENABLED ? "Token deployment is enabled." : "Token deployment is not available yet.",
       },
     });
   } catch (error) {
@@ -783,7 +783,7 @@ app.post(
         status: "paid",
         paymentMarkedPaid: true,
         paymentTxHash: order.paymentTxHash,
-        deploymentEnabled: false,
+        deploymentEnabled: DEPLOYMENT_ENABLED,
       });
     }
 
@@ -903,7 +903,7 @@ app.post(
             status: "paid",
             paymentMarkedPaid: true,
             paymentTxHash: latest.paymentTxHash,
-            deploymentEnabled: false,
+            deploymentEnabled: DEPLOYMENT_ENABLED,
           });
         }
 
@@ -922,8 +922,8 @@ app.post(
         status: "paid",
         paymentMarkedPaid: true,
         paymentTxHash: payment.hash,
-        deploymentEnabled: false,
-        message: "Service fee verified. Token deployment is not enabled.",
+        deploymentEnabled: DEPLOYMENT_ENABLED,
+        message: DEPLOYMENT_ENABLED ? "Service fee verified. Token deployment is enabled." : "Service fee verified. Token deployment is not enabled.",
       });
     } catch (error) {
       if (transactionOpen) {
