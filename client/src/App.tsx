@@ -260,8 +260,20 @@ export default function App() {
         throw new Error("The API returned an incomplete payment request.");
       }
 
+      // Never open a wallet approval for a fee other than the fixed 100 TON.
+      // 1 TON = 1,000,000,000 nanoTON.
+      if (payment.amountNano !== "100000000000") {
+        throw new Error("Unsafe payment amount. The service fee must be exactly 100 TON.");
+      }
+
       if (payment.network !== "-239") {
         throw new Error("This order is not configured for TON Mainnet.");
+      }
+
+      try {
+        Address.parse(payment.address);
+      } catch {
+        throw new Error("The API returned an invalid fee wallet address.");
       }
 
       if (payment.validUntil <= Math.floor(Date.now() / 1000)) {
