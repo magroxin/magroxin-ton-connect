@@ -6,7 +6,7 @@ export interface ExpectedPayment {
   expectedAmount: bigint;
   start: number;
   end: number;
-  expectedComment: string;
+  expectedComment: string | null;
 }
 
 export interface PaymentMatcherDependencies {
@@ -92,7 +92,12 @@ export function matchIncomingPaymentTransaction(
         ? decoded.text
         : dependencies.decodeComment(msg.message_content?.body);
 
-  if (comment !== expected.expectedComment) return null;
+  if (expected.expectedComment === null) {
+    // No-comment mode must reject any transaction carrying a comment.
+    if (comment !== null && comment !== "") return null;
+  } else if (comment !== expected.expectedComment) {
+    return null;
+  }
 
   return { hash: transactionHash };
 }
