@@ -316,7 +316,7 @@ async function findVerifiedPayment(
   const recipient = normalizeAddress(FEE_WALLET);
   const sender = normalizeAddress(order.walletAddress);
   const expectedAmount = BigInt(order.amountNano);
-  const expectedComment = paymentComment(order.id);
+  const expectedComment = null;
 
   const start = Math.floor(order.createdAt / 1000);
   const end =
@@ -541,6 +541,28 @@ app.post("/api/orders", async (req: Request, res: Response) => {
         [walletAddress],
       );
 
+      // No memo means an incoming transfer cannot distinguish concurrent
+      // orders from the same sender. Fail closed when an active order exists.
+      const pending = await client.query(
+        `SELECT id
+         FROM magroxin_orders
+         WHERE wallet_address = $1
+           AND status = 'created'
+           AND expires_at + $2 > $3
+         LIMIT 1`,
+        [walletAddress, PAYMENT_GRACE_SECONDS * 1000, now],
+      );
+
+      if (pending.rows.length > 0) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+        return res.status(409).json({
+          ok: false,
+          error: "This wallet already has a pending payment order. Finish or wait for it to expire before creating another.",
+          paymentSent: false,
+        });
+      }
+
       const recent = await client.query(
         `SELECT COUNT(*)::int AS count
          FROM magroxin_orders
@@ -682,12 +704,9 @@ app.get(
         urlSafe: true,
       });
 
-      const payload = beginCell()
-        .storeUint(0, 32)
-        .storeStringTail(paymentComment(order.id))
-        .endCell()
-        .toBoc()
-        .toString("base64");
+      // Empty payload: native-coin transfer without a text comment.
+      // Verification requires a single pending order per sender wallet.
+      const payload = "";
 
       return res.json({
         ok: true,
