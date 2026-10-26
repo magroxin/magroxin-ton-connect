@@ -349,3 +349,30 @@ test("rejects a decimal amount that is syntactically valid but does not match", 
     null,
   );
 });
+
+
+test("accepts an exact successful incoming payment with no comment in no-comment mode", () => {
+  const noCommentTx = {
+    ...validTx,
+    in_msg: { ...validTx.in_msg, message_content: {} },
+  };
+  assert.deepEqual(
+    matchIncomingPaymentTransaction(
+      noCommentTx,
+      { ...expected, expectedComment: null },
+      dependencies,
+    ),
+    { hash: validHash },
+  );
+});
+
+test("rejects a commented transaction in no-comment mode", () => {
+  assert.equal(
+    matchIncomingPaymentTransaction(
+      validTx,
+      { ...expected, expectedComment: null },
+      dependencies,
+    ),
+    null,
+  );
+});
