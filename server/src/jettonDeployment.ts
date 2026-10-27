@@ -3,7 +3,7 @@ import { Address, beginCell, Cell, Dictionary, contractAddress, storeStateInit, 
 import { Buffer } from "node:buffer";
 
 export type JettonDeploymentInput = {
-  adminAddress: string; name: string; symbol: string; description: string; supply: string; decimals: number;
+  adminAddress: string; name: string; symbol: string; description: string; supply: string; decimals: number; imageUrl?: string;
 };
 export type JettonDeploymentResult = {
   address: string; stateInit: string; payload: string; deployValueNano: string; supplyUnits: string;
@@ -55,7 +55,9 @@ export async function prepareJettonDeployment(input: JettonDeploymentInput): Pro
   const v = validate(input);
   const [minterCode, walletCode] = await Promise.all([loadCode(MINTER_CODE_URL), loadCode(WALLET_CODE_URL)]);
   const dictionary = Dictionary.empty(Dictionary.Keys.Buffer(32), Dictionary.Values.Cell());
-  for (const [key, value] of [["name", v.name], ["symbol", v.symbol.toUpperCase()], ["description", v.description], ["decimals", String(input.decimals)]] as Array<[string, string]>) {
+  const metadataEntries: Array<[string, string]> = [["name", v.name], ["symbol", v.symbol.toUpperCase()], ["description", v.description], ["decimals", String(input.decimals)]];
+  if (input.imageUrl) metadataEntries.push(["image", input.imageUrl]);
+  for (const [key, value] of metadataEntries) {
     dictionary.set(metadataKey(key), snakeString(value));
   }
   const content = beginCell().storeUint(0, 8).storeDict(dictionary).endCell();
