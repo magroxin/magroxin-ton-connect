@@ -1048,7 +1048,9 @@ app.post("/api/deployment/confirm", async (req: Request, res: Response) => {
     const account = data.accounts?.[0];
     const state = account?.status ?? account?.account_state?.status;
     if (state !== "active") return res.status(202).json({ ok: true, deployed: false, status: "pending", address: expected.address, message: "The token contract is not active on Mainnet yet. Wait for confirmation and check again." });
-    return res.json({ ok: true, deployed: true, status: "deployed", network: "mainnet", address: expected.address, explorerUrl: `https://tonviewer.com/${expected.address}` });
+    // An active account alone does not prove this order minted the requested initial supply.
+    // Keep the result explicitly unverified until transaction + jetton supply are checked on-chain.
+    return res.status(202).json({ ok: true, deployed: false, status: "active_unverified", network: "mainnet", address: expected.address, explorerUrl: `https://tonviewer.com/${expected.address}`, message: "The expected address is active, but the deployment transaction and initial token supply have not yet been independently verified. Do not show deployment success yet." });
   } catch (error) {
     console.error("[MAGROXIN] Deployment confirmation failed:", error instanceof Error ? error.message : "Unknown error");
     return res.status(400).json({ ok: false, error: "Unable to confirm this deployment yet." });
