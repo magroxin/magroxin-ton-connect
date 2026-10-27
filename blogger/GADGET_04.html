@@ -1,0 +1,206 @@
+<!-- MAGROXIN GADGET 04 — TON MAINNET TOKEN DEPLOYMENT
+     Blogger: paste this complete block into a new HTML/JavaScript gadget.
+     Opens when the existing Continue button (#VX03_popupContinue) is clicked.
+     The backend remains authoritative for paid-order and deployment eligibility. -->
+<div id="MGX_GADGET4" aria-live="polite">
+  <div class="mgx4-shell">
+    <div class="mgx4-brand"><span class="mgx4-orb"></span><div><b>MAGROXIN</b><small>TON MAINNET · TOKEN DEPLOYMENT</small></div><button class="mgx4-close" id="mgx4-close" type="button" aria-label="Close">×</button></div>
+    <div class="mgx4-progress"><span></span><span></span><span></span></div>
+    <p class="mgx4-kicker">JETTON DEPLOYMENT</p>
+    <h2 id="mgx4-title">Prepare your token</h2>
+    <p class="mgx4-sub">Token details and payment status are checked securely by MAGROXIN API.</p>
+    <div id="mgx4-alert" class="mgx4-alert">Waiting for your paid order reference. Continue from the previous step to begin.</div>
+    <div id="mgx4-details" class="mgx4-details" hidden>
+      <div><small>TOKEN NAME</small><b id="mgx4-name">—</b></div>
+      <div><small>SYMBOL</small><b id="mgx4-symbol">—</b></div>
+      <div><small>TOTAL SUPPLY</small><b id="mgx4-supply">—</b></div>
+      <div><small>DECIMALS</small><b id="mgx4-decimals">—</b></div>
+      <div class="mgx4-wide"><small>NETWORK</small><b>TON Mainnet</b></div>
+    </div>
+    <div class="mgx4-walletrow"><div><small>CONNECTED WALLET</small><div id="mgx4-wallet">Not connected</div></div><button id="mgx4-connect" type="button">Connect wallet</button></div>
+    <button id="mgx4-verify" class="mgx4-primary" type="button" disabled>Check paid order</button>
+    <button id="mgx4-deploy" class="mgx4-primary" type="button" disabled>Prepare token deployment</button>
+    <p class="mgx4-foot">You approve transactions in your wallet. MAGROXIN never asks for your recovery phrase or private key. A submitted transaction is not shown as deployed until backend confirmation succeeds.</p>
+    <div id="mgx4-result" hidden></div>
+  </div>
+</div>
+<style>
+#MGX_GADGET4{--cyan:#39e7ff;--blue:#278cff;--muted:#9db6cc;display:none;position:relative;z-index:99999;color:#eaf8ff;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+#MGX_GADGET4.mgx4-open{display:block}
+#MGX_GADGET4 *{box-sizing:border-box}
+#MGX_GADGET4 .mgx4-shell{max-width:680px;margin:22px auto;padding:clamp(18px,4vw,32px);border:1px solid #247da6;border-radius:22px;background:radial-gradient(ellipse at 5% 0%,#103c5b 0,transparent 42%),linear-gradient(145deg,#061321,#071a2b 60%,#06101d);box-shadow:0 18px 65px #00101dcc,inset 0 0 34px #00baff0b}
+#MGX_GADGET4 .mgx4-brand{display:flex;align-items:center;gap:12px}
+#MGX_GADGET4 .mgx4-orb{width:14px;height:14px;border-radius:50%;background:var(--cyan);box-shadow:0 0 18px var(--cyan)}
+#MGX_GADGET4 .mgx4-brand b{letter-spacing:.18em;font-size:14px}
+#MGX_GADGET4 .mgx4-brand small,#MGX_GADGET4 small{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;margin-top:4px}
+#MGX_GADGET4 .mgx4-close{margin-left:auto;background:#0b2031;color:#ccefff;border:1px solid #25516c;border-radius:10px;font-size:23px;width:38px;height:38px;cursor:pointer}
+#MGX_GADGET4 .mgx4-progress{display:flex;gap:6px;margin:24px 0 26px}
+#MGX_GADGET4 .mgx4-progress span{height:3px;flex:1;border-radius:8px;background:#19354b}
+#MGX_GADGET4 .mgx4-progress span:first-child{background:linear-gradient(90deg,var(--cyan),var(--blue))}
+#MGX_GADGET4 .mgx4-kicker{font-size:10px;letter-spacing:.22em;color:var(--cyan);font-weight:800}
+#MGX_GADGET4 h2{font-size:clamp(24px,5vw,34px);line-height:1.15;margin:8px 0}
+#MGX_GADGET4 .mgx4-sub{color:#b1c9da;line-height:1.6;font-size:13px}
+#MGX_GADGET4 .mgx4-alert{padding:13px 14px;border:1px solid #28516c;background:#071b2b;border-radius:12px;color:#c2e8fa;font-size:13px;line-height:1.55;margin:18px 0}
+#MGX_GADGET4 .mgx4-alert[data-type="error"]{border-color:#a5485b;color:#ffd6dc}
+#MGX_GADGET4 .mgx4-alert[data-type="success"]{border-color:#1b9d91;color:#b8fff0}
+#MGX_GADGET4 .mgx4-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+#MGX_GADGET4 .mgx4-details>div{padding:13px;border:1px solid #1d3c52;border-radius:11px;background:#061522}
+#MGX_GADGET4 .mgx4-details b{display:block;margin-top:7px;overflow-wrap:anywhere;font-size:14px}
+#MGX_GADGET4 .mgx4-wide{grid-column:1/-1}
+#MGX_GADGET4 .mgx4-walletrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid #23485f;border-radius:12px;margin:16px 0;background:#061522}
+#MGX_GADGET4 #mgx4-wallet{font-size:12px;overflow-wrap:anywhere;margin-top:5px;color:#d8f2ff}
+#MGX_GADGET4 button{font:inherit}
+#MGX_GADGET4 #mgx4-connect{flex-shrink:0;border:1px solid #2e9ac3;color:#c9f7ff;background:#0b2d43;border-radius:10px;padding:10px 12px;cursor:pointer;font-size:12px}
+#MGX_GADGET4 .mgx4-primary{width:100%;border:1px solid #36d8f2;border-radius:12px;padding:14px 16px;background:linear-gradient(100deg,#087ca8,#155cbd);color:white;font-weight:800;cursor:pointer;margin-top:10px}
+#MGX_GADGET4 .mgx4-primary:disabled{opacity:.4;cursor:not-allowed}
+#MGX_GADGET4 .mgx4-foot{font-size:11px;line-height:1.65;color:#8da9bd;margin-top:20px}
+#MGX_GADGET4 #mgx4-result{margin-top:16px;padding:14px;border:1px solid #1b9d91;border-radius:12px;overflow-wrap:anywhere}
+#MGX_GADGET4 #mgx4-result a{color:var(--cyan)}
+@media(max-width:480px){#MGX_GADGET4 .mgx4-walletrow{align-items:flex-start;flex-direction:column}#MGX_GADGET4 #mgx4-connect{width:100%}}
+</style>
+<script>
+(function(){
+  'use strict';
+  const ROOT=document.getElementById('MGX_GADGET4');
+  if(!ROOT || ROOT.dataset.ready==='1') return;
+  ROOT.dataset.ready='1';
+  const API='https://magroxin-ton-api.onrender.com';
+  const MANIFEST='https://magroxin.blogspot.com/tonconnect-manifest.json';
+  const $=id=>document.getElementById(id);
+  let connector=null, orderId='', walletAddress='', busy=false, prepared=null;
+  const alertBox=$('mgx4-alert');
+  function say(message,type){alertBox.textContent=message;alertBox.dataset.type=type||'info';}
+  function open(){ROOT.classList.add('mgx4-open');ROOT.scrollIntoView({behavior:'smooth',block:'start'});}
+  function close(){ROOT.classList.remove('mgx4-open');}
+  function cleanAddress(address){return String(address||'').trim();}
+  function getOrderId(source){
+    const candidates=[
+      source&&source.orderId, source&&source.id,
+      $('VX03_popupContinue')&&$('VX03_popupContinue').dataset.orderId,
+      $('VX03_successPopup')&&$('VX03_successPopup').dataset.orderId,
+      window.MAGROXIN_ORDER_ID, sessionStorage.getItem('magroxin_order_id'),
+      localStorage.getItem('magroxin_order_id')
+    ];
+    return candidates.find(v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v))||'';
+  }
+  async function api(path,options){
+    const response=await fetch(API+path,Object.assign({headers:{'Content-Type':'application/json'}},options||{}));
+    let data={};try{data=await response.json();}catch(_){}
+    if(!response.ok) throw new Error(data.error||('API request failed ('+response.status+').'));
+    return data;
+  }
+  function walletFromConnector(){
+    const w=connector&&connector.wallet;
+    if(!w||!w.account)return '';
+    // TonConnect account.address is raw format: workchain:hex. The API accepts
+    // user-friendly addresses too; use the wallet's original address value.
+    return w.account.address||'';
+  }
+  function updateWallet(){
+    walletAddress=walletFromConnector();
+    $('mgx4-wallet').textContent=walletAddress?walletAddress.slice(0,12)+'…'+walletAddress.slice(-8):'Not connected';
+    $('mgx4-connect').textContent=walletAddress?'Wallet connected':'Connect wallet';
+    $('mgx4-verify').disabled=!walletAddress||!orderId||busy;
+    $('mgx4-deploy').disabled=true;
+    if(walletAddress) say('Wallet connected. Check the order against the backend to continue.');
+  }
+  async function initWallet(){
+    if(connector)return connector;
+    if(!window.TON_CONNECT_UI||!window.TON_CONNECT_UI.TonConnectUI) throw new Error('Wallet connector could not load. Refresh the page and try again.');
+    connector=new window.TON_CONNECT_UI.TonConnectUI({manifestUrl:MANIFEST,buttonRootId:null});
+    connector.onStatusChange(updateWallet);
+    updateWallet();
+    return connector;
+  }
+  async function connect(){
+    try{
+      await initWallet();
+      if(!walletAddress) await connector.openModal();
+      updateWallet();
+    }catch(e){say(e.message||'Unable to connect wallet.','error');}
+  }
+  async function verifyOrder(){
+    if(busy)return;
+    if(!orderId){say('Paid order ID is missing. Reopen this step from Continue after the previous step has saved its order reference.','error');return;}
+    if(!walletAddress){say('Connect the same TON Mainnet wallet used for the service-fee payment.','error');return;}
+    busy=true;$('mgx4-verify').disabled=true;$('mgx4-deploy').disabled=true;
+    try{
+      // Backend validates payment status and wallet ownership during prepare.
+      // A harmless prepare request is only available for paid orders and is the
+      // authoritative check; no client-side "paid" flag is trusted.
+      const data=await api('/api/deployment/prepare',{method:'POST',body:JSON.stringify({orderId,walletAddress})});
+      if(data.network!=='-239') throw new Error('The API did not confirm TON Mainnet.');
+      prepared=data;
+      $('mgx4-name').textContent=data.token?.name||'Loaded from paid order';
+      $('mgx4-symbol').textContent=data.token?.symbol||'—';
+      $('mgx4-supply').textContent=data.token?.supply||'—';
+      $('mgx4-decimals').textContent=String(data.token?.decimals??'—');
+      $('mgx4-details').hidden=false;
+      $('mgx4-title').textContent='Ready to deploy';
+      say('Backend accepted the paid order and matched wallet. Review the token details, then prepare the wallet transaction.','success');
+      $('mgx4-deploy').disabled=false;
+    }catch(e){say(e.message||'Order verification failed.','error');}
+    finally{busy=false;$('mgx4-verify').disabled=!walletAddress||!orderId;}
+  }
+  async function deploy(){
+    if(busy||!prepared||!walletAddress)return;
+    if(!connector||!connector.sendTransaction){say('Wallet connector is not ready. Reconnect your wallet.','error');return;}
+    busy=true;$('mgx4-deploy').disabled=true;
+    try{
+      say('Opening wallet approval. Review the transaction carefully before confirming.');
+      const validUntil=Math.floor(Date.now()/1000)+300;
+      const tx={validUntil,network:'-239',from:walletAddress, messages:[{
+        address:prepared.address,
+        amount:String(prepared.deployValueNano),
+        stateInit:prepared.stateInit,
+        payload:prepared.payload
+      }]};
+      const walletResult=await connector.sendTransaction(tx);
+      const boc=walletResult&&walletResult.boc;
+      if(!boc) throw new Error('Wallet did not return a transaction BOC. No deployment success was assumed.');
+      say('Wallet submitted the transaction. Waiting for backend on-chain confirmation…');
+      const confirmation=await api('/api/deployment/confirm',{method:'POST',body:JSON.stringify({orderId,walletAddress,transactionBoc:boc})});
+      if(confirmation.deployed===true&&confirmation.confirmed===true){
+        $('mgx4-result').hidden=false;
+        $('mgx4-result').innerHTML='<b>Deployment confirmed</b><p>Token address: <code></code></p><a target="_blank" rel="noopener noreferrer">Open TON Explorer</a>';
+        $('mgx4-result').querySelector('code').textContent=confirmation.address||prepared.address;
+        $('mgx4-result').querySelector('a').href='https://tonviewer.com/'+encodeURIComponent(confirmation.address||prepared.address);
+        $('mgx4-title').textContent='Token deployed';
+        say('The backend confirmed deployment.','success');
+      }else{
+        say(confirmation.message||'Transaction was submitted, but deployment is not yet confirmed on-chain. Do not retry immediately; check the explorer and try confirmation later.','error');
+      }
+    }catch(e){say(e.message||'Deployment was not confirmed.','error');}
+    finally{busy=false;$('mgx4-deploy').disabled=!prepared;}
+  }
+  $('mgx4-connect').addEventListener('click',connect);
+  $('mgx4-verify').addEventListener('click',verifyOrder);
+  $('mgx4-deploy').addEventListener('click',deploy);
+  $('mgx4-close').addEventListener('click',close);
+  // Existing Continue button triggers visibility. Gadget 4 never creates an
+  // order or trusts a browser-only payment status.
+  document.addEventListener('click',function(event){
+    const target=event.target&&event.target.closest?event.target.closest('#VX03_popupContinue'):null;
+    if(!target)return;
+    orderId=getOrderId();
+    open();
+    if(orderId){say('Order reference found. Connect the same wallet and check backend eligibility.');$('mgx4-verify').disabled=!walletAddress;}
+    else say('Gadget 4 is open, but the previous step has not exposed a valid order ID. Save it as window.MAGROXIN_ORDER_ID or sessionStorage key magroxin_order_id before Continue.','error');
+  },true);
+  // Optional explicit bridge for future integrations:
+  // window.dispatchEvent(new CustomEvent('magroxin:gadget4:open',{detail:{orderId:'UUID'}}))
+  window.addEventListener('magroxin:gadget4:open',function(event){
+    orderId=getOrderId(event.detail||{});
+    open();
+    say(orderId?'Order reference received. Connect the same wallet and check backend eligibility.':'Order reference missing.','error');
+    $('mgx4-verify').disabled=!walletAddress||!orderId;
+  });
+  // TonConnect UI UMD build; kept lazy enough that a blocked CDN gives a clear
+  // message rather than breaking the rest of the Blogger page.
+  const script=document.createElement('script');
+  script.src='https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js';
+  script.async=true;
+  script.onerror=()=>say('Wallet connector library did not load. Check your connection and refresh.','error');
+  document.head.appendChild(script);
+})();
+</script>
