@@ -9,6 +9,7 @@ import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
 import { isSupportedJettonSupply } from "./tokenSupply.js";
+import { prepareJettonDeployment } from "./jettonDeployment.js";
 
 const app = express();
 
@@ -38,7 +39,7 @@ const PAYMENT_VERIFICATION_ENABLED =
   process.env.ENABLE_PAYMENT_VERIFICATION === "true";
 
 // Keep deployment disabled until the complete deployment flow is tested.
-const DEPLOYMENT_ENABLED = true;
+const DEPLOYMENT_ENABLED = process.env.ENABLE_TOKEN_DEPLOYMENT === "true";
 
 const ORDER_LIFETIME_MS = 5 * 60 * 1000;
 const PAYMENT_GRACE_SECONDS = 120;
@@ -984,6 +985,78 @@ app.post(
   },
 );
 
+
+// Deployment is explicitly gated by ENABLE_TOKEN_DEPLOYMENT=true.
+// A paid order and the same connected wallet are required for both steps.
+app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
+  if (!DEPLOYMENT_ENABLED) return res.status(503).json({ ok: false, error: "Token deployment is temporarily disabled." });
+  const orderId = req.body?.orderId;
+  if (!validOrderId(orderId) || typeof req.body?.walletAddress !== "string") {
+    return res.status(400).json({ ok: false, error: "A valid order ID and connected wallet are required." });
+  }
+  try {
+    const wallet = normalizeAddress(req.body.walletAddress);
+    const order = await getOrder(orderId);
+    if (!order) return res.status(404).json({ ok: false, error: "Order not found." });
+    if (order.status !== "paid") return res.status(403).json({ ok: false, error: "Verified service-fee payment is required before deployment." });
+    if (wallet !== normalizeAddress(order.walletAddress)) return res.status(403).json({ ok: false, error: "Connected wallet does not match the paid order." });
+    const prepared = await prepareJettonDeployment({
+      adminAddress: order.walletAddress, name: order.token.name, symbol: order.token.symbol,
+      description: order.token.description, supply: order.token.supply, decimals: order.token.decimals,
+    });
+    return res.json({
+      ok: true, network: "-239", orderId: order.id, walletAddress: order.walletAddress,
+      address: prepared.address, stateInit: prepared.stateInit, payload: prepared.payload,
+      deployValueNano: prepared.deployValueNano, supplyUnits: prepared.supplyUnits,
+      validUntil: Math.floor(Date.now() / 1000) + 300,
+      message: "Review the Mainnet transaction in your wallet before approving it.",
+    });
+  } catch (error) {
+    console.error("[MAGROXIN] Deployment preparation failed:", error instanceof Error ? error.message : "Unknown error");
+    return res.status(400).json({ ok: false, error: error instanceof Error ? error.message : "Unable to prepare deployment." });
+  }
+});
+
+app.post("/api/deployment/confirm", async (req: Request, res: Response) => {
+  if (!DEPLOYMENT_ENABLED) return res.status(503).json({ ok: false, error: "Token deployment is temporarily disabled." });
+  const orderId = req.body?.orderId;
+  const address = req.body?.address;
+  if (!validOrderId(orderId) || typeof req.body?.walletAddress !== "string" || typeof address !== "string") {
+    return res.status(400).json({ ok: false, error: "Order ID, wallet address, and deployed token address are required." });
+  }
+  try {
+    const wallet = normalizeAddress(req.body.walletAddress);
+    const order = await getOrder(orderId);
+    if (!order) return res.status(404).json({ ok: false, error: "Order not found." });
+    if (order.status !== "paid" || wallet !== normalizeAddress(order.walletAddress)) {
+      return res.status(403).json({ ok: false, error: "A paid order and its original connected wallet are required." });
+    }
+    // Rebuild the deterministic expected address from the paid order; never trust a client-supplied address alone.
+    const expected = await prepareJettonDeployment({
+      adminAddress: order.walletAddress, name: order.token.name, symbol: order.token.symbol,
+      description: order.token.description, supply: order.token.supply, decimals: order.token.decimals,
+    });
+    if (normalizeAddress(address) !== normalizeAddress(expected.address)) {
+      return res.status(400).json({ ok: false, error: "Token address does not match this order's deployment." });
+    }
+    if (!TONCENTER_API_KEY) return res.status(503).json({ ok: false, error: "Mainnet confirmation provider is not configured." });
+    const url = new URL(`${TONCENTER_V3}/accountStates`);
+    url.searchParams.set("address", normalizeAddress(expected.address));
+    const response = await fetch(url, { headers: { accept: "application/json", "X-API-Key": TONCENTER_API_KEY }, signal: AbortSignal.timeout(10000) });
+    if (!response.ok) return res.status(503).json({ ok: false, error: "Could not confirm deployment on TON Mainnet yet." });
+    const data = await response.json() as { accounts?: Array<{ status?: string; account_state?: { status?: string } }> };
+    const account = data.accounts?.[0];
+    const state = account?.status ?? account?.account_state?.status;
+    if (state !== "active") return res.status(202).json({ ok: true, deployed: false, status: "pending", address: expected.address, message: "The token contract is not active on Mainnet yet. Wait for confirmation and check again." });
+    // An active account alone does not prove this order minted the requested initial supply.
+    // Keep the result explicitly unverified until transaction + jetton supply are checked on-chain.
+    return res.status(202).json({ ok: true, deployed: false, status: "active_unverified", network: "mainnet", address: expected.address, explorerUrl: `https://tonviewer.com/${expected.address}`, message: "The expected address is active, but the deployment transaction and initial token supply have not yet been independently verified. Do not show deployment success yet." });
+  } catch (error) {
+    console.error("[MAGROXIN] Deployment confirmation failed:", error instanceof Error ? error.message : "Unknown error");
+    return res.status(400).json({ ok: false, error: "Unable to confirm this deployment yet." });
+  }
+});
+
 app.get("/api/orders/:id", async (req: Request, res: Response) => {
   try {
     const orderId = req.params.id;
@@ -1067,7 +1140,7 @@ async function start(): Promise<void> {
         PAYMENT_VERIFICATION_ENABLED ? "enabled" : "disabled"
       }`,
     );
-    console.log("[MAGROXIN] Token deployment: disabled");
+    console.log(`[MAGROXIN] Token deployment: ${DEPLOYMENT_ENABLED ? "enabled" : "disabled"}`);
   });
 }
 
