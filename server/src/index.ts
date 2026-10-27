@@ -3,6 +3,7 @@ import "dotenv/config";
 import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
+import { Buffer } from "node:buffer";
 import { Pool } from "pg";
 import { Address, Cell, toNano } from "@ton/core";
 import { z } from "zod";
