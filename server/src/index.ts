@@ -38,7 +38,7 @@ const PAYMENT_VERIFICATION_ENABLED =
   process.env.ENABLE_PAYMENT_VERIFICATION === "true";
 
 // Keep deployment disabled until the complete deployment flow is tested.
-const DEPLOYMENT_ENABLED = true;
+const DEPLOYMENT_ENABLED = false;
 
 const ORDER_LIFETIME_MS = 5 * 60 * 1000;
 const PAYMENT_GRACE_SECONDS = 120;
@@ -1023,6 +1023,97 @@ app.get("/api/orders/:id", async (req: Request, res: Response) => {
   }
 });
 
+
+// Gadget 04 deployment endpoint. This route deliberately fails closed until
+// the Jetton contract deployment + wallet-approval pipeline is implemented.
+app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
+  const orderId = req.body?.orderId;
+  const walletInput = req.body?.walletAddress;
+
+  if (!validOrderId(orderId)) {
+    return res.status(400).json({
+      ok: false,
+      code: "INVALID_ORDER_ID",
+      error: "A valid service order ID is required.",
+      deploymentStarted: false,
+    });
+  }
+
+  let walletAddress: string;
+  try {
+    if (typeof walletInput !== "string") throw new Error("Missing wallet address");
+    walletAddress = normalizeAddress(walletInput);
+  } catch {
+    return res.status(400).json({
+      ok: false,
+      code: "INVALID_WALLET",
+      error: "A valid TON Mainnet wallet address is required.",
+      deploymentStarted: false,
+    });
+  }
+
+  try {
+    const order = await getOrder(orderId);
+    if (!order) {
+      return res.status(404).json({
+        ok: false,
+        code: "ORDER_NOT_FOUND",
+        error: "Service order was not found.",
+        deploymentStarted: false,
+      });
+    }
+
+    if (normalizeAddress(order.walletAddress) !== walletAddress) {
+      return res.status(403).json({
+        ok: false,
+        code: "WALLET_MISMATCH",
+        error: "Connected wallet does not match the wallet on this order.",
+        deploymentStarted: false,
+      });
+    }
+
+    if (order.deploymentNetwork !== "mainnet") {
+      return res.status(400).json({
+        ok: false,
+        code: "WRONG_NETWORK",
+        error: "Only TON Mainnet is supported.",
+        deploymentStarted: false,
+      });
+    }
+
+    if (order.status !== "paid" || !order.paymentTxHash) {
+      return res.status(409).json({
+        ok: false,
+        code: "SERVICE_PAYMENT_NOT_VERIFIED",
+        error: "The service payment must be verified before token deployment.",
+        deploymentStarted: false,
+      });
+    }
+
+    // Never pretend a preparation request is a deployment. The repository
+    // currently has no compiled Jetton minter code, state-init builder,
+    // wallet transaction handoff, or on-chain deployment verifier.
+    return res.status(503).json({
+      ok: false,
+      code: "DEPLOYMENT_ENGINE_NOT_CONFIGURED",
+      deploymentEnabled: false,
+      deploymentStarted: false,
+      message: "The order and payment are verified, but the Jetton deployment engine is not configured. No wallet transaction was created and no token was deployed.",
+      error: "Token deployment is not ready yet. Configure the Jetton contract deployment pipeline before retrying.",
+    });
+  } catch (error) {
+    console.error(
+      "[MAGROXIN] Deployment preparation check failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return res.status(503).json({
+      ok: false,
+      code: "DEPLOYMENT_CHECK_UNAVAILABLE",
+      error: "Unable to check deployment eligibility right now.",
+      deploymentStarted: false,
+    });
+  }
+});
 
 // Normalize JSON parser errors so clients always receive a safe, predictable API response.
 app.use((error: unknown, _req: Request, res: Response, next: (error?: unknown) => void) => {
