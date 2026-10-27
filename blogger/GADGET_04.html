@@ -131,10 +131,12 @@
       const data=await api('/api/deployment/prepare',{method:'POST',body:JSON.stringify({orderId,walletAddress})});
       if(data.network!=='-239') throw new Error('The API did not confirm TON Mainnet.');
       prepared=data;
-      $('mgx4-name').textContent=data.token?.name||'Loaded from paid order';
-      $('mgx4-symbol').textContent=data.token?.symbol||'—';
-      $('mgx4-supply').textContent=data.token?.supply||'—';
-      $('mgx4-decimals').textContent=String(data.token?.decimals??'—');
+      const orderData=await api('/api/orders/'+encodeURIComponent(orderId));
+      const token=orderData.order&&orderData.order.token||{};
+      $('mgx4-name').textContent=token.name||'—';
+      $('mgx4-symbol').textContent=token.symbol||'—';
+      $('mgx4-supply').textContent=token.supply||'—';
+      $('mgx4-decimals').textContent=String(token.decimals??'—');
       $('mgx4-details').hidden=false;
       $('mgx4-title').textContent='Ready to deploy';
       say('Backend accepted the paid order and matched wallet. Review the token details, then prepare the wallet transaction.','success');
@@ -159,7 +161,7 @@
       const boc=walletResult&&walletResult.boc;
       if(!boc) throw new Error('Wallet did not return a transaction BOC. No deployment success was assumed.');
       say('Wallet submitted the transaction. Waiting for backend on-chain confirmation…');
-      const confirmation=await api('/api/deployment/confirm',{method:'POST',body:JSON.stringify({orderId,walletAddress,transactionBoc:boc})});
+      const confirmation=await api('/api/deployment/confirm',{method:'POST',body:JSON.stringify({orderId,walletAddress,address:prepared.address})});
       if(confirmation.deployed===true&&confirmation.confirmed===true){
         $('mgx4-result').hidden=false;
         $('mgx4-result').innerHTML='<b>Deployment confirmed</b><p>Token address: <code></code></p><a target="_blank" rel="noopener noreferrer">Open TON Explorer</a>';
@@ -168,7 +170,8 @@
         $('mgx4-title').textContent='Token deployed';
         say('The backend confirmed deployment.','success');
       }else{
-        say(confirmation.message||'Transaction was submitted, but deployment is not yet confirmed on-chain. Do not retry immediately; check the explorer and try confirmation later.','error');
+        if(confirmation.address){$('mgx4-result').hidden=false;$('mgx4-result').innerHTML='<b>Confirmation pending</b><p>Token address: <code></code></p><a target="_blank" rel="noopener noreferrer">Check TON Explorer</a>';$('mgx4-result').querySelector('code').textContent=confirmation.address;$('mgx4-result').querySelector('a').href='https://tonviewer.com/'+encodeURIComponent(confirmation.address);}
+        say(confirmation.message||'Transaction submitted, but the backend has not verified deployment and initial supply yet.','error');
       }
     }catch(e){say(e.message||'Deployment was not confirmed.','error');}
     finally{busy=false;$('mgx4-deploy').disabled=!prepared;}
