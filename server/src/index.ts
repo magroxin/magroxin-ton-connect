@@ -52,6 +52,7 @@ interface TokenData {
   supply: string;
   decimals: number;
   description: string;
+  logo?: string;
 }
 
 interface Order {
@@ -81,6 +82,7 @@ const orderSchema = z.object({
       .max(31),
     decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
+    logo: z.string().max(1_500_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/).optional().default(""),
   }).superRefine((token, ctx) => {
     if (!isSupportedJettonSupply(token.supply, token.decimals)) {
       ctx.addIssue({
@@ -131,7 +133,7 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "16kb" }));
+app.use(express.json({ limit: "2mb" }));
 
 let rateLimitCleanupCounter = 0;
 
@@ -533,6 +535,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       supply: parsed.data.token.supply,
       decimals: parsed.data.token.decimals,
       description: parsed.data.token.description ?? "",
+      logo: parsed.data.token.logo ?? "",
     };
 
     // Apply a shared PostgreSQL-backed per-wallet limit. Advisory locking keeps
@@ -996,6 +999,28 @@ app.post(
   },
 );
 
+app.get("/api/orders/:id/logo", async (req: Request, res: Response) => {
+  try {
+    const orderId = req.params.id;
+    if (!validOrderId(orderId)) return res.status(400).end();
+    const order = await getOrder(orderId);
+    if (!order || !order.token.logo) return res.status(404).end();
+
+    const match = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(order.token.logo);
+    if (!match) return res.status(404).end();
+    const image = Buffer.from(match[2], "base64");
+    if (image.length === 0 || image.length > 1_000_000) return res.status(404).end();
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Content-Type", match[1] === "jpeg" ? "image/jpeg" : `image/${match[1]}`);
+    res.setHeader("Content-Length", String(image.length));
+    return res.status(200).send(image);
+  } catch {
+    return res.status(500).end();
+  }
+});
+
 app.get("/api/orders/:id", async (req: Request, res: Response) => {
   try {
     const orderId = req.params.id;
@@ -1077,6 +1102,7 @@ app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
       description: order.token.description,
       supply: order.token.supply,
       decimals: order.token.decimals,
+      imageUrl: order.token.logo ? `https://magroxin-ton-api.onrender.com/api/orders/${order.id}/logo` : undefined,
     });
 
     return res.json({
@@ -1138,6 +1164,7 @@ app.post("/api/deployment/verify", async (req: Request, res: Response) => {
       description: order.token.description,
       supply: order.token.supply,
       decimals: order.token.decimals,
+      imageUrl: order.token.logo ? `https://magroxin-ton-api.onrender.com/api/orders/${order.id}/logo` : undefined,
     });
     const expectedAddress = Address.parse(deployment.address).toRawString();
 
