@@ -433,6 +433,17 @@ async function initializeDatabase(): Promise<void> {
   console.log("[MAGROXIN] PostgreSQL initialized.");
 }
 
+app.get("/", (_req: Request, res: Response) => {
+  return res.json({
+    ok: true,
+    service: "magroxin-api",
+    network: "mainnet",
+    deploymentEnabled: DEPLOYMENT_ENABLED,
+    paymentRequestEnabled: PAYMENT_REQUEST_ENABLED,
+    paymentVerificationEnabled: PAYMENT_VERIFICATION_ENABLED,
+  });
+});
+
 app.get("/health", async (_req: Request, res: Response) => {
   try {
     await pool.query("SELECT 1");
