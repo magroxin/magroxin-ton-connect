@@ -39,7 +39,7 @@ const PAYMENT_VERIFICATION_ENABLED =
   process.env.ENABLE_PAYMENT_VERIFICATION === "true";
 
 // Keep deployment disabled until the complete deployment flow is tested.
-const DEPLOYMENT_ENABLED = false;
+const DEPLOYMENT_ENABLED = process.env.ENABLE_TOKEN_DEPLOYMENT === "true";
 
 const ORDER_LIFETIME_MS = 5 * 60 * 1000;
 const PAYMENT_GRACE_SECONDS = 120;
@@ -1025,19 +1025,23 @@ app.get("/api/orders/:id", async (req: Request, res: Response) => {
 });
 
 
-// Gadget 04 deployment endpoint. This route deliberately fails closed until
-// the Jetton contract deployment + wallet-approval pipeline is implemented.
+// Gadget 04 deployment preparation and verification endpoints.
+// Feature flag is server-controlled. Never trust a client-supplied enable flag.
 app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
+  if (!DEPLOYMENT_ENABLED) {
+    return res.status(503).json({
+      ok: false,
+      deploymentEnabled: false,
+      deploymentStarted: false,
+      code: "DEPLOYMENT_DISABLED",
+      error: "Token deployment is disabled by the backend.",
+    });
+  }
+
   const orderId = req.body?.orderId;
   const walletInput = req.body?.walletAddress;
-
   if (!validOrderId(orderId)) {
-    return res.status(400).json({
-      ok: false,
-      code: "INVALID_ORDER_ID",
-      error: "A valid service order ID is required.",
-      deploymentStarted: false,
-    });
+    return res.status(400).json({ ok: false, deploymentEnabled: true, deploymentStarted: false, code: "INVALID_ORDER_ID", error: "A valid service order ID is required." });
   }
 
   let walletAddress: string;
@@ -1045,51 +1049,15 @@ app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
     if (typeof walletInput !== "string") throw new Error("Missing wallet address");
     walletAddress = normalizeAddress(walletInput);
   } catch {
-    return res.status(400).json({
-      ok: false,
-      code: "INVALID_WALLET",
-      error: "A valid TON Mainnet wallet address is required.",
-      deploymentStarted: false,
-    });
+    return res.status(400).json({ ok: false, deploymentEnabled: true, deploymentStarted: false, code: "INVALID_WALLET", error: "A valid TON Mainnet wallet address is required." });
   }
 
   try {
     const order = await getOrder(orderId);
-    if (!order) {
-      return res.status(404).json({
-        ok: false,
-        code: "ORDER_NOT_FOUND",
-        error: "Service order was not found.",
-        deploymentStarted: false,
-      });
-    }
-
-    if (normalizeAddress(order.walletAddress) !== walletAddress) {
-      return res.status(403).json({
-        ok: false,
-        code: "WALLET_MISMATCH",
-        error: "Connected wallet does not match the wallet on this order.",
-        deploymentStarted: false,
-      });
-    }
-
-    if (order.deploymentNetwork !== "mainnet") {
-      return res.status(400).json({
-        ok: false,
-        code: "WRONG_NETWORK",
-        error: "Only TON Mainnet is supported.",
-        deploymentStarted: false,
-      });
-    }
-
-    if (order.status !== "paid" || !order.paymentTxHash) {
-      return res.status(409).json({
-        ok: false,
-        code: "SERVICE_PAYMENT_NOT_VERIFIED",
-        error: "The service payment must be verified before token deployment.",
-        deploymentStarted: false,
-      });
-    }
+    if (!order) return res.status(404).json({ ok: false, deploymentEnabled: true, deploymentStarted: false, code: "ORDER_NOT_FOUND", error: "Service order was not found." });
+    if (normalizeAddress(order.walletAddress) !== walletAddress) return res.status(403).json({ ok: false, deploymentEnabled: true, deploymentStarted: false, code: "WALLET_MISMATCH", error: "Connected wallet does not match the wallet on this order." });
+    if (order.deploymentNetwork !== "mainnet") return res.status(400).json({ ok: false, deploymentEnabled: true, deploymentStarted: false, code: "WRONG_NETWORK", error: "Only TON Mainnet is supported." });
+    if (order.status !== "paid" || !order.paymentTxHash) return res.status(409).json({ ok: false, deploymentEnabled: true, deploymentStarted: false, code: "SERVICE_PAYMENT_NOT_VERIFIED", error: "The service payment must be verified before token deployment." });
 
     const deployment = await prepareJettonDeployment({
       adminAddress: walletAddress,
@@ -1100,13 +1068,11 @@ app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
       decimals: order.token.decimals,
     });
 
-    // This only prepares a transaction for explicit TonConnect wallet approval.
-    // It does not submit a transaction and must never be presented as deployed.
-    return res.status(200).json({
+    return res.json({
       ok: true,
       status: "prepared",
       network: "mainnet",
-      deploymentEnabled: false,
+      deploymentEnabled: true,
       deploymentStarted: false,
       orderId: order.id,
       tokenAddress: deployment.address,
@@ -1121,19 +1087,118 @@ app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
           payload: deployment.payload,
         }],
       },
-      message: "Transaction prepared. The user must approve it in their connected Mainnet wallet. Deployment is not yet verified.",
+      message: "Transaction prepared. User wallet approval is required; deployment is not yet verified.",
     });
   } catch (error) {
-    console.error(
-      "[MAGROXIN] Deployment preparation check failed:",
-      error instanceof Error ? error.message : "Unknown error",
-    );
-    return res.status(503).json({
-      ok: false,
-      code: "DEPLOYMENT_CHECK_UNAVAILABLE",
-      error: "Unable to check deployment eligibility right now.",
-      deploymentStarted: false,
+    console.error("[MAGROXIN] Deployment preparation failed:", error instanceof Error ? error.message : "Unknown error");
+    return res.status(503).json({ ok: false, deploymentEnabled: true, deploymentStarted: false, code: "DEPLOYMENT_PREPARATION_FAILED", error: "Unable to prepare the deployment transaction." });
+  }
+});
+
+app.post("/api/deployment/verify", async (req: Request, res: Response) => {
+  if (!DEPLOYMENT_ENABLED) {
+    return res.status(503).json({ ok: false, deploymentEnabled: false, verifiedOnChain: false, code: "DEPLOYMENT_DISABLED", error: "Token deployment is disabled by the backend." });
+  }
+  if (!TONCENTER_API_KEY) {
+    return res.status(503).json({ ok: false, deploymentEnabled: true, verifiedOnChain: false, code: "TONCENTER_NOT_CONFIGURED", error: "On-chain verification is not configured." });
+  }
+
+  const orderId = req.body?.orderId;
+  let walletAddress: string;
+  try {
+    if (!validOrderId(orderId) || typeof req.body?.walletAddress !== "string") throw new Error("Invalid order or wallet");
+    walletAddress = normalizeAddress(req.body.walletAddress);
+  } catch {
+    return res.status(400).json({ ok: false, deploymentEnabled: true, verifiedOnChain: false, error: "A valid order ID and wallet address are required." });
+  }
+
+  try {
+    const order = await getOrder(orderId);
+    if (!order) return res.status(404).json({ ok: false, deploymentEnabled: true, verifiedOnChain: false, error: "Order not found." });
+    if (normalizeAddress(order.walletAddress) !== walletAddress) return res.status(403).json({ ok: false, deploymentEnabled: true, verifiedOnChain: false, error: "Wallet does not match this order." });
+    if (order.status !== "paid" || !order.paymentTxHash) return res.status(409).json({ ok: false, deploymentEnabled: true, verifiedOnChain: false, error: "Service payment is not verified." });
+
+    // Recompute the expected address from server-owned order data. Ignore any
+    // token address supplied by the browser when deciding what to verify.
+    const deployment = await prepareJettonDeployment({
+      adminAddress: walletAddress,
+      name: order.token.name,
+      symbol: order.token.symbol,
+      description: order.token.description,
+      supply: order.token.supply,
+      decimals: order.token.decimals,
     });
+    const expectedAddress = Address.parse(deployment.address).toRawString();
+
+    const infoUrl = new URL("https://toncenter.com/api/v2/getAddressInformation");
+    infoUrl.searchParams.set("address", expectedAddress);
+    const infoResponse = await fetch(infoUrl, {
+      headers: { accept: "application/json", "X-API-Key": TONCENTER_API_KEY },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!infoResponse.ok) throw new Error("TON Center address lookup failed.");
+    const info = await infoResponse.json() as any;
+    const account = info?.result;
+    const state = String(account?.state || "").toLowerCase();
+    const code = typeof account?.code === "string" ? account.code : "";
+
+    if (info?.ok !== true || state !== "active" || !code) {
+      return res.status(202).json({
+        ok: true,
+        status: "pending",
+        deploymentEnabled: true,
+        verifiedOnChain: false,
+        tokenAddress: deployment.address,
+        message: "The expected token contract is not active on TON Mainnet yet.",
+      });
+    }
+
+    // A live account alone is insufficient: confirm an inbound transaction
+    // from the order's wallet to this deterministic token address.
+    const txUrl = new URL("https://toncenter.com/api/v2/getTransactions");
+    txUrl.searchParams.set("address", expectedAddress);
+    txUrl.searchParams.set("limit", "10");
+    txUrl.searchParams.set("archival", "true");
+    const txResponse = await fetch(txUrl, {
+      headers: { accept: "application/json", "X-API-Key": TONCENTER_API_KEY },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!txResponse.ok) throw new Error("TON Center transaction lookup failed.");
+    const txData = await txResponse.json() as any;
+    const txs = Array.isArray(txData?.result) ? txData.result : [];
+    const matchingTx = txs.find((tx: any) => {
+      const source = tx?.in_msg?.source;
+      const destination = tx?.in_msg?.destination;
+      const src = typeof source === "string" ? normalizeAddress(source) : "";
+      const dst = typeof destination === "string" ? normalizeAddress(destination) : "";
+      return src === walletAddress && dst === expectedAddress;
+    });
+
+    if (!matchingTx || typeof matchingTx.transaction_id?.hash !== "string") {
+      return res.status(202).json({
+        ok: true,
+        status: "pending",
+        deploymentEnabled: true,
+        verifiedOnChain: false,
+        tokenAddress: deployment.address,
+        message: "The contract is active, but the expected wallet deployment transaction was not confirmed.",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      status: "deployed",
+      deploymentEnabled: true,
+      verifiedOnChain: true,
+      orderId: order.id,
+      tokenAddress: deployment.address,
+      transactionHash: matchingTx.transaction_id.hash,
+      explorerUrl: "https://tonviewer.com/" + encodeURIComponent(deployment.address),
+      message: "Token contract verified on TON Mainnet.",
+    });
+  } catch (error) {
+    console.error("[MAGROXIN] Deployment verification failed:", error instanceof Error ? error.message : "Unknown error");
+    return res.status(503).json({ ok: false, deploymentEnabled: true, verifiedOnChain: false, code: "VERIFICATION_UNAVAILABLE", error: "Unable to verify deployment on TON Mainnet right now." });
   }
 });
 
@@ -1180,7 +1245,7 @@ async function start(): Promise<void> {
         PAYMENT_VERIFICATION_ENABLED ? "enabled" : "disabled"
       }`,
     );
-    console.log("[MAGROXIN] Token deployment: disabled");
+    console.log(`[MAGROXIN] Token deployment: ${DEPLOYMENT_ENABLED ? "enabled" : "disabled"}`);
   });
 }
 
