@@ -9,6 +9,7 @@ import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
 import { isSupportedJettonSupply } from "./tokenSupply.js";
+import { prepareJettonDeployment } from "./jettonDeployment.js";
 
 const app = express();
 
@@ -1090,16 +1091,37 @@ app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
       });
     }
 
-    // Never pretend a preparation request is a deployment. The repository
-    // currently has no compiled Jetton minter code, state-init builder,
-    // wallet transaction handoff, or on-chain deployment verifier.
-    return res.status(503).json({
-      ok: false,
-      code: "DEPLOYMENT_ENGINE_NOT_CONFIGURED",
+    const deployment = await prepareJettonDeployment({
+      adminAddress: walletAddress,
+      name: order.token.name,
+      symbol: order.token.symbol,
+      description: order.token.description,
+      supply: order.token.supply,
+      decimals: order.token.decimals,
+    });
+
+    // This only prepares a transaction for explicit TonConnect wallet approval.
+    // It does not submit a transaction and must never be presented as deployed.
+    return res.status(200).json({
+      ok: true,
+      status: "prepared",
+      network: "mainnet",
       deploymentEnabled: false,
       deploymentStarted: false,
-      message: "The order and payment are verified, but the Jetton deployment engine is not configured. No wallet transaction was created and no token was deployed.",
-      error: "Token deployment is not ready yet. Configure the Jetton contract deployment pipeline before retrying.",
+      orderId: order.id,
+      tokenAddress: deployment.address,
+      supplyUnits: deployment.supplyUnits,
+      transaction: {
+        validUntil: Math.floor(Date.now() / 1000) + 300,
+        network: "-239",
+        messages: [{
+          address: deployment.address,
+          amount: deployment.deployValueNano,
+          stateInit: deployment.stateInit,
+          payload: deployment.payload,
+        }],
+      },
+      message: "Transaction prepared. The user must approve it in their connected Mainnet wallet. Deployment is not yet verified.",
     });
   } catch (error) {
     console.error(
