@@ -1124,7 +1124,7 @@ app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
       supply: order.token.supply,
       decimals: order.token.decimals,
       imageUrl: order.token.logo ? `https://magroxin-ton-api.onrender.com/api/orders/${order.id}/logo` : undefined,
-    });
+    }, TONCENTER_API_KEY);
 
     return res.json({
       ok: true,
@@ -1186,7 +1186,7 @@ app.post("/api/deployment/verify", async (req: Request, res: Response) => {
       supply: order.token.supply,
       decimals: order.token.decimals,
       imageUrl: order.token.logo ? `https://magroxin-ton-api.onrender.com/api/orders/${order.id}/logo` : undefined,
-    });
+    }, TONCENTER_API_KEY);
     const expectedAddress = Address.parse(deployment.address).toRawString();
 
     const infoUrl = new URL("https://toncenter.com/api/v2/getAddressInformation");
