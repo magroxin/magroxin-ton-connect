@@ -64,7 +64,7 @@ export async function prepareJettonDeployment(input: JettonDeploymentInput, tonc
   const address = contractAddress(0, stateInit);
   const internalTransfer = beginCell().storeUint(0x178d4519, 32).storeUint(0, 64).storeCoins(v.supplyUnits).storeAddress(address).storeAddress(v.admin).storeCoins(0).storeBit(0).endCell();
   if (!toncenterApiKey) throw new Error("TON Center API key is required for deployment fee estimation.");
-  const payload = beginCell().storeUint(21, 32).storeUint(0, 64).storeAddress(v.admin).storeCoins(0n).storeRef(internalTransfer).endCell();
+  const payload = beginCell().storeUint(21, 32).storeUint(0, 64).storeAddress(v.admin).storeCoins(300000000n).storeRef(internalTransfer).endCell();
   const estimateResponse = await fetch("https://toncenter.com/api/v2/estimateFee", {
     method: "POST",
     headers: { "content-type": "application/json", "X-API-Key": toncenterApiKey },
