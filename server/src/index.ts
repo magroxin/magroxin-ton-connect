@@ -100,10 +100,10 @@ const orderSchema = z.preprocess((input) => {
   token: z.object({
     name: z.string().trim().min(2).max(100),
     symbol: z.string().trim().regex(/^[A-Za-z0-9._-]{2,10}$/),
-    supply: z.string().trim().regex(/^[1-9]\\d*$/).max(31),
+    supply: z.string().trim().regex(/^[1-9]\d*$/).max(31),
     decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
-    logo: z.string().max(1_500_000).regex(/^data:image\\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/).optional().default(""),
+    logo: z.string().max(1_500_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/).optional().default(""),
   }).superRefine((token, ctx) => {
     if (!isSupportedJettonSupply(token.supply, token.decimals)) {
       ctx.addIssue({
