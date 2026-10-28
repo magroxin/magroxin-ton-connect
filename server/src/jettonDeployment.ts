@@ -76,8 +76,17 @@ export async function prepareJettonDeployment(input: JettonDeploymentInput, tonc
   if (estimateJson.ok !== true || !estimateJson.result) throw new Error("TON Center returned an invalid deployment fee estimate.");
   const sourceFees = BigInt(estimateJson.result.source_fees?.total_fees ?? 0);
   const destinationFees = (estimateJson.result.destination_fees ?? []).reduce((sum: bigint, item: any) => sum + BigInt(item.total_fees ?? 0), 0n);
-  if (destinationFees <= 0n) throw new Error("TON Center did not return a usable destination fee estimate.");
-  const estimatedDeployValueNano = sourceFees + destinationFees + (destinationFees * 30n / 100n) + 50000000n;
+  // TON Center may return an empty destination_fees array when the destination
+  // contract is being deployed for the first time. source_fees is still a valid
+  // estimate; require at least one positive fee component instead of requiring
+  // destination_fees specifically.
+  const estimatedExecutionFees = sourceFees + destinationFees;
+  if (estimatedExecutionFees <= 0n) {
+    throw new Error("TON Center returned a zero deployment fee estimate.");
+  }
+  // Add a 30% safety margin to the complete estimate plus a small forwarding
+  // reserve. Do not use a hard-coded deployment price.
+  const estimatedDeployValueNano = estimatedExecutionFees + (estimatedExecutionFees * 30n / 100n) + 50000000n;
   return {
     address: address.toString({ bounceable: false, testOnly: false }),
     stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString("base64"),
