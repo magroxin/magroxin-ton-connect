@@ -12,8 +12,6 @@ export type JettonDeploymentResult = {
 const CODE_REVISION = "cf176793e04d17580599c7e083fcd7af8f050035";
 const MINTER_CODE_URL = `https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/${CODE_REVISION}/contracts/build/jetton-minter.boc`;
 const WALLET_CODE_URL = `https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/${CODE_REVISION}/contracts/build/jetton-wallet.boc`;
-const DEPLOY_VALUE_NANO = "1500000000";
-const WALLET_FUNDING_NANO = "300000000";
 const MAX_SUPPLY_UNITS = 10n ** 30n;
 
 async function loadCode(url: string): Promise<Cell> {
@@ -51,7 +49,7 @@ function validate(input: JettonDeploymentInput) {
   if (supplyUnits > MAX_SUPPLY_UNITS) throw new Error("Token supply exceeds the supported limit.");
   return { admin, supplyUnits, name, symbol, description };
 }
-export async function prepareJettonDeployment(input: JettonDeploymentInput): Promise<JettonDeploymentResult> {
+export async function prepareJettonDeployment(input: JettonDeploymentInput, toncenterApiKey: string): Promise<JettonDeploymentResult> {
   const v = validate(input);
   const [minterCode, walletCode] = await Promise.all([loadCode(MINTER_CODE_URL), loadCode(WALLET_CODE_URL)]);
   const dictionary = Dictionary.empty(Dictionary.Keys.Buffer(32), Dictionary.Values.Cell());
@@ -65,12 +63,26 @@ export async function prepareJettonDeployment(input: JettonDeploymentInput): Pro
   const stateInit: StateInit = { code: minterCode, data };
   const address = contractAddress(0, stateInit);
   const internalTransfer = beginCell().storeUint(0x178d4519, 32).storeUint(0, 64).storeCoins(v.supplyUnits).storeAddress(address).storeAddress(v.admin).storeCoins(0).storeBit(0).endCell();
-  const payload = beginCell().storeUint(21, 32).storeUint(0, 64).storeAddress(v.admin).storeCoins(BigInt(WALLET_FUNDING_NANO)).storeRef(internalTransfer).endCell();
+  if (!toncenterApiKey) throw new Error("TON Center API key is required for deployment fee estimation.");
+  const payload = beginCell().storeUint(21, 32).storeUint(0, 64).storeAddress(v.admin).storeCoins(300000000n).storeRef(internalTransfer).endCell();
+  const estimateResponse = await fetch("https://toncenter.com/api/v2/estimateFee", {
+    method: "POST",
+    headers: { "content-type": "application/json", "X-API-Key": toncenterApiKey },
+    body: JSON.stringify({ address: address.toString({ bounceable: true, testOnly: false }), body: payload.toBoc().toString("base64"), init_code: minterCode.toBoc().toString("base64"), init_data: data.toBoc().toString("base64"), ignore_chksig: true }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!estimateResponse.ok) throw new Error("TON Center deployment fee estimation failed.");
+  const estimateJson = await estimateResponse.json() as any;
+  if (estimateJson.ok !== true || !estimateJson.result) throw new Error("TON Center returned an invalid deployment fee estimate.");
+  const sourceFees = BigInt(estimateJson.result.source_fees?.total_fees ?? 0);
+  const destinationFees = (estimateJson.result.destination_fees ?? []).reduce((sum: bigint, item: any) => sum + BigInt(item.total_fees ?? 0), 0n);
+  if (destinationFees <= 0n) throw new Error("TON Center did not return a usable destination fee estimate.");
+  const estimatedDeployValueNano = sourceFees + destinationFees + (destinationFees * 30n / 100n) + 50000000n;
   return {
     address: address.toString({ bounceable: false, testOnly: false }),
     stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString("base64"),
     payload: payload.toBoc().toString("base64"),
-    deployValueNano: DEPLOY_VALUE_NANO,
+    deployValueNano: estimatedDeployValueNano.toString(),
     supplyUnits: v.supplyUnits.toString(),
   };
 }
