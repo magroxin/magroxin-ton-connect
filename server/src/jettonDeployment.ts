@@ -74,12 +74,24 @@ export async function prepareJettonDeployment(input: JettonDeploymentInput, tonc
   if (!estimateResponse.ok) throw new Error("TON Center deployment fee estimation failed.");
   const estimateJson = await estimateResponse.json() as any;
   if (estimateJson.ok !== true || !estimateJson.result) throw new Error("TON Center returned an invalid deployment fee estimate.");
-  const sourceFees = BigInt(estimateJson.result.source_fees?.total_fees ?? 0);
-  const destinationFees = (estimateJson.result.destination_fees ?? []).reduce((sum: bigint, item: any) => sum + BigInt(item.total_fees ?? 0), 0n);
-  // TON Center may return an empty destination_fees array when the destination
-  // contract is being deployed for the first time. source_fees is still a valid
-  // estimate; require at least one positive fee component instead of requiring
-  // destination_fees specifically.
+  // TON Center v2 normally includes total_fees, but some responses expose
+  // only the component fields. Sum the explicit components when total_fees is
+  // absent instead of silently treating a valid estimate as zero.
+  const feeTotal = (fees: any): bigint => {
+    if (!fees || typeof fees !== "object") return 0n;
+    if (fees.total_fees !== undefined && fees.total_fees !== null) {
+      return BigInt(fees.total_fees);
+    }
+    return ["in_fwd_fee", "storage_fee", "gas_fee", "fwd_fee"].reduce(
+      (sum, key) => sum + BigInt(fees[key] ?? 0), 0n
+    );
+  };
+  const sourceFees = feeTotal(estimateJson.result.source_fees);
+  const destinationFees = (estimateJson.result.destination_fees ?? []).reduce(
+    (sum: bigint, item: any) => sum + feeTotal(item), 0n
+  );
+  // Destination fees can be empty for a first-time deployment. Use every
+  // fee component TON Center actually returned, but never invent a fee value.
   const estimatedExecutionFees = sourceFees + destinationFees;
   if (estimatedExecutionFees <= 0n) {
     throw new Error("TON Center returned a zero deployment fee estimate.");
