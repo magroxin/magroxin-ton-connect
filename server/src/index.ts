@@ -70,20 +70,40 @@ interface Order {
   token: TokenData;
 }
 
-const orderSchema = z.object({
-  walletAddress: z.string().min(10).max(150),
+// Accept the exact Gadget payload and normalize common browser form values server-side.
+const orderSchema = z.preprocess((input) => {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
+  const body = input as Record<string, any>;
+  const rawToken = body.token && typeof body.token === "object" && !Array.isArray(body.token)
+    ? body.token as Record<string, any>
+    : {};
+  const rawNetwork = body.deploymentNetwork ?? body.network ?? rawToken.network;
+  const network = rawNetwork === "-239" || rawNetwork === "TON Mainnet" || rawNetwork === "mainnet"
+    ? "mainnet"
+    : rawNetwork;
+  const rawLogo = rawToken.logo ?? rawToken.logoData ?? "";
+  const normalizedLogo = typeof rawLogo === "string"
+    ? rawLogo.replace(/^data:image\/jpg;base64,/i, "data:image/jpeg;base64,")
+    : rawLogo;
+  const rawDecimals = rawToken.decimals;
+  const decimals = typeof rawDecimals === "string" && /^\d+$/.test(rawDecimals)
+    ? Number(rawDecimals)
+    : rawDecimals;
+  return {
+    ...body,
+    deploymentNetwork: network,
+    token: { ...rawToken, decimals, logo: normalizedLogo },
+  };
+}, z.object({
+  walletAddress: z.string().trim().min(10).max(150),
   deploymentNetwork: z.literal("mainnet"),
   token: z.object({
     name: z.string().trim().min(2).max(100),
     symbol: z.string().trim().regex(/^[A-Za-z0-9._-]{2,10}$/),
-    supply: z
-      .string()
-      .trim()
-      .regex(/^[1-9]\d*$/)
-      .max(31),
+    supply: z.string().trim().regex(/^[1-9]\\d*$/).max(31),
     decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
-    logo: z.string().max(1_500_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/).optional().default(""),
+    logo: z.string().max(1_500_000).regex(/^data:image\\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/).optional().default(""),
   }).superRefine((token, ctx) => {
     if (!isSupportedJettonSupply(token.supply, token.decimals)) {
       ctx.addIssue({
@@ -93,7 +113,7 @@ const orderSchema = z.object({
       });
     }
   }),
-});
+}));
 
 if (!DATABASE_URL) {
   console.error("[MAGROXIN] DATABASE_URL is missing.");
