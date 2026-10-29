@@ -91,7 +91,7 @@ html body [class*="tc-root"] {
   <div class="vx-fee">
     <span class="vx-label">Wallet-specific service fee · live backend quote</span>
     <strong id="VX03_feeAmount">Connect wallet to load fee</strong>
-    <p id="VX03_feeDescription">The backend calculates the fee for the connected wallet: the configured test wallet receives 1 TON; all other wallets receive 100 TON. Check the amount and recipient before approving a transaction.</p>
+    <p id="VX03_feeDescription">The backend calculates the fee for the connected wallet: the configured test wallet receives 0.1 TON; all other wallets receive 100 TON. Check the amount and recipient before approving a transaction.</p>
   </div>
   <label class="vx-check">
     <input type="checkbox" id="VX03_accept"/>
