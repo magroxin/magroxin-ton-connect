@@ -236,7 +236,7 @@ function serviceFeeForWallet(walletAddress: string): { feeTon: string; amountNan
   const isConfiguredTestWallet =
     !!TEST_WALLET_ADDRESS &&
     normalizeAddress(walletAddress) === TEST_WALLET_ADDRESS;
-  const feeTon = isConfiguredTestWallet ? "1" : MAINNET_FEE_TON;
+  const feeTon = isConfiguredTestWallet ? "0.1" : MAINNET_FEE_TON;
   return { feeTon, amountNano: toNano(feeTon).toString() };
 }
 
