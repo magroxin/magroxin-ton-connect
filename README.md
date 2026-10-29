@@ -8,7 +8,7 @@ MAGROXIN is a TON Mainnet Jetton-creation web app with a React/TON Connect clien
 
 - Network: TON Mainnet only.
 - Standard service fee: 100 TON (100,000,000,000 nanoTON), separate from TON network fees.
-- Optional exact-address test-wallet override: the single wallet configured in `MAGROXIN_TEST_WALLET_ADDRESS` receives a 1 TON quote; all other wallets receive 100 TON. Leave it blank to disable the test-wallet exception.
+- Optional exact-address test-wallet override: the single wallet configured in `MAGROXIN_TEST_WALLET_ADDRESS` receives a 0.1 TON quote; all other wallets receive 100 TON. Leave it blank to disable the test-wallet exception.
 - Order data: PostgreSQL; order IDs are UUIDs.
 - Payment verification: server-side TON Center lookup checks sender, recipient, exact amount, order comment, time window, transaction success, and duplicate transaction use.
 - Abuse controls: per-wallet order creation limit and per-order payment-verification cooldown, enforced in PostgreSQL across API instances.
