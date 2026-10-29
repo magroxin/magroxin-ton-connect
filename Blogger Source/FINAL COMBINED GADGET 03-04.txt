@@ -670,7 +670,6 @@ async function verifyService(){
     state.servicePaid=true;
 
     status("VX03_deployState","Payment verified");
-    show("VX03_deploymentCard",true);
 
     status(
       "VX03_serviceStatus",
@@ -1059,6 +1058,7 @@ function acceptOrder(detail){
   setStatus("Wrong network","Gadget 3 did not provide a TON Mainnet order.","error");return;
  }
  orderData={orderId:id.trim(),walletAddress:address.trim(),network:"mainnet",token:normalizeToken(detail)};
+ ROOT.style.display="block";
  refreshButton();
  setStatus(backendEnabled?"Order received":"Deployment disabled",
  backendEnabled?"Paid order received. Check wallet connection before deploying.":"Render has not enabled token deployment.",""+(backendEnabled?"ok":"error"));
