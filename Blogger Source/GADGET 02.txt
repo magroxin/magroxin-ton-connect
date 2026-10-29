@@ -747,26 +747,21 @@
 
           <div class="v2-field">
             <label class="v2-label" for="v2TokenLogo">
-              Token Logo <em>Optional</em>
+              Token Logo URL <em>Optional</em>
             </label>
             <input
-              class="v2-file"
+              class="v2-input"
               id="v2TokenLogo"
-              name="logo"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
+              name="logoUrl"
+              type="url"
+              inputmode="url"
+              placeholder="https://example.com/token-logo.png"
+              autocomplete="url"
+              maxlength="2048"
               aria-describedby="v2LogoHelp"
             >
-            <label class="v2-upload" for="v2TokenLogo">
-              <span class="v2-upload-icon">↥</span>
-              <span>
-                <strong id="v2LogoFileName">Upload token logo</strong>
-                <small id="v2LogoHelp">PNG, JPG or WEBP · Maximum 1 MB</small>
-              </span>
-            </label>
-            <p class="v2-help">Choose an image you have permission to use.</p>
-          </input
-></div>
+            <p class="v2-help" id="v2LogoHelp">Paste a public HTTPS image link (PNG, JPG or WEBP). The image must open without login or permission.</p>
+          </div>
         </div>
 
         <aside class="v2-panel v2-preview-panel">
@@ -881,8 +876,44 @@
 
   var logoData = "";
   var logoMime = "";
-  var logoObjectUrl = "";
-  var MAX_LOGO_BYTES = 1024 * 1024;
+
+  function validLogoUrl(value) {
+    if (!value) return true;
+    try {
+      var url = new URL(value);
+      return url.protocol === "https:" && !!url.hostname && !url.username && !url.password;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function renderLogoPreview(value) {
+    var preview = byId("v2LogoPreview");
+    if (!preview) return;
+    preview.replaceChildren();
+    if (!value) {
+      preview.textContent = (nameInput.value.trim() || "M").charAt(0).toUpperCase();
+      return;
+    }
+    var img = document.createElement("img");
+    img.alt = "Token logo preview";
+    img.referrerPolicy = "no-referrer";
+    img.onload = function () {
+      if (preview.firstChild === img) {
+        logoData = value;
+        clearMessage();
+      }
+    };
+    img.onerror = function () {
+      if (preview.firstChild === img) {
+        preview.textContent = (nameInput.value.trim() || "M").charAt(0).toUpperCase();
+        logoData = "";
+        showMessage("Logo URL could not load. Use a public HTTPS direct image link.", true);
+      }
+    };
+    img.src = value;
+    preview.appendChild(img);
+  }
 
   function byId(id) {
     return root.querySelector("#" + id);
@@ -939,9 +970,9 @@
       descriptionCount.textContent = descriptionInput.value.length + " / 240";
     }
 
-    if (logoPreview && !logoData) {
-      logoPreview.textContent =
-        (name || "M").trim().charAt(0).toUpperCase();
+    if (logoPreview && !logoInput.value.trim()) {
+      logoData = "";
+      logoPreview.textContent = (name || "M").trim().charAt(0).toUpperCase();
     }
   }
 
@@ -982,104 +1013,25 @@
     el.addEventListener("change", updatePreview);
   });
 
-  logoInput.addEventListener("change", function () {
+  logoInput.addEventListener("input", function () {
     clearMessage();
-
-    var file = logoInput.files && logoInput.files[0];
-
-    if (!file) {
-      logoData = "";
-      logoMime = "";
-
-      if (logoObjectUrl) {
-        URL.revokeObjectURL(logoObjectUrl);
-        logoObjectUrl = "";
-      }
-
-      updatePreview();
+    var value = logoInput.value.trim();
+    logoData = "";
+    if (!value) {
+      renderLogoPreview("");
       return;
     }
-
-    var allowed = ["image/png", "image/jpeg", "image/webp"];
-
-    if (allowed.indexOf(file.type) === -1) {
-      logoInput.value = "";
-      logoData = "";
-      logoMime = "";
-
-      showMessage("Please select a PNG, JPG or WEBP image.", true);
-      updatePreview();
+    if (!validLogoUrl(value)) {
+      renderLogoPreview("");
+      showMessage("Please enter a valid public HTTPS image URL.", true);
       return;
     }
+    renderLogoPreview(value);
+  });
 
-    if (file.size === 0 || file.size > MAX_LOGO_BYTES) {
-      logoInput.value = "";
-      logoData = "";
-      logoMime = "";
-
-      showMessage("Logo must be a valid image of 1 MB or smaller.", true);
-      updatePreview();
-      return;
-    }
-
-    var reader = new FileReader();
-
-    reader.onload = function () {
-      if (
-        typeof reader.result !== "string" ||
-        reader.result.indexOf("data:" + file.type + ";base64,") !== 0
-      ) {
-        logoInput.value = "";
-        logoData = "";
-        logoMime = "";
-
-        showMessage(
-          "Could not read this image. Please choose another file.",
-          true
-        );
-
-        updatePreview();
-        return;
-      }
-
-      logoData = reader.result;
-      logoMime = file.type;
-
-      if (logoObjectUrl) {
-        URL.revokeObjectURL(logoObjectUrl);
-      }
-
-      logoObjectUrl = URL.createObjectURL(file);
-
-      var img = document.createElement("img");
-      img.alt = "Selected token logo";
-      img.src = logoObjectUrl;
-
-      var preview = byId("v2LogoPreview");
-
-      if (preview) {
-        preview.replaceChildren(img);
-      }
-
-      var fileName = byId("v2LogoFileName");
-      if (fileName) fileName.textContent = file.name;
-
-      showMessage(
-        "Logo loaded for preview and added to the token draft.",
-        false
-      );
-    };
-
-    reader.onerror = function () {
-      logoInput.value = "";
-      logoData = "";
-      logoMime = "";
-
-      showMessage("Unable to read the selected image.", true);
-      updatePreview();
-    };
-
-    reader.readAsDataURL(file);
+  logoInput.addEventListener("change", function () {
+    var value = logoInput.value.trim();
+    if (value && validLogoUrl(value)) renderLogoPreview(value);
   });
 
   form.addEventListener("submit", function (event) {
@@ -1147,6 +1099,14 @@
       return;
     }
 
+    var logoUrl = logoInput.value.trim();
+
+    if (logoUrl && !validLogoUrl(logoUrl)) {
+      showMessage("Logo must use a valid HTTPS URL.", true);
+      logoInput.focus();
+      return;
+    }
+
     if (!confirmInput.checked) {
       showMessage(
         "Please confirm that you reviewed the token details.",
@@ -1163,8 +1123,9 @@
       supply: supply,
       decimals: decimals,
       network: "mainnet",
-      logoData: logoData || "",
-      logoMime: logoMime || "",
+      logoData: logoUrl || "",
+      logoUrl: logoUrl || "",
+      logoMime: "",
       platformFeeTon: "100"
     };
 
