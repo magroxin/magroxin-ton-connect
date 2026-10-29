@@ -3528,7 +3528,7 @@ checkBackend();
 #MGX_TOKEN_MANAGER .note{padding:10px;border-left:3px solid #ffd477;background:#3b2b1020;color:#e6c98a;font-size:11px;line-height:1.5;margin-top:10px}
 @media(max-width:550px){#MGX_TOKEN_MANAGER .body{padding:10px}#MGX_TOKEN_MANAGER .grid{grid-template-columns:1fr}}
 </style>
-<div class="float"><div class="frow"><div><div class="fcopy">Click Here to edit your token after creation</div><div class="sub">If you have faced any problem or if you need any support then <span class="contact" id="mgxContact">Contact Us</span></div></div><button class="btn" id="mgxOpen">OPEN MANAGER ↗</button></div></div>
+<div class="float"><div class="frow"><div><div class="fcopy"><span id="mgxOpen" role="button" tabindex="0" style="color:var(--c);cursor:pointer;text-decoration:underline">Click Here</span> to edit your token after creation</div><div class="sub">If you have faced any problem or if you need any support then <span class="contact" id="mgxContact">Contact Us</span></div></div></div></div>
 <div class="overlay" id="mgxOverlay" aria-hidden="true"><div class="modal">
 <div class="head"><div><div class="brand">MAGROXIN</div><div class="kicker">TON MAINNET · TOKEN MANAGEMENT</div></div><button class="close" id="mgxClose">×</button></div>
 <div class="body">
@@ -3608,7 +3608,7 @@ async function burn(){
 async function revoke(){
  try{walletRequired();if(!S.adminOK)throw Error("Current admin verification required.");if($("mgxRevokeWord").value.trim()!=="REVOKE")throw Error('Type exactly "REVOKE" to confirm.');if(!confirm("IRREVERSIBLE: This permanently removes the admin. Minting and metadata edits will no longer be possible. Continue?"))return;const c=await core(),body=c.beginCell().storeUint(OP.CHANGE_ADMIN,32).storeUint(0,64).storeAddress(null).endCell();await send(S.master,body,50000000,"mgxRevokeStatus");$("mgxRevokeWord").value=""}catch(e){status("mgxRevokeStatus",e.message,"err")}
 }
-$("mgxOpen").addEventListener("click",()=>{$("mgxOverlay").classList.add("open");$("mgxOverlay").setAttribute("aria-hidden","false");document.body.style.overflow="hidden";if(!S.tc)initWallet()});
+const openManager=()=>{$("mgxOverlay").classList.add("open");$("mgxOverlay").setAttribute("aria-hidden","false");document.body.style.overflow="hidden";if(!S.tc)initWallet()};$("mgxOpen").addEventListener("click",openManager);$("mgxOpen").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openManager()}});
 function close(){$("mgxOverlay").classList.remove("open");$("mgxOverlay").setAttribute("aria-hidden","true");document.body.style.overflow=""}
 $("mgxClose").addEventListener("click",close);$("mgxOverlay").addEventListener("click",e=>{if(e.target===$("mgxOverlay"))close()});
 $("mgxContact").addEventListener("click",()=>MAGROXIN_TELEGRAM_URL.trim()?window.open(MAGROXIN_TELEGRAM_URL,"_blank","noopener,noreferrer"):toast("Telegram support link is not configured yet."));
