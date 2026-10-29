@@ -56,6 +56,7 @@ interface TokenData {
   decimals: number;
   description: string;
   logo?: string;
+  logoUrl?: string;
 }
 
 interface Order {
@@ -618,6 +619,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       decimals: parsed.data.token.decimals,
       description: parsed.data.token.description ?? "",
       logo: parsed.data.token.logo ?? "",
+      logoUrl: parsed.data.token.logoUrl ?? "",
     };
 
     // Apply a shared PostgreSQL-backed per-wallet limit. Advisory locking keeps
