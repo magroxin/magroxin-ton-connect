@@ -29,7 +29,11 @@ const MAINNET_FEE_TON = process.env.MAINNET_SERVICE_FEE_TON || "100";
 if (MAINNET_FEE_TON !== "100") {
   throw new Error("MAINNET_SERVICE_FEE_TON must be exactly 100; the standard service fee is fixed.");
 }
-// All connected wallets pay the same fixed TON Mainnet service fee.
+
+// Optional exact-address allowlist for the 1 TON test fee. Every other wallet
+// continues to receive the standard 100 TON Mainnet fee.
+const TEST_WALLET_ADDRESS_RAW =
+  process.env.MAGROXIN_TEST_WALLET_ADDRESS?.trim() || "";
 
 const PAYMENT_REQUEST_ENABLED =
   process.env.ENABLE_PAYMENT_REQUESTS === "true";
@@ -217,8 +221,15 @@ function normalizeAddress(value: string): string {
   return Address.parse(value).toRawString().toLowerCase();
 }
 
-function serviceFeeForWallet(): { feeTon: string; amountNano: string } {
-  const feeTon = MAINNET_FEE_TON;
+const TEST_WALLET_ADDRESS = TEST_WALLET_ADDRESS_RAW
+  ? normalizeAddress(TEST_WALLET_ADDRESS_RAW)
+  : "";
+
+function serviceFeeForWallet(walletAddress: string): { feeTon: string; amountNano: string } {
+  const isConfiguredTestWallet =
+    !!TEST_WALLET_ADDRESS &&
+    normalizeAddress(walletAddress) === TEST_WALLET_ADDRESS;
+  const feeTon = isConfiguredTestWallet ? "1" : MAINNET_FEE_TON;
   return { feeTon, amountNano: toNano(feeTon).toString() };
 }
 
@@ -540,7 +551,7 @@ app.post("/api/orders", async (req: Request, res: Response) => {
       });
     }
 
-    const { feeTon, amountNano } = serviceFeeForWallet();
+    const { feeTon, amountNano } = serviceFeeForWallet(walletAddress);
 
     const now = Date.now();
     const expiresAt = now + ORDER_LIFETIME_MS;
