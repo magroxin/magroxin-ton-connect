@@ -84,9 +84,16 @@ const orderSchema = z.preprocess((input) => {
     ? "mainnet"
     : rawNetwork;
   const rawLogo = rawToken.logo ?? rawToken.logoData ?? "";
-  const normalizedLogo = typeof rawLogo === "string"
+  const normalizedLogoCandidate = typeof rawLogo === "string"
     ? rawLogo.replace(/^data:image\/jpg;base64,/i, "data:image/jpeg;base64,")
-    : rawLogo;
+    : "";
+  // Logo is optional. Ignore remote URLs, SVGs, malformed data URLs, and empty
+  // strings rather than rejecting the entire service-fee order.
+  const normalizedLogo = typeof normalizedLogoCandidate === "string" &&
+    /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(normalizedLogoCandidate) &&
+    normalizedLogoCandidate.length <= 1_500_000
+      ? normalizedLogoCandidate
+      : "";
   const rawDecimals = rawToken.decimals;
   const decimals = typeof rawDecimals === "string" && /^\d+$/.test(rawDecimals)
     ? Number(rawDecimals)
