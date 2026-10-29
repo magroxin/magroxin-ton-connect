@@ -3379,7 +3379,7 @@ function getConnectedWallet(){
  return {ui,address:wallet.account.address};
 }
 async function verifyDeployment(orderId,walletAddress){
- const deadline=Date.now()+120000;
+ const deadline=Date.now()+300000;
  while(Date.now()<deadline){
   await new Promise(resolve=>setTimeout(resolve,2500));
   const r=await api("/api/deployment/verify",{
@@ -3390,7 +3390,7 @@ async function verifyDeployment(orderId,walletAddress){
   if(d.deploymentEnabled===false){backendEnabled=false;refreshButton();throw new Error("Render disabled deployment. No deployment was confirmed.")}
   if(d.status==="deployed"&&d.transactionConfirmedOnChain===true&&d.tokenAddress)return d;
   if(d.status==="failed"||d.retryable===false)throw new Error(d.error||"Backend could not verify deployment.");
-  setStatus("Verifying on TON Mainnet",d.message||"Waiting for on-chain confirmation…","busy");
+  setStatus("Confirming deployment transaction",d.message||"Waiting for the completed TON Mainnet transaction…","busy");
  }
  throw new Error("Verification is still pending. No success popup was shown. Check status before retrying.");
 }
