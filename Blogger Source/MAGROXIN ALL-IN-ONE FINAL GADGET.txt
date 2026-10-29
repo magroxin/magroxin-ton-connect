@@ -3249,14 +3249,14 @@ initWallet();
   <img id="MGX4_R_LOGO" class="mgx-logo" alt="Token logo" referrerpolicy="no-referrer" />
   <span class="mgx-chip">MAGROXIN · TON MAINNET</span>
   <h3 id="MGX4_SUCCESS_TITLE">TOKEN DEPLOYED SUCCESSFULLY</h3>
-  <p id="MGX4_SUCCESS_TEXT">The backend confirmed deployment. Token distribution should be verified separately.</p>
+  <p id="MGX4_SUCCESS_TEXT">Your deployment transaction completed successfully on TON Mainnet. Your token details are shown below.</p>
   <div class="mgx-result"><div class="mgx-result-label">TOKEN NAME</div><div id="MGX4_R_NAME" class="mgx-result-value">—</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TOKEN SYMBOL</div><div id="MGX4_R_SYMBOL" class="mgx-result-value">—</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TOKEN MASTER ADDRESS</div><div id="MGX4_R_ADDRESS" class="mgx-result-value">—</div></div>
   <div class="mgx-result"><div class="mgx-result-label">DECIMALS</div><div id="MGX4_R_DECIMALS" class="mgx-result-value">—</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TOTAL SUPPLY</div><div id="MGX4_R_SUPPLY" class="mgx-result-value">—</div></div>
   <div class="mgx-result"><div class="mgx-result-label">CREATOR WALLET</div><div id="MGX4_R_CREATOR" class="mgx-result-value">—</div></div>
-  <div class="mgx-result"><div class="mgx-result-label">CREATOR JETTON BALANCE (BASE UNITS)</div><div id="MGX4_R_CREATOR_BALANCE" class="mgx-result-value">Pending on-chain verification</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">DEPLOYMENT TRANSACTION STATUS</div><div id="MGX4_R_CREATOR_BALANCE" class="mgx-result-value">Waiting for confirmation</div></div>
   <div class="mgx-result"><div class="mgx-result-label">DEPLOYMENT DATE & TIME</div><div id="MGX4_R_DATE" class="mgx-result-value">Not provided by backend</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TRANSACTION HASH</div><div id="MGX4_R_HASH" class="mgx-result-value">Not provided by backend</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TON EXPLORER</div><div id="MGX4_R_EXPLORER" class="mgx-result-value">—</div></div>
@@ -3379,7 +3379,7 @@ function getConnectedWallet(){
  return {ui,address:wallet.account.address};
 }
 async function verifyDeployment(orderId,walletAddress){
- const deadline=Date.now()+120000;
+ const deadline=Date.now()+300000;
  while(Date.now()<deadline){
   await new Promise(resolve=>setTimeout(resolve,2500));
   const r=await api("/api/deployment/verify",{
@@ -3388,9 +3388,9 @@ async function verifyDeployment(orderId,walletAddress){
   });
   const d=r.data;
   if(d.deploymentEnabled===false){backendEnabled=false;refreshButton();throw new Error("Render disabled deployment. No deployment was confirmed.")}
-  if(d.status==="deployed"&&d.verifiedOnChain===true&&d.tokenAddress)return d;
+  if(d.status==="deployed"&&d.transactionConfirmedOnChain===true&&d.tokenAddress)return d;
   if(d.status==="failed"||d.retryable===false)throw new Error(d.error||"Backend could not verify deployment.");
-  setStatus("Verifying on TON Mainnet",d.message||"Waiting for on-chain confirmation…","busy");
+  setStatus("Confirming deployment transaction",d.message||"Waiting for the completed TON Mainnet transaction…","busy");
  }
  throw new Error("Verification is still pending. No success popup was shown. Check status before retrying.");
 }
@@ -3398,8 +3398,8 @@ function setText(id,value){
  $(id).textContent=value===undefined||value===null||value===""?"Not provided by backend":String(value);
 }
 function showSuccess(verified){
- if(verified.status!=="deployed"||verified.verifiedOnChain!==true||!verified.tokenAddress)
-  throw new Error("Deployment has not been verified by the backend.");
+ if(verified.status!=="deployed"||verified.transactionConfirmedOnChain!==true||!verified.tokenAddress)
+  throw new Error("Deployment transaction has not completed successfully on TON Mainnet.");
  const token=orderData.token||{};
  setText("MGX4_R_NAME",firstValue(verified.tokenName,verified.name,token.name));
  setText("MGX4_R_SYMBOL",firstValue(verified.tokenSymbol,verified.symbol,token.symbol));
@@ -3407,7 +3407,7 @@ function showSuccess(verified){
  setText("MGX4_R_DECIMALS",firstValue(verified.decimals,token.decimals));
  setText("MGX4_R_SUPPLY",firstValue(verified.totalSupply,verified.supply,token.supply));
  setText("MGX4_R_CREATOR",firstValue(verified.creatorAddress,verified.walletAddress,orderData.walletAddress));
- setText("MGX4_R_CREATOR_BALANCE",firstValue(verified.creatorJettonBalance,verified.totalSupply));
+ setText("MGX4_R_CREATOR_BALANCE","Completed successfully on TON Mainnet");
  const logo=firstValue(verified.tokenLogo,verified.logo,token.logo);
  const logoEl=$("MGX4_R_LOGO");
  if(typeof logo==="string"&&/^(https?:\/\/|data:image\/)/i.test(logo)){
@@ -3436,7 +3436,7 @@ function showSuccess(verified){
  modal.classList.add("open");
  modal.setAttribute("aria-hidden","false");
  $("MGX4_CLOSE").focus();
- setStatus("Deployment verified","Backend confirmed the token master, exact total supply, and creator Jetton balance on TON Mainnet.","ok");
+ setStatus("Deployment successful","Backend confirmed the deployment transaction completed on TON Mainnet.","ok");
 }
 async function deployToken(){
  if(deploying||checking||completed||!backendEnabled||!orderData)return;
