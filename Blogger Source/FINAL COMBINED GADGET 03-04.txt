@@ -83,19 +83,15 @@ html body [class*="tc-root"] {
     <button type="button" class="vx-secondary vx-hidden" id="VX03_disconnectWallet">Disconnect Wallet</button>
   </div>
   <div id="VX03_walletStatus" class="vx-status" role="status">Wallet not connected.</div>
-  <div class="vx-item" style="margin-top:12px">
-    <span class="vx-label">Connected wallet</span>
-    <div id="VX03_walletAddress" class="vx-address">Not connected</div>
-    <button type="button" class="vx-secondary" id="VX03_copyWallet" disabled>Copy wallet address</button>
-  </div>
+
 </section>
 
 <section class="vx-card">
   <h3>02 · Service fee</h3>
   <div class="vx-fee">
-    <span class="vx-label">Fee returned by backend</span>
-    <strong id="VX03_feeAmount">Create order to check fee</strong>
-    <p id="VX03_feeDescription">The backend order determines the actual service fee. Check the amount and recipient before approving a transaction.</p>
+    <span class="vx-label">Live service fee · loaded from backend order</span>
+    <strong id="VX03_feeAmount">Create order to load backend fee</strong>
+    <p id="VX03_feeDescription">The fee amount is loaded from the backend order (for example, 1 TON or 100 TON). No fixed amount is assumed here. Check the amount and recipient before approving a transaction.</p>
   </div>
   <label class="vx-check">
     <input type="checkbox" id="VX03_accept"/>
@@ -197,7 +193,7 @@ function refreshButtons(){
     state.busy||!connected||!hasOrder||state.servicePaid
   );
 
-  button("VX03_copyWallet",!state.friendlyAddress);
+  
   show("VX03_disconnectWallet",!!(state.wallet&&state.address));
 }
 
