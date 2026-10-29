@@ -509,6 +509,34 @@ app.get("/tonconnect-manifest.json", (_req: Request, res: Response) => {
   });
 });
 
+app.get("/api/fee-quote", (req: Request, res: Response) => {
+  try {
+    const rawAddress = typeof req.query.walletAddress === "string"
+      ? req.query.walletAddress
+      : "";
+    if (!rawAddress) {
+      return res.status(400).json({ ok: false, error: "walletAddress is required." });
+    }
+
+    let walletAddress: string;
+    try {
+      walletAddress = normalizeAddress(rawAddress);
+    } catch {
+      return res.status(400).json({ ok: false, error: "Invalid TON wallet address." });
+    }
+
+    const quote = serviceFeeForWallet(walletAddress);
+    return res.json({
+      ok: true,
+      network: "mainnet",
+      feeTon: quote.feeTon,
+      amountNano: quote.amountNano,
+    });
+  } catch {
+    return res.status(500).json({ ok: false, error: "Unable to calculate service fee." });
+  }
+});
+
 app.post("/api/orders", async (req: Request, res: Response) => {
   try {
     const parsed = orderSchema.safeParse(req.body);
