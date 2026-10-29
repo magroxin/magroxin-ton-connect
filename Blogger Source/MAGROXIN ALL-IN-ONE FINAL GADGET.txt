@@ -3256,6 +3256,7 @@ initWallet();
   <div class="mgx-result"><div class="mgx-result-label">DECIMALS</div><div id="MGX4_R_DECIMALS" class="mgx-result-value">—</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TOTAL SUPPLY</div><div id="MGX4_R_SUPPLY" class="mgx-result-value">—</div></div>
   <div class="mgx-result"><div class="mgx-result-label">CREATOR WALLET</div><div id="MGX4_R_CREATOR" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">CREATOR JETTON BALANCE (BASE UNITS)</div><div id="MGX4_R_CREATOR_BALANCE" class="mgx-result-value">Pending on-chain verification</div></div>
   <div class="mgx-result"><div class="mgx-result-label">DEPLOYMENT DATE & TIME</div><div id="MGX4_R_DATE" class="mgx-result-value">Not provided by backend</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TRANSACTION HASH</div><div id="MGX4_R_HASH" class="mgx-result-value">Not provided by backend</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TON EXPLORER</div><div id="MGX4_R_EXPLORER" class="mgx-result-value">—</div></div>
@@ -3406,6 +3407,7 @@ function showSuccess(verified){
  setText("MGX4_R_DECIMALS",firstValue(verified.decimals,token.decimals));
  setText("MGX4_R_SUPPLY",firstValue(verified.totalSupply,verified.supply,token.supply));
  setText("MGX4_R_CREATOR",firstValue(verified.creatorAddress,verified.walletAddress,orderData.walletAddress));
+ setText("MGX4_R_CREATOR_BALANCE",firstValue(verified.creatorJettonBalance,verified.totalSupply));
  const logo=firstValue(verified.tokenLogo,verified.logo,token.logo);
  const logoEl=$("MGX4_R_LOGO");
  if(typeof logo==="string"&&/^(https?:\/\/|data:image\/)/i.test(logo)){
@@ -3434,7 +3436,7 @@ function showSuccess(verified){
  modal.classList.add("open");
  modal.setAttribute("aria-hidden","false");
  $("MGX4_CLOSE").focus();
- setStatus("Deployment verified","Backend confirmed the token master on TON Mainnet. Creator token balance should be checked separately.","ok");
+ setStatus("Deployment verified","Backend confirmed the token master, exact total supply, and creator Jetton balance on TON Mainnet.","ok");
 }
 async function deployToken(){
  if(deploying||checking||completed||!backendEnabled||!orderData)return;
