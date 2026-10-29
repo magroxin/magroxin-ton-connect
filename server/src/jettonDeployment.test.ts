@@ -56,7 +56,7 @@ test("initial mint payload follows the classic TON minter mintBody layout", () =
   assert.equal(mint.loadUint(32), 0x178d4519);
   assert.equal(mint.loadUintBig(64), 0n);
   assert.equal(mint.loadCoins(), supply);
-  assert.equal(mint.loadAddress(), null, "from_address must be addr_none");
+  assert.equal(mint.loadUint(2), 0, "from_address must use the addr_none$00 tag");
   assert.equal(mint.loadAddress()?.toRawString(), owner.toRawString());
   assert.equal(mint.loadCoins(), 1000000n, "forward TON amount must be 0.001 TON");
   assert.equal(mint.loadBit(), false);
