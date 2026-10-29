@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { snakeString } from "./jettonDeployment.js";
+import { Address } from "@ton/core";
+import { buildInitialMintPayload, snakeString } from "./jettonDeployment.js";
 
 function decodeSnake(cell: ReturnType<typeof snakeString>): string {
   const chunks: Buffer[] = [];
@@ -38,4 +39,25 @@ test("snakeString respects the first-cell and continuation byte limits", () => {
 test("snakeString preserves multi-byte UTF-8 characters across cell boundaries", () => {
   const value = "MAGROXIN-টোকেন-🚀-".repeat(30);
   assert.equal(decodeSnake(snakeString(value)), value);
+});
+
+test("initial mint payload follows the classic TON minter mintBody layout", () => {
+  const owner = Address.parse("0:" + "11".repeat(32));
+  const supply = 123456789000n;
+  const payload = buildInitialMintPayload(owner, supply);
+  const outer = payload.beginParse();
+
+  assert.equal(outer.loadUint(32), 21);
+  assert.equal(outer.loadUintBig(64), 0n);
+  assert.equal(outer.loadAddress()?.toRawString(), owner.toRawString());
+  assert.equal(outer.loadCoins(), 300000000n);
+
+  const mint = outer.loadRef().beginParse();
+  assert.equal(mint.loadUint(32), 0x178d4519);
+  assert.equal(mint.loadUintBig(64), 0n);
+  assert.equal(mint.loadCoins(), supply);
+  assert.equal(mint.loadAddress(), null, "from_address must be addr_none");
+  assert.equal(mint.loadAddress()?.toRawString(), owner.toRawString());
+  assert.equal(mint.loadCoins(), 1000000n, "forward TON amount must be 0.001 TON");
+  assert.equal(mint.loadBit(), false);
 });
