@@ -13,6 +13,7 @@ const CODE_REVISION = "cf176793e04d17580599c7e083fcd7af8f050035";
 const MINTER_CODE_URL = `https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/${CODE_REVISION}/contracts/build/jetton-minter.boc`;
 const WALLET_CODE_URL = `https://raw.githubusercontent.com/magroxin/magroxin-ton-connect/${CODE_REVISION}/contracts/build/jetton-wallet.boc`;
 const MAX_SUPPLY_UNITS = 10n ** 30n;
+const MINT_TO_WALLET_NANO = 300000000n;
 
 async function loadCode(url: string): Promise<Cell> {
   const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
@@ -42,6 +43,19 @@ export function snakeString(value: string): Cell {
   if (next) root.storeRef(next);
   return root.endCell();
 }
+export function calculateDeploymentValue(estimatedExecutionFees: bigint): bigint {
+  if (estimatedExecutionFees <= 0n) {
+    throw new Error("TON Center returned a zero deployment fee estimate.");
+  }
+  // The minter forwards this TON amount to the recipient Jetton wallet when
+  // minting. The wallet funding is message value, not a network fee, so it
+  // must be added on top of the TON Center execution-fee estimate.
+  return MINT_TO_WALLET_NANO
+    + estimatedExecutionFees
+    + (estimatedExecutionFees * 30n / 100n)
+    + 50000000n;
+}
+
 export function buildInitialMintPayload(owner: Address, supplyUnits: bigint): Cell {
   const internalTransfer = beginCell()
     .storeUint(0x178d4519, 32)
@@ -57,7 +71,7 @@ export function buildInitialMintPayload(owner: Address, supplyUnits: bigint): Ce
     .storeUint(21, 32)
     .storeUint(0, 64)
     .storeAddress(owner)
-    .storeCoins(300000000n)
+    .storeCoins(MINT_TO_WALLET_NANO)
     .storeRef(internalTransfer)
     .endCell();
 }
@@ -123,12 +137,10 @@ export async function prepareJettonDeployment(input: JettonDeploymentInput, tonc
   // Destination fees can be empty for a first-time deployment. Use every
   // fee component TON Center actually returned, but never invent a fee value.
   const estimatedExecutionFees = sourceFees + destinationFees;
-  if (estimatedExecutionFees <= 0n) {
-    throw new Error("TON Center returned a zero deployment fee estimate.");
-  }
-  // Add a 30% safety margin to the complete estimate plus a small forwarding
-  // reserve. Do not use a hard-coded deployment price.
-  const estimatedDeployValueNano = estimatedExecutionFees + (estimatedExecutionFees * 30n / 100n) + 50000000n;
+  // Include the 0.3 TON mint-to-wallet value as well as estimated execution
+  // fees. Omitting this message value can make the mint action fail and leave
+  // the deployed Jetton with a zero total supply.
+  const estimatedDeployValueNano = calculateDeploymentValue(estimatedExecutionFees);
   return {
     address: address.toString({ bounceable: false, testOnly: false }),
     stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString("base64"),
