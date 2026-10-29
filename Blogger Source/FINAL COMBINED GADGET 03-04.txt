@@ -112,7 +112,6 @@ html body [class*="tc-root"] {
   <div id="VX03_deploymentStatus" class="vx-status" role="status"></div>
 </section>
 
-<p class="vx-foot">MAGROXIN · TON Mainnet · Never share your recovery phrase or private key.</p>
 
 <div id="VX03_successPopup" class="vx-hidden" role="dialog" aria-modal="true" aria-labelledby="VX03_popupTitle">
   <div class="vx-success-box">
