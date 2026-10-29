@@ -25,9 +25,8 @@ export function readRunMethodAddress(response: unknown, index = 0): Address {
   const bytes = typeof entry[1] === "string" ? entry[1] : entry[1]?.bytes;
   if (typeof bytes !== "string" || !bytes) throw new Error("TON Center address stack item has no BOC bytes.");
   try {
-    const cells = Cell.fromBase64(bytes);
-    if (cells.length !== 1) throw new Error("Unexpected address BOC cell count.");
-    const address = cells[0].beginParse().loadAddress();
+    const cell = Cell.fromBase64(bytes);
+    const address = cell.beginParse().loadAddress();
     if (!address) throw new Error("Address stack item was addr_none.");
     return address;
   } catch {
