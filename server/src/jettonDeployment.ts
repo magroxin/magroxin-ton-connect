@@ -42,6 +42,26 @@ export function snakeString(value: string): Cell {
   if (next) root.storeRef(next);
   return root.endCell();
 }
+export function buildInitialMintPayload(owner: Address, supplyUnits: bigint): Cell {
+  const internalTransfer = beginCell()
+    .storeUint(0x178d4519, 32)
+    .storeUint(0, 64)
+    .storeCoins(supplyUnits)
+    .storeAddress(null)
+    .storeAddress(owner)
+    .storeCoins(1000000n)
+    .storeBit(0)
+    .endCell();
+
+  return beginCell()
+    .storeUint(21, 32)
+    .storeUint(0, 64)
+    .storeAddress(owner)
+    .storeCoins(300000000n)
+    .storeRef(internalTransfer)
+    .endCell();
+}
+
 function metadataKey(key: string): Buffer {
   return createHash("sha256").update(key, "utf8").digest();
 }
@@ -72,19 +92,9 @@ export async function prepareJettonDeployment(input: JettonDeploymentInput, tonc
   const data = beginCell().storeCoins(0).storeAddress(v.admin).storeRef(content).storeRef(walletCode).endCell();
   const stateInit: StateInit = { code: minterCode, data };
   const address = contractAddress(0, stateInit);
-  // Match TON's reference mintBody layout for this classic Jetton minter:
-  // from_address = addr_none, response_address = owner, forward TON = 0.001 TON.
-  const internalTransfer = beginCell()
-    .storeUint(0x178d4519, 32)
-    .storeUint(0, 64)
-    .storeCoins(v.supplyUnits)
-    .storeAddress(null)
-    .storeAddress(v.admin)
-    .storeCoins(1000000n)
-    .storeBit(0)
-    .endCell();
+  // Match TON's reference mintBody layout for this classic Jetton minter.
+  const payload = buildInitialMintPayload(v.admin, v.supplyUnits);
   if (!toncenterApiKey) throw new Error("TON Center API key is required for deployment fee estimation.");
-  const payload = beginCell().storeUint(21, 32).storeUint(0, 64).storeAddress(v.admin).storeCoins(300000000n).storeRef(internalTransfer).endCell();
   const estimateResponse = await fetch("https://toncenter.com/api/v2/estimateFee", {
     method: "POST",
     headers: { "content-type": "application/json", "X-API-Key": toncenterApiKey },
