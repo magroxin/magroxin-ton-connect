@@ -129,6 +129,8 @@ async function initWallet(){
 }
 async function loadToken(){
  try{
+  // Load @ton/core before calling addr(), which depends on S.core.Address.
+  await core();
   walletRequired();const master=addr($("mgxMaster").value);S.master=master;status("mgxLookupStatus","Reading Jetton details and checking wallet permissions…");$("mgxDetails").classList.remove("show");
   const [info,owned]=await Promise.all([api("/v2/jettons/"+encodeURIComponent(master)),api("/v2/accounts/"+encodeURIComponent(addr(S.wallet.account.address))+"/jettons")]);
   let admin=info.admin?.address||info.admin_address||(typeof info.admin==="string"?info.admin:null);
