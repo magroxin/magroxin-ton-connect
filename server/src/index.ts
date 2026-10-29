@@ -5,13 +5,12 @@ import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { Pool } from "pg";
-import { Address, beginCell, Cell, toNano } from "@ton/core";
+import { Address, Cell, toNano } from "@ton/core";
 import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
 import { isSupportedJettonSupply } from "./tokenSupply.js";
 import { transactionSucceeded } from "./transactionSucceeded.js";
-import { readRunMethodAddress, readRunMethodInteger } from "./tonCenterRunMethod.js";
 import { prepareJettonDeployment } from "./jettonDeployment.js";
 
 const app = express();
