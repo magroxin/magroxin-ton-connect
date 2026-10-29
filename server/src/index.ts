@@ -87,13 +87,23 @@ const orderSchema = z.preprocess((input) => {
   const normalizedLogoCandidate = typeof rawLogo === "string"
     ? rawLogo.replace(/^data:image\/jpg;base64,/i, "data:image/jpeg;base64,")
     : "";
-  // Logo is optional. Ignore remote URLs, SVGs, malformed data URLs, and empty
-  // strings rather than rejecting the entire service-fee order.
   const normalizedLogo = typeof normalizedLogoCandidate === "string" &&
     /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(normalizedLogoCandidate) &&
     normalizedLogoCandidate.length <= 1_500_000
       ? normalizedLogoCandidate
       : "";
+  const rawLogoUrl = rawToken.logoUrl ?? rawToken.imageUrl ?? "";
+  let normalizedLogoUrl = "";
+  if (typeof rawLogoUrl === "string" && rawLogoUrl.length <= 2048) {
+    try {
+      const parsedLogoUrl = new URL(rawLogoUrl.trim());
+      if (parsedLogoUrl.protocol === "https:" && !parsedLogoUrl.username && !parsedLogoUrl.password) {
+        normalizedLogoUrl = parsedLogoUrl.toString();
+      }
+    } catch {
+      normalizedLogoUrl = "";
+    }
+  }
   const rawDecimals = rawToken.decimals;
   const decimals = typeof rawDecimals === "string" && /^\d+$/.test(rawDecimals)
     ? Number(rawDecimals)
@@ -101,7 +111,7 @@ const orderSchema = z.preprocess((input) => {
   return {
     ...body,
     deploymentNetwork: network,
-    token: { ...rawToken, decimals, logo: normalizedLogo },
+    token: { ...rawToken, decimals, logo: normalizedLogo, logoUrl: normalizedLogoUrl },
   };
 }, z.object({
   walletAddress: z.string().trim().min(10).max(150),
@@ -113,6 +123,15 @@ const orderSchema = z.preprocess((input) => {
     decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
     logo: z.string().max(1_500_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/).optional().default(""),
+    logoUrl: z.string().max(2048).refine((value) => {
+      if (!value) return true;
+      try {
+        const parsed = new URL(value);
+        return parsed.protocol === "https:" && !parsed.username && !parsed.password;
+      } catch {
+        return false;
+      }
+    }, "Logo URL must be a valid HTTPS image URL.").optional().default(""),
   }).superRefine((token, ctx) => {
     if (!isSupportedJettonSupply(token.supply, token.decimals)) {
       ctx.addIssue({
@@ -1165,7 +1184,7 @@ app.post("/api/deployment/prepare", async (req: Request, res: Response) => {
       description: order.token.description,
       supply: order.token.supply,
       decimals: order.token.decimals,
-      imageUrl: order.token.logo ? `https://magroxin-ton-api.onrender.com/api/orders/${order.id}/logo` : undefined,
+      imageUrl: order.token.logoUrl || (order.token.logo ? `https://magroxin-ton-api.onrender.com/api/orders/${order.id}/logo` : undefined),
     }, TONCENTER_API_KEY);
 
     return res.json({
@@ -1227,7 +1246,7 @@ app.post("/api/deployment/verify", async (req: Request, res: Response) => {
       description: order.token.description,
       supply: order.token.supply,
       decimals: order.token.decimals,
-      imageUrl: order.token.logo ? `https://magroxin-ton-api.onrender.com/api/orders/${order.id}/logo` : undefined,
+      imageUrl: order.token.logoUrl || (order.token.logo ? `https://magroxin-ton-api.onrender.com/api/orders/${order.id}/logo` : undefined),
     }, TONCENTER_API_KEY);
     const expectedAddress = Address.parse(deployment.address).toRawString();
 
