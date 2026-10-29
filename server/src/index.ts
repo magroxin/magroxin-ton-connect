@@ -5,11 +5,13 @@ import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { Pool } from "pg";
-import { Address, Cell, toNano } from "@ton/core";
+import { Address, beginCell, Cell, toNano } from "@ton/core";
 import { z } from "zod";
 import { matchIncomingPaymentTransaction, parseTransactionPage } from "./paymentTransactionMatcher.js";
 import { getApiRateLimitRule, hashRateLimitClientKey } from "./apiRateLimit.js";
 import { isSupportedJettonSupply } from "./tokenSupply.js";
+import { transactionSucceeded } from "./transactionSucceeded.js";
+import { readRunMethodAddress, readRunMethodInteger } from "./tonCenterRunMethod.js";
 import { prepareJettonDeployment } from "./jettonDeployment.js";
 
 const app = express();
@@ -1309,13 +1311,7 @@ app.post("/api/deployment/verify", async (req: Request, res: Response) => {
 
     // Do not report success merely because an account is active. The
     // wallet transaction must have completed successfully.
-    const txDescription = matchingTx.description;
-    const computeExitCode = txDescription?.compute_ph?.exit_code;
-    const transactionSucceeded =
-      txDescription?.aborted === false &&
-      (computeExitCode === 0 || computeExitCode === "0");
-
-    if (!transactionSucceeded) {
+    if (!transactionSucceeded(matchingTx)) {
       return res.status(202).json({
         ok: true,
         status: "pending",
@@ -1328,34 +1324,24 @@ app.post("/api/deployment/verify", async (req: Request, res: Response) => {
 
     // Read the actual on-chain Jetton total supply. The value must match the
     // exact integer supply derived from this order's supply and decimals.
-    const getDataResponse = await fetch("https://toncenter.com/api/v2/runGetMethod", {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-        "X-API-Key": TONCENTER_API_KEY,
-      },
-      body: JSON.stringify({
-        address: expectedAddress,
-        method: "get_jetton_data",
-        stack: [],
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!getDataResponse.ok) throw new Error("TON Center Jetton data lookup failed.");
-    const getData = await getDataResponse.json() as any;
-    const totalSupplyEntry = Array.isArray(getData?.stack) ? getData.stack[0] : null;
-    const rawTotalSupply = Array.isArray(totalSupplyEntry) ? totalSupplyEntry[1] : undefined;
-    if (getData?.ok !== true || typeof rawTotalSupply !== "string") {
-      throw new Error("TON Center returned incomplete Jetton data.");
-    }
+    const runGetMethod = async (address: string, method: string, stack: unknown[] = []) => {
+      const response = await fetch("https://toncenter.com/api/v2/runGetMethod", {
+        method: "POST",
+        headers: { accept: "application/json", "content-type": "application/json", "X-API-Key": TONCENTER_API_KEY },
+        body: JSON.stringify({ address, method, stack }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) throw new Error(`TON Center ${method} lookup failed.`);
+      const data = await response.json() as any;
+      if (data?.ok !== true || !Array.isArray(data?.result?.stack ?? data?.stack)) {
+        throw new Error(`TON Center returned incomplete ${method} data.`);
+      }
+      return data;
+    };
 
-    let actualSupply: bigint;
-    try {
-      actualSupply = BigInt(rawTotalSupply);
-    } catch {
-      throw new Error("TON Center returned an invalid Jetton total supply.");
-    }
+    // TON Center v2 wraps getter output in result.stack.
+    const getData = await runGetMethod(expectedAddress, "get_jetton_data");
+    const actualSupply = readRunMethodInteger(getData, 0);
     const expectedSupply = BigInt(order.token.supply) * 10n ** BigInt(order.token.decimals);
     if (actualSupply !== expectedSupply) {
       return res.status(202).json({
@@ -1370,18 +1356,52 @@ app.post("/api/deployment/verify", async (req: Request, res: Response) => {
       });
     }
 
+    // Resolve the creator's Jetton wallet from the master contract, then verify
+    // its balance and ownership against the exact supply requested in this order.
+    const ownerSlice = beginCell().storeAddress(Address.parse(walletAddress)).endCell().toBoc().toString("base64");
+    const walletAddressResult = await runGetMethod(expectedAddress, "get_wallet_address", [
+      ["tvm.Slice", { bytes: ownerSlice }],
+    ]);
+    const creatorJettonWallet = readRunMethodAddress(walletAddressResult, 0);
+    const creatorWalletData = await runGetMethod(creatorJettonWallet.toRawString(), "get_wallet_data");
+    const creatorBalance = readRunMethodInteger(creatorWalletData, 0);
+    const creatorWalletOwner = readRunMethodAddress(creatorWalletData, 1);
+    const creatorWalletMaster = readRunMethodAddress(creatorWalletData, 2);
+
+    if (
+      creatorWalletOwner.toRawString() !== walletAddress ||
+      creatorWalletMaster.toRawString() !== expectedAddress ||
+      creatorBalance !== expectedSupply
+    ) {
+      return res.status(202).json({
+        ok: true,
+        status: "pending",
+        deploymentEnabled: true,
+        verifiedOnChain: false,
+        tokenAddress: deployment.address,
+        creatorJettonWallet: creatorJettonWallet.toString({ bounceable: false, testOnly: false }),
+        expectedCreatorBalance: expectedSupply.toString(),
+        actualCreatorBalance: creatorBalance.toString(),
+        message: "The creator Jetton wallet balance does not yet match the full requested supply; deployment is not marked successful.",
+      });
+    }
+
     return res.json({
       ok: true,
       status: "deployed",
       deploymentEnabled: true,
       verifiedOnChain: true,
       supplyVerifiedOnChain: true,
+      creatorBalanceVerifiedOnChain: true,
+      creatorJettonWallet: creatorJettonWallet.toString({ bounceable: false, testOnly: false }),
+      creatorJettonBalance: creatorBalance.toString(),
+      creatorAddress: walletAddress,
       orderId: order.id,
       tokenAddress: deployment.address,
       totalSupply: actualSupply.toString(),
       transactionHash: matchingTx.transaction_id.hash,
       explorerUrl: "https://tonviewer.com/" + encodeURIComponent(deployment.address),
-      message: "Token contract and total supply verified on TON Mainnet.",
+      message: "Token contract, total supply, and creator Jetton balance verified on TON Mainnet.",
     });
   } catch (error) {
     console.error("[MAGROXIN] Deployment verification failed:", error instanceof Error ? error.message : "Unknown error");
