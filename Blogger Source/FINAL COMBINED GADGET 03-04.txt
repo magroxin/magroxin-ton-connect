@@ -1,4 +1,5 @@
 <!-- MAGROXIN FINAL COMBINED GADGET 3 + 4 — REPLACE BOTH OLD GADGETS WITH THIS ONE -->
+<div id="MGX_FINAL_DEPLOYER" hidden aria-hidden="true" style="display:none!important;width:100%;max-width:100%;margin:0 auto;">
 <!-- MAGROXIN GADGET 03 — FULL REPLACEMENT -->
 <div id="VXTON_REVIEW_03">
 <style>
@@ -1201,3 +1202,4 @@ checkBackend();
 </div>
 <!-- END MAGROXIN GADGET 4 -->
 <!-- END MAGROXIN FINAL COMBINED GADGET -->
+</div><!-- /MGX_FINAL_DEPLOYER -->
