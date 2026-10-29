@@ -472,8 +472,12 @@ async function request(path,options){
   const response=await fetch(API+path,options||{});
   const data=await response.json().catch(()=>({}));
 
-  if(!response.ok)
-    throw new Error(data.error||"API request failed ("+response.status+").");
+  if(!response.ok){
+    const detailText=Array.isArray(data.details)
+      ?data.details.map(x=>(x.field?x.field+": ":"")+(x.message||"")).filter(Boolean).join(" · ")
+      :"";
+    throw new Error((data.error||"API request failed ("+response.status+").")+(detailText?" ["+detailText+"]":""));
+  }
 
   return data;
 }
@@ -508,7 +512,7 @@ async function createOrder(){
     description:state.draft.description
   };
 
-  if(state.draft.logoData)token.logoData=state.draft.logoData;
+  if(state.draft.logoData&&state.draft.logoData.startsWith("data:image/"))token.logoData=state.draft.logoData;
 
   const data=await request("/api/orders",{
     method:"POST",
