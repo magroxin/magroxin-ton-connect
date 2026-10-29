@@ -1,0 +1,998 @@
+<!-- MAGROXIN TOKEN LAB | GADGET 01 PRO -->
+<div id="VXTON_HOME_01">
+  <style>
+    /* GLOBAL TOKEN-LAB BACKGROUND */
+    html:has(#VXTON_HOME_01),
+    body:has(#VXTON_HOME_01) {
+      background-color: #030716 !important;
+    }
+
+    body:has(#VXTON_HOME_01) {
+      background-image: none !important;
+    }
+
+    #VXTON_GLOBAL_BG {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 50% 15%, rgba(10,65,150,.30), transparent 52%),
+        radial-gradient(ellipse at 0% 65%, rgba(0,95,255,.15), transparent 45%),
+        radial-gradient(ellipse at 100% 75%, rgba(120,0,255,.15), transparent 42%),
+        linear-gradient(180deg,#020615 0%,#040a1d 48%,#020615 100%);
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-grid {
+      position: absolute;
+      inset: 0;
+      opacity: .18;
+      background-image:
+        linear-gradient(rgba(32,137,255,.13) 1px, transparent 1px),
+        linear-gradient(90deg,rgba(32,137,255,.13) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: linear-gradient(to bottom,transparent,#000 25%,#000 75%,transparent);
+      animation: vxbg-grid-move 24s linear infinite;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-aurora {
+      position: absolute;
+      width: 75vw;
+      height: 75vw;
+      max-width: 950px;
+      max-height: 950px;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: .13;
+      animation: vxbg-aurora 18s ease-in-out infinite alternate;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-a1 {
+      left: -25%;
+      top: -35%;
+      background: #005bff;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-a2 {
+      right: -30%;
+      top: 20%;
+      background: #8c21ff;
+      animation-delay: -8s;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-a3 {
+      left: 25%;
+      bottom: -65%;
+      background: #00d9ff;
+      animation-delay: -12s;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-stars {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: #8defff;
+      box-shadow: 0 0 8px 2px rgba(0,180,255,.55);
+      animation: vxbg-twinkle var(--duration,4s) ease-in-out infinite;
+      animation-delay: var(--delay,0s);
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-beam {
+      position: absolute;
+      width: 1px;
+      height: 70vh;
+      opacity: .4;
+      transform: rotate(35deg);
+      transform-origin: top;
+      background: linear-gradient(transparent,#087bff,transparent);
+      animation: vxbg-beam 9s ease-in-out infinite;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-beam.b1 { left: 12%; top: -25%; }
+    #VXTON_GLOBAL_BG .vxbg-beam.b2 {
+      right: 16%;
+      top: -20%;
+      animation-delay: -4s;
+      background: linear-gradient(transparent,#b044ff,transparent);
+    }
+
+    #VXTON_HOME_01 {
+      --cyan: #42edff;
+      --blue: #2888ff;
+      --purple: #a855ff;
+      position: relative;
+      z-index: 1;
+      isolation: isolate;
+      width: 100%;
+      max-width: 1440px;
+      min-height: 720px;
+      margin: 0 auto;
+      padding: 24px clamp(14px,4vw,55px) 55px;
+      box-sizing: border-box;
+      color: #f5f8ff;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      overflow: clip;
+    }
+
+    #VXTON_HOME_01 *,
+    #VXTON_HOME_01 *::before,
+    #VXTON_HOME_01 *::after {
+      box-sizing: border-box;
+    }
+
+    #VXTON_HOME_01 .vx01-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1180px;
+      margin: 0 auto;
+      animation: vx01-enter .8s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    #VXTON_HOME_01 .vx01-logo {
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      flex-shrink: 0;
+      border: 1px solid rgba(66,237,255,.45);
+      border-radius: 13px;
+      background: linear-gradient(135deg,#143a78,#11122f);
+      color: var(--cyan);
+      font-size: 25px;
+      font-weight: 1000;
+      font-style: italic;
+      text-shadow: 0 0 18px var(--cyan);
+      box-shadow: 0 0 24px rgba(0,140,255,.2);
+      animation: vx01-logo-pulse 4s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-brand-name {
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+    }
+
+    #VXTON_HOME_01 .vx01-brand-sub {
+      display: block;
+      margin-top: 4px;
+      color: #56cfff;
+      font-size: 10px;
+      letter-spacing: 3px;
+    }
+
+    #VXTON_HOME_01 .vx01-network {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 15px;
+      border: 1px solid rgba(66,237,255,.3);
+      border-radius: 50px;
+      background: rgba(4,17,43,.72);
+      color: #bdefff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      white-space: nowrap;
+      box-shadow: inset 0 0 15px rgba(0,140,255,.06);
+    }
+
+    #VXTON_HOME_01 .vx01-live-dot,
+    #VXTON_HOME_01 .vx01-status-dot {
+      width: 7px;
+      height: 7px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: #18f7ba;
+      box-shadow: 0 0 12px #18f7ba;
+      animation: vx01-live 1.8s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-hero {
+      position: relative;
+      z-index: 1;
+      max-width: 940px;
+      margin: 58px auto 0;
+      text-align: center;
+    }
+
+    #VXTON_HOME_01 .vx01-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 10px 18px;
+      border: 1px solid transparent;
+      border-radius: 50px;
+      background:
+        linear-gradient(#061127,#061127) padding-box,
+        linear-gradient(100deg,#923dff,#00dcff) border-box;
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      box-shadow: 0 0 30px rgba(0,125,255,.08);
+      animation: vx01-enter .8s .1s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-eyebrow i {
+      color: #a64fff;
+      font-style: normal;
+    }
+
+    #VXTON_HOME_01 .vx01-title {
+      margin: 26px 0 19px;
+      color: #f7fbff;
+      font-size: clamp(38px,7.4vw,83px);
+      line-height: 1.04;
+      font-weight: 950;
+      letter-spacing: -3px;
+      text-wrap: balance;
+      text-shadow: 0 6px 35px rgba(22,116,255,.12);
+      animation: vx01-enter .9s .18s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-title span {
+      display: inline-block;
+      padding-bottom: 5px;
+      background: linear-gradient(100deg,#27d9ff 0%,#70eaff 30%,#ffffff 54%,#9b7aff 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: vx01-text-flow 7s linear infinite;
+      filter: drop-shadow(0 0 25px rgba(25,154,255,.15));
+    }
+
+    #VXTON_HOME_01 .vx01-subtitle {
+      max-width: 680px;
+      margin: 0 auto;
+      color: #a8bddb;
+      font-size: clamp(14px,1.6vw,17px);
+      line-height: 1.9;
+      animation: vx01-enter .9s .28s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-token-art {
+      position: absolute;
+      z-index: -1;
+      top: 90px;
+      left: -150px;
+      width: 240px;
+      height: 240px;
+      pointer-events: none;
+      animation: vx01-float 7s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-coin {
+      position: absolute;
+      inset: 34px;
+      display: grid;
+      place-items: center;
+      border: 2px solid rgba(90,240,255,.85);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 32% 25%,rgba(86,241,255,.45),transparent 32%),
+        radial-gradient(circle at 50% 50%,#0750b9,#07152f 72%);
+      color: #b4f8ff;
+      font-size: 56px;
+      font-weight: 900;
+      box-shadow:
+        0 0 30px rgba(0,190,255,.55),
+        inset 0 0 30px rgba(0,170,255,.32);
+      transform: rotate(-15deg);
+    }
+
+    #VXTON_HOME_01 .vx01-orbit {
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(0,191,255,.6);
+      border-radius: 50%;
+      transform: rotate(-28deg) scaleY(.42);
+      box-shadow: 0 0 18px rgba(0,153,255,.2);
+    }
+
+    #VXTON_HOME_01 .vx01-orbit.o2 {
+      inset: 0;
+      transform: rotate(54deg) scaleY(.53);
+      border-color: rgba(154,75,255,.65);
+      animation: vx01-orbit-spin 12s linear infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-token-art .vx01-spark {
+      position: absolute;
+      top: 12px;
+      right: 30px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 0 18px 5px #328bff;
+    }
+
+    #VXTON_HOME_01 .vx01-side-panel {
+      position: absolute;
+      z-index: -1;
+      top: 170px;
+      right: -115px;
+      width: 245px;
+      padding: 20px;
+      border: 1px solid rgba(34,128,255,.4);
+      border-radius: 18px;
+      background: linear-gradient(145deg,rgba(8,28,72,.88),rgba(7,10,35,.68));
+      box-shadow: 0 0 45px rgba(0,94,255,.13), inset 0 0 25px rgba(0,140,255,.06);
+      transform: perspective(800px) rotateY(-13deg) rotateZ(-3deg);
+      animation: vx01-panel-float 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    #VXTON_HOME_01 .vx01-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(87,164,255,.16);
+      color: #9bc9ff;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    #VXTON_HOME_01 .vx01-panel-bars {
+      display: flex;
+      align-items: end;
+      gap: 9px;
+      height: 100px;
+      padding-top: 20px;
+    }
+
+    #VXTON_HOME_01 .vx01-panel-bars span {
+      flex: 1;
+      height: var(--h);
+      border-radius: 4px 4px 0 0;
+      background: linear-gradient(to top,#2460ff,#39efff);
+      box-shadow: 0 0 12px rgba(0,180,255,.24);
+      animation: vx01-bars 2.8s ease-in-out infinite alternate;
+      animation-delay: var(--d);
+    }
+
+    #VXTON_HOME_01 .vx01-panel-line {
+      height: 6px;
+      margin-top: 13px;
+      border-radius: 9px;
+      background: linear-gradient(90deg,#1264d8,#31dfff 65%,transparent);
+      opacity: .65;
+    }
+
+    #VXTON_HOME_01 .vx01-features {
+      display: grid;
+      grid-template-columns: repeat(3,minmax(0,1fr));
+      gap: 14px;
+      max-width: 790px;
+      margin: 33px auto 0;
+      animation: vx01-enter .9s .4s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-feature {
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+      padding: 22px 12px;
+      border: 1px solid rgba(22,125,255,.43);
+      border-radius: 20px;
+      background: linear-gradient(145deg,rgba(5,22,53,.88),rgba(4,10,30,.83));
+      box-shadow: inset 0 0 22px rgba(0,110,255,.045);
+      transition: transform .3s ease,border-color .3s ease,box-shadow .3s ease;
+    }
+
+    #VXTON_HOME_01 .vx01-feature::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -120%;
+      width: 80%;
+      height: 1px;
+      background: linear-gradient(90deg,transparent,#49eaff,transparent);
+      animation: vx01-card-shimmer 6s linear infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-feature:hover {
+      transform: translateY(-7px);
+      border-color: rgba(66,237,255,.85);
+      box-shadow: 0 12px 35px rgba(0,115,255,.14),inset 0 0 25px rgba(0,180,255,.06);
+    }
+
+    #VXTON_HOME_01 .vx01-feature-icon {
+      display: grid;
+      place-items: center;
+      height: 42px;
+      margin-bottom: 12px;
+      color: var(--cyan);
+      font-size: 30px;
+      text-shadow: 0 0 18px rgba(0,205,255,.65);
+      animation: vx01-icon-glow 3s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-feature:nth-child(2) .vx01-feature-icon {
+      color: #9b85ff;
+      animation-delay: -.8s;
+    }
+
+    #VXTON_HOME_01 .vx01-feature:nth-child(3) .vx01-feature-icon {
+      color: #60b7ff;
+      animation-delay: -1.5s;
+    }
+
+    #VXTON_HOME_01 .vx01-feature strong {
+      display: block;
+      color: #eaf7ff;
+      font-size: 12px;
+      letter-spacing: .8px;
+    }
+
+    #VXTON_HOME_01 .vx01-feature small {
+      display: block;
+      margin-top: 8px;
+      color: #91b3d8;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    #VXTON_HOME_01 .vx01-action-area {
+      position: relative;
+      z-index: 2;
+      margin: 28px auto 0;
+      text-align: center;
+      animation: vx01-enter .9s .5s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-button-shell {
+      display: inline-block;
+      padding: 3px;
+      border-radius: 20px;
+      background: linear-gradient(110deg,#00dfff,#287cff,#a54bff,#00e8ff);
+      background-size: 250% 100%;
+      box-shadow: 0 0 28px rgba(0,160,255,.25),0 0 65px rgba(94,51,255,.13);
+      animation: vx01-border-flow 5s linear infinite,vx01-button-hover 4s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 13px;
+      width: min(330px,78vw);
+      min-height: 61px;
+      padding: 15px 24px;
+      border: 0;
+      border-radius: 17px;
+      background: linear-gradient(105deg,#063a88,#102d80 50%,#54249a);
+      color: white;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      cursor: pointer;
+      transition: filter .25s,transform .25s;
+    }
+
+    #VXTON_HOME_01 .vx01-button:hover {
+      filter: brightness(1.3);
+      transform: scale(1.025);
+    }
+
+    #VXTON_HOME_01 .vx01-button:active {
+      transform: scale(.98);
+    }
+
+    #VXTON_HOME_01 .vx01-button:focus-visible {
+      outline: 2px solid white;
+      outline-offset: 5px;
+    }
+
+    #VXTON_HOME_01 .vx01-button .vx01-rocket {
+      color: var(--cyan);
+      font-size: 20px;
+      text-shadow: 0 0 15px var(--cyan);
+    }
+
+    #VXTON_HOME_01 .vx01-button .vx01-arrow {
+      font-size: 22px;
+      transition: transform .25s;
+    }
+
+    #VXTON_HOME_01 .vx01-button:hover .vx01-arrow {
+      transform: translateX(5px);
+    }
+
+    #VXTON_HOME_01 .vx01-status-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 9px;
+      width: fit-content;
+      max-width: 100%;
+      margin: 20px auto 0;
+      padding: 12px 18px;
+      border: 1px solid rgba(39,138,255,.36);
+      border-radius: 40px;
+      background: rgba(3,13,33,.85);
+      color: #a9c7e8;
+      font-size: 11px;
+      line-height: 1.6;
+      box-shadow: 0 0 25px rgba(0,100,255,.07);
+    }
+
+    #VXTON_HOME_01 .vx01-status-pill b {
+      color: #e4f7ff;
+      font-weight: 700;
+    }
+
+    #VXTON_HOME_01 .vx01-status {
+      min-height: 20px;
+      margin: 12px auto 0;
+      color: var(--cyan);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    #VXTON_HOME_01 .vx01-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 13px;
+      max-width: 500px;
+      margin: 40px auto 0;
+      color: #6eacd9;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+    }
+
+    #VXTON_HOME_01 .vx01-footer::before,
+    #VXTON_HOME_01 .vx01-footer::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg,transparent,rgba(47,143,255,.5));
+    }
+
+    #VXTON_HOME_01 .vx01-footer::after {
+      background: linear-gradient(90deg,rgba(47,143,255,.5),transparent);
+    }
+
+    #VXTON_HOME_01 .vx01-disclaimer {
+      margin-top: 12px;
+      color: #6d86a8;
+      font-size: 10px;
+      line-height: 1.8;
+      text-align: center;
+    }
+
+    @keyframes vx01-enter {
+      from { opacity: 0; transform: translateY(22px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes vx01-float {
+      0%,100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-17px) rotate(3deg); }
+    }
+
+    @keyframes vx01-panel-float {
+      0%,100% { transform: perspective(800px) rotateY(-13deg) rotateZ(-3deg) translateY(0); }
+      50% { transform: perspective(800px) rotateY(-9deg) rotateZ(-1deg) translateY(-13px); }
+    }
+
+    @keyframes vx01-orbit-spin {
+      from { transform: rotate(54deg) scaleY(.53); }
+      to { transform: rotate(414deg) scaleY(.53); }
+    }
+
+    @keyframes vx01-text-flow {
+      to { background-position: 200% center; }
+    }
+
+    @keyframes vx01-border-flow {
+      to { background-position: 250% center; }
+    }
+
+    @keyframes vx01-button-hover {
+      0%,100% { box-shadow: 0 0 25px rgba(0,160,255,.22),0 0 55px rgba(94,51,255,.1); }
+      50% { box-shadow: 0 0 38px rgba(0,220,255,.34),0 0 75px rgba(139,51,255,.2); }
+    }
+
+    @keyframes vx01-logo-pulse {
+      0%,100% { box-shadow: 0 0 18px rgba(0,140,255,.18); }
+      50% { box-shadow: 0 0 30px rgba(0,210,255,.36); }
+    }
+
+    @keyframes vx01-live {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .45; transform: scale(.7); }
+    }
+
+    @keyframes vx01-icon-glow {
+      0%,100% { filter: drop-shadow(0 0 3px rgba(0,205,255,.25)); }
+      50% { filter: drop-shadow(0 0 12px rgba(0,205,255,.65)); }
+    }
+
+    @keyframes vx01-card-shimmer {
+      0% { left: -120%; }
+      45%,100% { left: 140%; }
+    }
+
+    @keyframes vx01-bars {
+      from { filter: brightness(.7); }
+      to { filter: brightness(1.4); }
+    }
+
+    @keyframes vxbg-twinkle {
+      0%,100% { opacity: .15; transform: scale(.7); }
+      50% { opacity: 1; transform: scale(1.5); }
+    }
+
+    @keyframes vxbg-aurora {
+      from { transform: translate3d(-5%,0,0) scale(.9); }
+      to { transform: translate3d(12%,10%,0) scale(1.15); }
+    }
+
+    @keyframes vxbg-grid-move {
+      to { background-position: 54px 54px; }
+    }
+
+    @keyframes vxbg-beam {
+      0%,100% { opacity: .08; transform: rotate(35deg) translateY(-5%); }
+      50% { opacity: .5; transform: rotate(35deg) translateY(12%); }
+    }
+
+    @media (max-width: 900px) {
+      #VXTON_HOME_01 .vx01-token-art {
+        left: -130px;
+        top: 110px;
+        transform: scale(.72);
+      }
+
+      #VXTON_HOME_01 .vx01-side-panel {
+        right: -140px;
+        top: 190px;
+        transform: scale(.8);
+      }
+
+      #VXTON_HOME_01 .vx01-hero {
+        margin-top: 54px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      #VXTON_HOME_01 {
+        min-height: 0;
+        padding: 18px 13px 38px;
+      }
+
+      #VXTON_HOME_01 .vx01-logo {
+        width: 37px;
+        height: 37px;
+        font-size: 21px;
+      }
+
+      #VXTON_HOME_01 .vx01-brand-name {
+        font-size: 13px;
+        letter-spacing: 1px;
+      }
+
+      #VXTON_HOME_01 .vx01-brand-sub {
+        font-size: 8px;
+        letter-spacing: 2px;
+      }
+
+      #VXTON_HOME_01 .vx01-network {
+        gap: 6px;
+        padding: 9px 10px;
+        font-size: 9px;
+        letter-spacing: .4px;
+      }
+
+      #VXTON_HOME_01 .vx01-hero {
+        margin-top: 54px;
+      }
+
+      #VXTON_HOME_01 .vx01-eyebrow {
+        gap: 7px;
+        padding: 9px 12px;
+        font-size: 9px;
+        letter-spacing: 1.1px;
+      }
+
+      #VXTON_HOME_01 .vx01-title {
+        margin-top: 25px;
+        font-size: clamp(37px,10vw,58px);
+        letter-spacing: -1.8px;
+      }
+
+      #VXTON_HOME_01 .vx01-subtitle {
+        max-width: 450px;
+        font-size: 13px;
+        line-height: 1.8;
+      }
+
+      #VXTON_HOME_01 .vx01-token-art {
+        top: 20px;
+        left: -140px;
+        opacity: .25;
+        transform: scale(.6);
+      }
+
+      #VXTON_HOME_01 .vx01-side-panel {
+        top: 60px;
+        right: -160px;
+        opacity: .2;
+        transform: scale(.6);
+      }
+
+      #VXTON_HOME_01 .vx01-features {
+        gap: 8px;
+        margin-top: 27px;
+      }
+
+      #VXTON_HOME_01 .vx01-feature {
+        padding: 15px 5px;
+        border-radius: 14px;
+      }
+
+      #VXTON_HOME_01 .vx01-feature-icon {
+        height: 32px;
+        font-size: 24px;
+      }
+
+      #VXTON_HOME_01 .vx01-feature strong {
+        font-size: 9px;
+        letter-spacing: .1px;
+      }
+
+      #VXTON_HOME_01 .vx01-feature small {
+        margin-top: 6px;
+        font-size: 9px;
+        line-height: 1.5;
+      }
+
+      #VXTON_HOME_01 .vx01-button {
+        min-height: 56px;
+        font-size: 14px;
+      }
+
+      #VXTON_HOME_01 .vx01-status-pill {
+        padding: 11px 13px;
+        font-size: 10px;
+      }
+
+      #VXTON_HOME_01 .vx01-footer {
+        margin-top: 34px;
+        font-size: 10px;
+        letter-spacing: .8px;
+      }
+
+      #VXTON_GLOBAL_BG .vxbg-grid {
+        background-size: 38px 38px;
+      }
+
+      #VXTON_GLOBAL_BG .vxbg-aurora {
+        filter: blur(70px);
+        opacity: .1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #VXTON_GLOBAL_BG *,
+      #VXTON_HOME_01 *,
+      #VXTON_HOME_01 *::before,
+      #VXTON_HOME_01 *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+
+  <header class="vx01-nav">
+    <div class="vx01-brand">
+      <div class="vx01-logo" aria-hidden="true">M</div>
+      <div>
+        <div class="vx01-brand-name">MAGROXIN</div>
+        <span class="vx01-brand-sub">TOKEN LAB</span>
+      </div>
+    </div>
+
+    <div class="vx01-network">
+      <span class="vx01-live-dot"></span>
+      POWERED BY TON
+    </div>
+  </header>
+
+  <main class="vx01-hero">
+    <div class="vx01-token-art" aria-hidden="true">
+      <div class="vx01-orbit"></div>
+      <div class="vx01-orbit o2"></div>
+      <div class="vx01-coin">◇</div>
+      <div class="vx01-spark"></div>
+    </div>
+
+    <div class="vx01-side-panel" aria-hidden="true">
+      <div class="vx01-panel-head">
+        <span>TON NETWORK</span>
+        <span>◆ LIVE UI</span>
+      </div>
+      <div class="vx01-panel-bars">
+        <span style="--h:35%;--d:0s"></span>
+        <span style="--h:65%;--d:-.3s"></span>
+        <span style="--h:48%;--d:-.6s"></span>
+        <span style="--h:88%;--d:-.9s"></span>
+        <span style="--h:70%;--d:-1.2s"></span>
+        <span style="--h:100%;--d:-1.5s"></span>
+      </div>
+      <div class="vx01-panel-line"></div>
+      <div class="vx01-panel-line" style="width:70%"></div>
+    </div>
+
+    <div class="vx01-eyebrow">
+      <span>CREATE</span><i>•</i>
+      <span>CUSTOMIZE</span><i>•</i>
+      <span>LAUNCH</span>
+    </div>
+
+    <h1 class="vx01-title">
+      Create Your Own<br />
+      <span>TON Token</span>
+    </h1>
+
+    <p class="vx01-subtitle">
+      Your token. Your vision. The TON ecosystem.
+      Configure your token details, review your setup,
+      connect your wallet, and continue through the creation workflow.
+    </p>
+
+    <section class="vx01-features" aria-label="Token creator features">
+      <div class="vx01-feature">
+        <div class="vx01-feature-icon" aria-hidden="true">⬡</div>
+        <strong>TON MAINNET</strong>
+        <small>Mainnet token workflow</small>
+      </div>
+
+      <div class="vx01-feature">
+        <div class="vx01-feature-icon" aria-hidden="true">◎</div>
+        <strong>LIVE PREVIEW</strong>
+        <small>Review your token details</small>
+      </div>
+
+      <div class="vx01-feature">
+        <div class="vx01-feature-icon" aria-hidden="true">▣</div>
+        <strong>WALLET CONNECT</strong>
+        <small>TON Connect support</small>
+      </div>
+    </section>
+
+    <div class="vx01-action-area">
+      <div class="vx01-button-shell">
+        <button type="button" class="vx01-button" data-vh-start>
+          <span class="vx01-rocket" aria-hidden="true">➤</span>
+          <span>Create Token</span>
+          <span class="vx01-arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+
+      <div class="vx01-status" data-vh-status role="status" aria-live="polite"></div>
+
+      <div class="vx01-status-pill">
+        <span class="vx01-status-dot"></span>
+        <b>Token creator interface ready.</b>
+        <span>Connect your wallet to get started.</span>
+      </div>
+    </div>
+
+    <footer>
+      <div class="vx01-footer">◇ TON BLOCKCHAIN</div>
+      <div class="vx01-disclaimer">
+        TON Mainnet only · Never share your recovery phrase or private key.
+      </div>
+    </footer>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var home = document.getElementById("VXTON_HOME_01");
+    if (!home || home.dataset.vx01Init === "1") return;
+    home.dataset.vx01Init = "1";
+
+    /* Install one shared background for the token creator page. */
+    var bg = document.getElementById("VXTON_GLOBAL_BG");
+
+    if (!bg) {
+      bg = document.createElement("div");
+      bg.id = "VXTON_GLOBAL_BG";
+      bg.setAttribute("aria-hidden", "true");
+      bg.innerHTML =
+        '<div class="vxbg-aurora vxbg-a1"></div>' +
+        '<div class="vxbg-aurora vxbg-a2"></div>' +
+        '<div class="vxbg-aurora vxbg-a3"></div>' +
+        '<div class="vxbg-grid"></div>' +
+        '<div class="vxbg-beam b1"></div>' +
+        '<div class="vxbg-beam b2"></div>' +
+        '<div class="vxbg-stars"></div>';
+
+      document.body.insertBefore(bg, document.body.firstChild);
+
+      var starField = bg.querySelector(".vxbg-stars");
+      var starCount = window.matchMedia("(max-width: 600px)").matches ? 35 : 75;
+      var fragment = document.createDocumentFragment();
+
+      for (var i = 0; i < starCount; i++) {
+        var star = document.createElement("span");
+        star.className = "vxbg-star";
+        star.style.left = (Math.random() * 100) + "%";
+        star.style.top = (Math.random() * 100) + "%";
+        star.style.setProperty("--duration", (2 + Math.random() * 5) + "s");
+        star.style.setProperty("--delay", (-Math.random() * 6) + "s");
+        fragment.appendChild(star);
+      }
+
+      starField.appendChild(fragment);
+    }
+
+    var startButton = home.querySelector("[data-vh-start]");
+    var statusNode = home.querySelector("[data-vh-status]");
+
+    function openTokenForm() {
+      var form = document.getElementById("VXTON_FORM_02");
+
+      if (!form) {
+        statusNode.textContent =
+          "Step 02 not found. Install Step 02 on this same page first.";
+        return;
+      }
+
+      form.hidden = false;
+      form.style.setProperty("display", "block", "important");
+      form.setAttribute("aria-hidden", "false");
+
+      window.dispatchEvent(new CustomEvent("vxton:open-token-form"));
+      document.dispatchEvent(new CustomEvent("vxton:open-token-form"));
+
+      statusNode.textContent = "Token form opened.";
+
+      window.setTimeout(function () {
+        form.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 120);
+    }
+
+    startButton.addEventListener("click", openTokenForm);
+
+    window.addEventListener("vxton:back-to-home", function () {
+      home.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+  })();
+  </script>
+</div>

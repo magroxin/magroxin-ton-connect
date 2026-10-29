@@ -1,0 +1,401 @@
+<!-- MAGROXIN GADGET 4 — ROYAL TOKEN DEPLOYER -->
+<div id="MGX_GADGET4">
+<style>
+#MGX_GADGET4{
+ --cyan:#00eaff;--blue:#087cff;--gold:#f2ce72;
+ --ice:#bafaff;--muted:#8eb8e8;
+ color:#eaf7ff;font-family:Arial,Helvetica,sans-serif;
+ width:100%;max-width:1050px;margin:26px auto;
+ position:relative;isolation:isolate
+}
+#MGX_GADGET4 *{box-sizing:border-box}
+#MGX_GADGET4 .mgx-frame{
+ position:relative;overflow:hidden;padding:25px 18px 18px;
+ border:1px solid #087cff88;border-radius:19px;
+ background:radial-gradient(ellipse at 50% 0%,#063b8055,transparent 55%),
+ radial-gradient(ellipse at 0% 100%,#003f9b33,transparent 45%),
+ linear-gradient(145deg,#020b20,#030716 65%,#010611);
+ box-shadow:inset 0 0 35px #006bff12,0 0 35px #006bff19
+}
+#MGX_GADGET4 .mgx-frame:before{
+ content:"";position:absolute;inset:7px;pointer-events:none;
+ border:1px solid #00bfff20;border-radius:13px
+}
+#MGX_GADGET4 .mgx-topline{
+ position:absolute;top:0;left:8%;width:84%;height:2px;
+ background:linear-gradient(90deg,transparent,var(--cyan),var(--gold),var(--cyan),transparent);
+ box-shadow:0 0 12px var(--cyan)
+}
+#MGX_GADGET4 .mgx-brand{text-align:center;margin:0 auto 27px;position:relative}
+#MGX_GADGET4 .mgx-brand-name{
+ font-size:clamp(26px,5.4vw,47px);font-weight:900;
+ letter-spacing:clamp(4px,1.1vw,11px);
+ background:linear-gradient(180deg,#fff,#b9dfff 48%,#f0cb6c);
+ -webkit-background-clip:text;background-clip:text;color:transparent
+}
+#MGX_GADGET4 .mgx-brand-name span{color:var(--cyan);-webkit-text-fill-color:var(--cyan)}
+#MGX_GADGET4 .mgx-network{color:var(--cyan);letter-spacing:5px;font-size:12px;font-weight:bold;margin-top:7px}
+#MGX_GADGET4 .mgx-main{
+ position:relative;max-width:760px;margin:auto;text-align:center;
+ border:1px solid #e7bd5b99;border-radius:20px;padding:29px 18px 18px;
+ background:linear-gradient(145deg,#071831ed,#02091bed);
+ box-shadow:inset 0 0 25px #006bff12,0 0 20px #006bff12
+}
+#MGX_GADGET4 .mgx-crown{
+ position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+ width:48px;height:48px;border-radius:50%;display:grid;place-items:center;
+ font-size:25px;color:var(--gold);background:#07152d;border:2px solid var(--gold);
+ box-shadow:0 0 20px #e7bd5b44
+}
+#MGX_GADGET4 .mgx-title{
+ margin:7px 0 9px;font-size:clamp(21px,3vw,29px);
+ line-height:1.25;letter-spacing:1px;font-weight:900;color:#f4dfac
+}
+#MGX_GADGET4 .mgx-desc{max-width:490px;margin:0 auto 23px;color:#9dd8ff;font-size:13px;line-height:1.8}
+#MGX_GADGET4 .mgx-button-shell{
+ position:relative;margin:0 auto 17px;padding:5px;max-width:540px;border-radius:19px;
+ background:linear-gradient(110deg,#e7bd5b,#087cff,#00eaff,#e7bd5b);
+ background-size:250% 100%;animation:mgx4glow 7s linear infinite;box-shadow:0 0 20px #087cff22
+}
+#MGX_GADGET4 .mgx-deploy{
+ display:block;width:100%;min-height:96px;padding:15px 10px;
+ border:1px solid #49dfff;border-radius:15px;color:#c7e5ff;
+ background:linear-gradient(180deg,#0a2b5b,#06132e 70%,#030b1c);
+ font-weight:900;font-size:clamp(17px,3.5vw,25px);
+ letter-spacing:1.5px;cursor:pointer;transition:filter .25s,transform .25s
+}
+#MGX_GADGET4 .mgx-rocket{font-size:23px;margin-right:10px}
+#MGX_GADGET4 .mgx-deploy small{display:block;font-size:11px;letter-spacing:0;font-weight:500;margin-top:8px;color:#86a8d7}
+#MGX_GADGET4 .mgx-deploy:disabled{cursor:not-allowed;filter:brightness(.46) saturate(.55);color:#7196c8;background:linear-gradient(180deg,#102448,#050d1f);border-color:#365783}
+#MGX_GADGET4 .mgx-deploy:not(:disabled){color:#fff;background:linear-gradient(105deg,#065baf,#087cff 42%,#00bde8);border-color:#aafaff;box-shadow:inset 0 0 18px #aafaff2a,0 0 26px #008cff75}
+#MGX_GADGET4 .mgx-deploy:not(:disabled):hover{transform:translateY(-2px);filter:brightness(1.15)}
+#MGX_GADGET4 .mgx-check{
+ width:min(100%,390px);min-height:53px;display:block;margin:0 auto 18px;padding:12px;
+ border:1px solid #00bfff;border-radius:12px;color:#a8e7ff;
+ background:linear-gradient(180deg,#071d3b,#030b1c);font-size:14px;font-weight:900;letter-spacing:1px;cursor:pointer
+}
+#MGX_GADGET4 .mgx-check:disabled{opacity:.55;cursor:wait}
+#MGX_GADGET4 .mgx-status{
+ text-align:left;display:flex;align-items:flex-start;gap:12px;padding:15px 13px;
+ border:1px solid #087cff88;border-radius:12px;background:#020b20;color:#a9d9ff;
+ font-size:12px;line-height:1.7;overflow-wrap:anywhere;min-height:78px
+}
+#MGX_GADGET4 .mgx-status-icon{flex:0 0 28px;width:28px;height:28px;border:2px solid var(--cyan);border-radius:50%;display:grid;place-items:center;color:var(--cyan);font-weight:bold;font-size:16px}
+#MGX_GADGET4 .mgx-status strong{display:block;color:var(--cyan);font-size:13px;margin-bottom:3px}
+#MGX_GADGET4 .mgx-status[data-state="error"]{border-color:#ff507288}
+#MGX_GADGET4 .mgx-status[data-state="error"] .mgx-status-icon{border-color:#ff5072;color:#ff7893}
+#MGX_GADGET4 .mgx-status[data-state="error"] strong{color:#ff7893}
+#MGX_GADGET4 .mgx-status[data-state="ok"]{border-color:#00ffaa66}
+#MGX_GADGET4 .mgx-status[data-state="ok"] .mgx-status-icon{border-color:#00ffaa;color:#00ffaa}
+#MGX_GADGET4 .mgx-status[data-state="ok"] strong{color:#76ffd0}
+#MGX_GADGET4 .mgx-footer{text-align:center;color:#557eb4;font-size:10px;letter-spacing:2px;margin:19px 0 0}
+@keyframes mgx4glow{0%{background-position:0 50%}100%{background-position:250% 50%}}
+@media(max-width:500px){
+ #MGX_GADGET4 .mgx-frame{padding:23px 11px 15px}
+ #MGX_GADGET4 .mgx-main{padding:27px 11px 13px}
+ #MGX_GADGET4 .mgx-deploy{min-height:85px}
+ #MGX_GADGET4 .mgx-network{letter-spacing:3px}
+}
+@media(prefers-reduced-motion:reduce){#MGX_GADGET4 .mgx-button-shell{animation:none}}
+</style>
+<div class="mgx-frame">
+ <div class="mgx-topline"></div>
+ <header class="mgx-brand">
+  <div class="mgx-brand-name">MAGRO<span>X</span>IN</div>
+  <div class="mgx-network">· TON MAINNET ·</div>
+ </header>
+ <section class="mgx-main">
+  <div class="mgx-crown">♛</div>
+  <h2 class="mgx-title">ROYAL TOKEN DEPLOYER</h2>
+  <p class="mgx-desc">Deploy your token on TON Mainnet. Your service fee must be verified and deployment must be enabled by the backend.</p>
+  <div class="mgx-button-shell">
+   <button type="button" id="MGX4_DEPLOY" class="mgx-deploy" disabled>
+    <span class="mgx-rocket">🚀</span> DEPLOY TOKEN
+    <small id="MGX4_DEPLOY_HINT">🔒 Disabled · Check backend first</small>
+   </button>
+  </div>
+  <button type="button" id="MGX4_CHECK" class="mgx-check">⟳ &nbsp; CHECK BACKEND</button>
+  <div id="MGX4_STATUS" class="mgx-status" data-state="busy" role="status" aria-live="polite">
+   <span class="mgx-status-icon">i</span>
+   <div><strong id="MGX4_STATUS_TITLE">Checking backend…</strong><span id="MGX4_STATUS_TEXT">Contacting Render to check deployment permission.</span></div>
+  </div>
+ </section>
+ <div class="mgx-footer">MAGROXIN · TON MAINNET · SECURE · TRANSPARENT · ROYAL</div>
+</div>
+<!-- SUCCESS MODAL: moved to BODY by JavaScript -->
+<div id="MGX4_MODAL" class="mgx-modal" role="dialog" aria-modal="true" aria-labelledby="MGX4_SUCCESS_TITLE" style="display:none">
+ <style>
+ #MGX4_MODAL.mgx-modal{
+  position:fixed!important;inset:0!important;z-index:2147483647!important;
+  display:none;align-items:center;justify-content:center;padding:14px;
+  overflow-y:auto;background:rgba(1,5,17,.94);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  font-family:Arial,Helvetica,sans-serif;color:#eaf7ff
+ }
+ #MGX4_MODAL.mgx-modal.open{display:flex!important}
+ #MGX4_MODAL .mgx-modal-box{
+  box-sizing:border-box;width:100%;max-width:510px;max-height:calc(100dvh - 28px);
+  overflow-y:auto;overscroll-behavior:contain;padding:23px 17px;
+  border:1px solid #e7bd5b99;border-radius:19px;
+  background:radial-gradient(ellipse at top,#0b3260,#030a1b 68%);
+  box-shadow:0 0 40px #087cff35;text-align:center
+ }
+ #MGX4_MODAL .mgx-success-icon{
+  width:59px;height:59px;border-radius:50%;margin:0 auto 13px;
+  display:grid;place-items:center;font-size:29px;color:#8dffd4;border:2px solid #00ffaa;box-shadow:0 0 22px #00ffaa22
+ }
+ #MGX4_MODAL .mgx-chip{display:inline-block;padding:5px 10px;border:1px solid #00eaff66;border-radius:20px;color:#00eaff;font-size:10px;letter-spacing:1.5px;font-weight:bold}
+ #MGX4_MODAL h3{color:#f4dfac;font-size:22px;line-height:1.4;margin:12px 0 8px}
+ #MGX4_MODAL p{color:#9fc9ef;font-size:12px;line-height:1.7}
+ #MGX4_MODAL .mgx-result{display:flex;flex-direction:column;gap:5px;text-align:left;margin-top:10px;padding:11px;background:#020b1c;border:1px solid #087cff44;border-radius:10px}
+ #MGX4_MODAL .mgx-result-label{color:#6ea9df;font-size:10px;letter-spacing:1px}
+ #MGX4_MODAL .mgx-result-value{color:#e2f7ff;font-size:13px;overflow-wrap:anywhere;word-break:break-word}
+ #MGX4_MODAL .mgx-result-value a{color:#00eaff}
+ #MGX4_MODAL .mgx-logo{width:66px;height:66px;object-fit:cover;border-radius:50%;border:2px solid #00eaff;display:none;margin:0 auto 12px}
+ #MGX4_MODAL .mgx-actions{display:flex;gap:10px;margin-top:17px}
+ #MGX4_MODAL .mgx-actions button{flex:1;min-height:43px;border-radius:10px;font-weight:bold;cursor:pointer;padding:10px}
+ #MGX4_MODAL .mgx-copy{border:1px solid #00bfff;color:#a9efff;background:#071b37}
+ #MGX4_MODAL .mgx-close{border:0;color:#03101c;background:linear-gradient(100deg,#bafaff,#00eaff,#e7bd5b)}
+ @media(max-width:500px){#MGX4_MODAL .mgx-actions{flex-direction:column}}
+ </style>
+ <div class="mgx-modal-box">
+  <div class="mgx-success-icon">✓</div>
+  <img id="MGX4_R_LOGO" class="mgx-logo" alt="Token logo" referrerpolicy="no-referrer" />
+  <span class="mgx-chip">MAGROXIN · TON MAINNET</span>
+  <h3 id="MGX4_SUCCESS_TITLE">TOKEN DEPLOYED SUCCESSFULLY</h3>
+  <p id="MGX4_SUCCESS_TEXT">The backend confirmed deployment. Token distribution should be verified separately.</p>
+  <div class="mgx-result"><div class="mgx-result-label">TOKEN NAME</div><div id="MGX4_R_NAME" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TOKEN SYMBOL</div><div id="MGX4_R_SYMBOL" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TOKEN MASTER ADDRESS</div><div id="MGX4_R_ADDRESS" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">DECIMALS</div><div id="MGX4_R_DECIMALS" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TOTAL SUPPLY</div><div id="MGX4_R_SUPPLY" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">CREATOR WALLET</div><div id="MGX4_R_CREATOR" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">DEPLOYMENT DATE & TIME</div><div id="MGX4_R_DATE" class="mgx-result-value">Not provided by backend</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TRANSACTION HASH</div><div id="MGX4_R_HASH" class="mgx-result-value">Not provided by backend</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TON EXPLORER</div><div id="MGX4_R_EXPLORER" class="mgx-result-value">—</div></div>
+  <div class="mgx-actions">
+   <button type="button" id="MGX4_COPY" class="mgx-copy">COPY CONTRACT ADDRESS</button>
+   <button type="button" id="MGX4_CLOSE" class="mgx-close">CLOSE</button>
+  </div>
+ </div>
+</div>
+<script>
+(function(){
+"use strict";
+const ROOT=document.getElementById("MGX_GADGET4");
+if(!ROOT||ROOT.dataset.ready==="yes")return;
+ROOT.dataset.ready="yes";
+const API="https://magroxin-ton-api.onrender.com";
+const MAINNET="-239";
+const $=id=>document.getElementById(id);
+const modal=$("MGX4_MODAL");
+/* Move the modal outside Blogger's clipped/transformed containers. */
+if(modal && modal.parentElement!==document.body)document.body.appendChild(modal);
+let backendEnabled=false,checking=false,deploying=false,completed=false;
+let orderData=null,tokenAddress="";
+function setStatus(title,message,state){
+ $("MGX4_STATUS_TITLE").textContent=title;
+ $("MGX4_STATUS_TEXT").textContent=message;
+ $("MGX4_STATUS").dataset.state=state||"";
+}
+function refreshButton(){
+ const ready=backendEnabled&&!!orderData&&!checking&&!deploying&&!completed;
+ $("MGX4_DEPLOY").disabled=!ready;
+ $("MGX4_DEPLOY_HINT").textContent=ready
+  ?"✦ Backend enabled · Paid order received"
+  :!backendEnabled?"🔒 Disabled · Backend not enabled"
+  :!orderData?"🔒 Waiting for Gadget 3 payment verification"
+  :deploying?"⏳ Deployment in progress":"Deployment already submitted";
+}
+async function api(path,options){
+ const opts=Object.assign({cache:"no-store",headers:{"Accept":"application/json"}},options||{});
+ const response=await fetch(API+path,opts);
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok&&response.status!==202)throw new Error(data.error||data.message||"Request failed ("+response.status+").");
+ return {response,data};
+}
+function firstValue(){
+ for(const v of arguments){
+  if(v!==undefined&&v!==null&&String(v).trim()!=="")return v;
+ }
+ return "";
+}
+function readGadget3Fields(){
+ const get=id=>{
+  const el=document.getElementById(id);
+  if(!el)return "";
+  if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT")return el.value||"";
+  return el.textContent||"";
+ };
+ return {
+  name:get("VX03_name"),
+  symbol:get("VX03_symbol"),
+  logo:get("VX03_logo"),
+  supply:get("VX03_supply"),
+  decimals:get("VX03_decimals"),
+  description:get("VX03_description")
+ };
+}
+function normalizeToken(detail){
+ const eventToken=detail.token&&typeof detail.token==="object"?detail.token:{};
+ const dom=readGadget3Fields();
+ return {
+  name:firstValue(eventToken.name,eventToken.tokenName,detail.name,dom.name),
+  symbol:firstValue(eventToken.symbol,eventToken.tokenSymbol,detail.symbol,dom.symbol),
+  logo:firstValue(eventToken.logo,eventToken.image,eventToken.imageUrl,detail.logo,dom.logo),
+  supply:firstValue(eventToken.supply,eventToken.totalSupply,detail.supply,dom.supply),
+  decimals:firstValue(eventToken.decimals,detail.decimals,dom.decimals),
+  description:firstValue(eventToken.description,detail.description,dom.description)
+ };
+}
+function acceptOrder(detail){
+ if(!detail||typeof detail!=="object")return;
+ const id=detail.orderId||detail.order_id;
+ const address=detail.walletAddress||detail.creatorAddress||detail.wallet_address;
+ if(typeof id!=="string"||!id.trim()||typeof address!=="string"||!address.trim())return;
+ if(detail.network&&detail.network!=="mainnet"&&detail.network!==MAINNET){
+  setStatus("Wrong network","Gadget 3 did not provide a TON Mainnet order.","error");return;
+ }
+ orderData={orderId:id.trim(),walletAddress:address.trim(),network:"mainnet",token:normalizeToken(detail)};
+ refreshButton();
+ setStatus(backendEnabled?"Order received":"Deployment disabled",
+ backendEnabled?"Paid order received. Check wallet connection before deploying.":"Render has not enabled token deployment.",""+(backendEnabled?"ok":"error"));
+}
+window.addEventListener("magroxin:gadget4:open",e=>acceptOrder(e.detail));
+window.addEventListener("magroxin:gadget4:order",e=>acceptOrder(e.detail));
+async function checkBackend(){
+ if(checking||deploying)return;
+ checking=true;$("MGX4_CHECK").disabled=true;$("MGX4_CHECK").textContent="⟳ CHECKING BACKEND…";
+ refreshButton();setStatus("Checking Render backend","Reading live deployment permission.","busy");
+ try{
+  const r=await api("/");
+  backendEnabled=r.data.deploymentEnabled===true;
+  if(!backendEnabled)setStatus("Deployment is disabled","Render returned deploymentEnabled=false. No transaction can be sent.","error");
+  else if(!orderData)setStatus("Backend is enabled","Complete and verify service-fee payment in Gadget 3 first.","ok");
+  else setStatus("Backend enabled","Paid order received. Deployment is available if the wallet session matches.","ok");
+ }catch(e){backendEnabled=false;setStatus("Backend check failed",e.message,"error")}
+ finally{
+  checking=false;$("MGX4_CHECK").disabled=false;$("MGX4_CHECK").textContent="⟳ CHECK BACKEND";refreshButton();
+ }
+}
+function getWalletUI(){
+ const ui=window.MAGROXIN_TON_UI;
+ return ui&&typeof ui.sendTransaction==="function"&&typeof ui.onStatusChange==="function"?ui:null;
+}
+function getConnectedWallet(){
+ const ui=getWalletUI();
+ if(!ui)throw new Error("Gadget 3 wallet session is not exposed to Gadget 4. No transaction was sent.");
+ const wallet=ui.wallet;
+ if(!wallet||!wallet.account||!wallet.account.address)throw new Error("Wallet is not connected. Return to Gadget 3 and connect it.");
+ if(wallet.account.chain&&wallet.account.chain!==MAINNET)throw new Error("Connect a TON Mainnet wallet.");
+ return {ui,address:wallet.account.address};
+}
+async function verifyDeployment(orderId,walletAddress){
+ const deadline=Date.now()+120000;
+ while(Date.now()<deadline){
+  await new Promise(resolve=>setTimeout(resolve,2500));
+  const r=await api("/api/deployment/verify",{
+   method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+   body:JSON.stringify({orderId,walletAddress,network:"mainnet"})
+  });
+  const d=r.data;
+  if(d.deploymentEnabled===false){backendEnabled=false;refreshButton();throw new Error("Render disabled deployment. No deployment was confirmed.")}
+  if(d.status==="deployed"&&d.verifiedOnChain===true&&d.tokenAddress)return d;
+  if(d.status==="failed"||d.retryable===false)throw new Error(d.error||"Backend could not verify deployment.");
+  setStatus("Verifying on TON Mainnet",d.message||"Waiting for on-chain confirmation…","busy");
+ }
+ throw new Error("Verification is still pending. No success popup was shown. Check status before retrying.");
+}
+function setText(id,value){
+ $(id).textContent=value===undefined||value===null||value===""?"Not provided by backend":String(value);
+}
+function showSuccess(verified){
+ if(verified.status!=="deployed"||verified.verifiedOnChain!==true||!verified.tokenAddress)
+  throw new Error("Deployment has not been verified by the backend.");
+ const token=orderData.token||{};
+ setText("MGX4_R_NAME",firstValue(verified.tokenName,verified.name,token.name));
+ setText("MGX4_R_SYMBOL",firstValue(verified.tokenSymbol,verified.symbol,token.symbol));
+ setText("MGX4_R_ADDRESS",verified.tokenAddress);
+ setText("MGX4_R_DECIMALS",firstValue(verified.decimals,token.decimals));
+ setText("MGX4_R_SUPPLY",firstValue(verified.totalSupply,verified.supply,token.supply));
+ setText("MGX4_R_CREATOR",firstValue(verified.creatorAddress,verified.walletAddress,orderData.walletAddress));
+ const logo=firstValue(verified.tokenLogo,verified.logo,token.logo);
+ const logoEl=$("MGX4_R_LOGO");
+ if(typeof logo==="string"&&/^https?:\/\//i.test(logo)){
+  logoEl.src=logo;logoEl.style.display="block";
+ }else{logoEl.removeAttribute("src");logoEl.style.display="none"}
+ const rawDate=firstValue(verified.deployedAt,verified.timestamp,verified.transactionTimestamp);
+ let dateText="Not provided by backend";
+ if(rawDate!==""){
+  const date=typeof rawDate==="number"?new Date(rawDate<1000000000000?rawDate*1000:rawDate):new Date(rawDate);
+  if(!Number.isNaN(date.getTime()))dateText=date.toLocaleString();
+ }
+ setText("MGX4_R_DATE",dateText);
+ setText("MGX4_R_HASH",firstValue(verified.transactionHash,verified.txHash));
+ const exp=$("MGX4_R_EXPLORER");exp.replaceChildren();
+ const addLink=(url,label)=>{
+  const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=label;exp.appendChild(a);
+ };
+ const safeAddress=encodeURIComponent(verified.tokenAddress);
+ addLink("https://tonviewer.com/"+safeAddress,"View token on TON Explorer");
+ const hash=firstValue(verified.transactionHash,verified.txHash);
+ if(hash&&/^[A-Za-z0-9_-]+$/.test(String(hash))){
+  const sep=document.createTextNode(" · ");exp.appendChild(sep);
+  addLink("https://tonviewer.com/transaction/"+encodeURIComponent(hash),"View transaction");
+ }
+ tokenAddress=verified.tokenAddress;
+ modal.classList.add("open");
+ modal.setAttribute("aria-hidden","false");
+ $("MGX4_CLOSE").focus();
+ setStatus("Deployment verified","Backend confirmed the token master on TON Mainnet. Creator token balance should be checked separately.","ok");
+}
+async function deployToken(){
+ if(deploying||checking||completed||!backendEnabled||!orderData)return;
+ deploying=true;refreshButton();
+ try{
+  setStatus("Rechecking deployment permission","Checking Render immediately before transaction preparation.","busy");
+  const live=await api("/");
+  backendEnabled=live.data.deploymentEnabled===true;
+  if(!backendEnabled)throw new Error("Render has deployment disabled. No transaction was sent.");
+  if(orderData.network!=="mainnet")throw new Error("Order is not for TON Mainnet.");
+  const wallet=getConnectedWallet();
+  if(wallet.address!==orderData.walletAddress)throw new Error("Connected wallet does not match the wallet that paid the service fee.");
+  setStatus("Preparing transaction","Requesting a deployment transaction from the backend.","busy");
+  const r=await api("/api/deployment/prepare",{
+   method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+   body:JSON.stringify({orderId:orderData.orderId,walletAddress:wallet.address,network:"mainnet"})
+  });
+  const p=r.data,tx=p.transaction;
+  if(p.deploymentEnabled!==true||p.status!=="prepared"||!tx||tx.network!==MAINNET||!Array.isArray(tx.messages)||!tx.messages.length)
+   throw new Error(p.error||"The deployment service returned an invalid response.");
+  setStatus("Wallet approval required","Review the transaction in your connected TON wallet.","busy");
+  await wallet.ui.sendTransaction(tx);
+  setStatus("Waiting for verification","Waiting for backend confirmation on-chain.","busy");
+  const verified=await verifyDeployment(orderData.orderId,wallet.address);
+  showSuccess(verified);completed=true;
+ }catch(e){setStatus("Deployment not confirmed",e.message||"Deployment failed or is still pending.","error")}
+ finally{deploying=false;refreshButton()}
+}
+function closeModal(){
+ modal.classList.remove("open");modal.setAttribute("aria-hidden","true");
+ $("MGX4_DEPLOY").focus();
+}
+$("MGX4_CHECK").addEventListener("click",checkBackend);
+$("MGX4_DEPLOY").addEventListener("click",deployToken);
+$("MGX4_CLOSE").addEventListener("click",closeModal);
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.classList.contains("open"))closeModal()});
+$("MGX4_COPY").addEventListener("click",async()=>{
+ if(!tokenAddress)return;
+ try{
+  await navigator.clipboard.writeText(tokenAddress);
+  $("MGX4_COPY").textContent="COPIED ✓";
+  setTimeout(()=>$("MGX4_COPY").textContent="COPY CONTRACT ADDRESS",1500);
+ }catch(e){setStatus("Copy failed","Select the contract address and copy it manually.","error")}
+});
+refreshButton();
+checkBackend();
+})();
+</script>
+</div>
+<!-- END MAGROXIN GADGET 4 -->
