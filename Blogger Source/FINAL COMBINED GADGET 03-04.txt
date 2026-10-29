@@ -536,7 +536,10 @@ async function createOrder(){
     description:state.draft.description
   };
 
-  if(state.draft.logoData&&state.draft.logoData.startsWith("data:image/"))token.logoData=state.draft.logoData;
+  if(state.draft.logoData){
+    if(state.draft.logoData.startsWith("data:image/")) token.logoData=state.draft.logoData;
+    else if(/^https:\/\//i.test(state.draft.logoData)) token.logoUrl=state.draft.logoData;
+  }
 
   const data=await request("/api/orders",{
     method:"POST",
@@ -657,7 +660,8 @@ function advanceToDeployer(){
       supply:state.draft.supply||"",
       decimals:state.draft.decimals??9,
       description:state.draft.description||"",
-      logo:state.draft.logoData||""
+      logo:state.draft.logoData||"",
+      logoUrl:state.draft.logoData&&/^https:\/\//i.test(state.draft.logoData)?state.draft.logoData:""
     }
   };
   window.MAGROXIN_GADGET4_DATA=bridgeData;
