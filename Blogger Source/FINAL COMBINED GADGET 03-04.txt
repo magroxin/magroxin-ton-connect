@@ -699,8 +699,10 @@ async function verifyService(){
       "Payment verified successfully by the backend."
     );
 
+    // Prepare Gadget 4, then show the verified-payment popup above it.
     advanceToDeployer();
     refreshButtons();
+    openSuccessPopup();
     return true;
   }
 
@@ -795,6 +797,13 @@ $("VX03_disconnectWallet").addEventListener(
   "click",
   disconnectWallet
 );
+
+$("VX03_popupClose").addEventListener("click",closeSuccessPopup);
+$("VX03_popupContinue").addEventListener("click",()=>{
+  closeSuccessPopup();
+  const deployer=document.getElementById("MGX_GADGET4");
+  if(deployer)deployer.scrollIntoView({behavior:"smooth",block:"center"});
+});
 
 initWallet();
 })();
@@ -960,6 +969,25 @@ initWallet();
  #MGX4_MODAL .mgx-copy{border:1px solid #00bfff;color:#a9efff;background:#071b37}
  #MGX4_MODAL .mgx-close{border:0;color:#03101c;background:linear-gradient(100deg,#bafaff,#00eaff,#e7bd5b)}
  @media(max-width:500px){#MGX4_MODAL .mgx-actions{flex-direction:column}}
+ #MGX4_MODAL .mgx-modal-box{position:relative;border:1px solid rgba(92,231,255,.58);background:radial-gradient(ellipse at 50% -12%,rgba(0,234,255,.20),transparent 46%),radial-gradient(ellipse at 100% 100%,rgba(8,124,255,.16),transparent 48%),linear-gradient(155deg,#0a1d3b 0%,#040d22 52%,#020817 100%);box-shadow:0 0 0 1px #e7bd5b20,0 0 38px #00bfff25,0 24px 80px #000b}
+ #MGX4_MODAL .mgx-modal-box:before{content:"";position:absolute;inset:7px;border:1px solid #00eaff20;border-radius:13px;pointer-events:none}
+ #MGX4_MODAL .mgx-success-icon{position:relative;width:72px;height:72px;font-size:34px;background:radial-gradient(circle,#00ffaa20,transparent 70%);box-shadow:0 0 0 7px #00ffaa0b,0 0 32px #00ffaa30,inset 0 0 18px #00ffaa12}
+ #MGX4_MODAL .mgx-chip{background:#00eaff0c;box-shadow:0 0 18px #00eaff16}
+ #MGX4_MODAL h3{font-size:clamp(21px,5vw,26px);letter-spacing:1.1px;text-shadow:0 0 18px #e7bd5b30}
+ #MGX4_MODAL .mgx-result{position:relative;margin-top:9px;padding:12px 13px 13px;border:1px solid #168bdc55;border-left:3px solid #00cfff;background:linear-gradient(105deg,#06172e,#041022 72%,#06162a);box-shadow:inset 0 1px #ffffff08,0 5px 15px #0002;transition:border-color .2s,transform .2s}
+ #MGX4_MODAL .mgx-result:hover{border-color:#00eaffaa;transform:translateY(-1px)}
+ #MGX4_MODAL .mgx-result-label{color:#67cfff;font-size:10px;font-weight:800;letter-spacing:1.35px}
+ #MGX4_MODAL .mgx-result-value{font-size:13px;line-height:1.65;color:#e8faff}
+ #MGX4_MODAL .mgx-result-value a{color:#54f0ff;text-decoration:none;border-bottom:1px dotted #54f0ff88}
+ #MGX4_MODAL .mgx-result-value a:hover{color:#fff;border-bottom-color:#fff}
+ #MGX4_MODAL .mgx-logo{width:78px;height:78px;object-fit:contain;padding:3px;background:#061a31;box-shadow:0 0 0 5px #00eaff10,0 0 25px #00eaff55}
+ #MGX4_MODAL .mgx-actions button{min-height:48px;letter-spacing:.65px;transition:transform .2s,filter .2s,box-shadow .2s}
+ #MGX4_MODAL .mgx-actions button:hover{transform:translateY(-2px);filter:brightness(1.12)}
+ #MGX4_MODAL .mgx-copy{border-color:#00d9ff;background:linear-gradient(110deg,#062b50,#073b61);box-shadow:0 0 18px #00bfff1c}
+ #MGX4_MODAL .mgx-close{background:linear-gradient(110deg,#bafaff,#00eaff 60%,#e7bd5b);box-shadow:0 0 18px #00eaff25}
+ @media(prefers-reduced-motion:no-preference){#MGX4_MODAL .mgx-success-icon{animation:mgxSuccessPulse 2.8s ease-in-out infinite}@keyframes mgxSuccessPulse{0%,100%{box-shadow:0 0 0 7px #00ffaa0b,0 0 22px #00ffaa22}50%{box-shadow:0 0 0 10px #00ffaa10,0 0 38px #00ffaa55}}}
+ @media(max-width:500px){#MGX4_MODAL .mgx-actions{flex-direction:column}#MGX4_MODAL .mgx-modal-box{padding:21px 13px}#MGX4_MODAL .mgx-result{padding:11px}}
+ @media(prefers-reduced-motion:reduce){#MGX4_MODAL .mgx-result,#MGX4_MODAL .mgx-actions button{transition:none}}
  </style>
  <div class="mgx-modal-box">
   <div class="mgx-success-icon">✓</div>
@@ -1125,7 +1153,7 @@ function showSuccess(verified){
  setText("MGX4_R_CREATOR",firstValue(verified.creatorAddress,verified.walletAddress,orderData.walletAddress));
  const logo=firstValue(verified.tokenLogo,verified.logo,token.logo);
  const logoEl=$("MGX4_R_LOGO");
- if(typeof logo==="string"&&/^https?:\/\//i.test(logo)){
+ if(typeof logo==="string"&&/^(https?:\/\/|data:image\/)/i.test(logo)){
   logoEl.src=logo;logoEl.style.display="block";
  }else{logoEl.removeAttribute("src");logoEl.style.display="none"}
  const rawDate=firstValue(verified.deployedAt,verified.timestamp,verified.transactionTimestamp);
