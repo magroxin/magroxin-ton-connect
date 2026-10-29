@@ -73,11 +73,59 @@ function amount(v,d){v=String(v).trim();if(!/^\d+(\.\d+)?$/.test(v))throw Error(
 async function initWallet(){
  try{
   status("mgxWalletStatus","Loading TON Connect…");
-  if(!window.TON_CONNECT_UI?.TonConnectUI)await new Promise((ok,no)=>{let s=document.getElementById("mgx-tonconnect-lib");if(s){s.addEventListener("load",ok,{once:true});s.addEventListener("error",no,{once:true});return}s=document.createElement("script");s.id="mgx-tonconnect-lib";s.src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js";s.onload=ok;s.onerror=()=>no(Error("TON Connect library could not load."));document.head.appendChild(s)});
-  S.tc=new window.TON_CONNECT_UI.TonConnectUI({manifestUrl:MANIFEST_URL,buttonRootId:"mgxWalletMount"});
-  S.tc.onStatusChange(w=>{S.wallet=w||null;S.adminOK=false;$("mgxDetails").classList.remove("show");status("mgxWalletStatus",w?(String(w.account.chain)===MAINNET?"Connected · TON Mainnet · "+short(w.account.address):"Connected on wrong network. Switch to TON Mainnet."):"Wallet not connected.",w&&String(w.account.chain)===MAINNET?"ok":"")});
-  if(S.tc.wallet){S.wallet=S.tc.wallet;status("mgxWalletStatus","Connected · "+short(S.wallet.account.address),"ok")}
- }catch(e){status("mgxWalletStatus",e.message,"err")}
+  /*
+   * Blogger pages can execute the TON Connect bundle more than once
+   * (for example, after gadget re-render or when another gadget uses it).
+   * The bundle registers custom elements; a second registration normally
+   * throws: "Cannot define multiple custom elements with the same tag name".
+   * Make custom-element registration idempotent before loading the bundle.
+   */
+  const registry=window.customElements;
+  if(registry&&!registry.__mgxDefineGuard){
+   const nativeDefine=registry.define.bind(registry);
+   registry.define=function(name,ctor,options){
+    if(registry.get(name))return;
+    return nativeDefine(name,ctor,options);
+   };
+   try{Object.defineProperty(registry,"__mgxDefineGuard",{value:true,configurable:false})}catch(_){registry.__mgxDefineGuard=true}
+  }
+  if(!window.TON_CONNECT_UI?.TonConnectUI){
+   if(!window.__MGX_TONCONNECT_LOAD_PROMISE){
+    window.__MGX_TONCONNECT_LOAD_PROMISE=new Promise((resolve,reject)=>{
+     const existing=document.querySelector('script[data-mgx-tonconnect="1"]');
+     if(existing){
+      if(window.TON_CONNECT_UI?.TonConnectUI){resolve();return}
+      existing.addEventListener("load",resolve,{once:true});
+      existing.addEventListener("error",()=>reject(Error("TON Connect library could not load.")),{once:true});
+      return;
+     }
+     const script=document.createElement("script");
+     script.src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js";
+     script.async=true;
+     script.dataset.mgxTonconnect="1";
+     script.onload=resolve;
+     script.onerror=()=>reject(Error("TON Connect library could not load."));
+     document.head.appendChild(script);
+    }).catch(error=>{window.__MGX_TONCONNECT_LOAD_PROMISE=null;throw error});
+   }
+   await window.__MGX_TONCONNECT_LOAD_PROMISE;
+  }
+  if(!window.TON_CONNECT_UI?.TonConnectUI)throw Error("TON Connect UI loaded, but its interface was not found. Refresh the page.");
+  if(!S.tc){
+   S.tc=new window.TON_CONNECT_UI.TonConnectUI({manifestUrl:MANIFEST_URL,buttonRootId:"mgxWalletMount"});
+   S.tc.onStatusChange(w=>{
+    S.wallet=w||null;S.adminOK=false;
+    $("mgxDetails").classList.remove("show");
+    status("mgxWalletStatus",w?(String(w.account.chain)===MAINNET?"Connected · TON Mainnet · "+short(w.account.address):"Connected on wrong network. Switch to TON Mainnet."):"Wallet not connected.",w&&String(w.account.chain)===MAINNET?"ok":"");
+    if(w&&String(w.account.chain)!==MAINNET)status("mgxLookupStatus","Switch your wallet to TON Mainnet before verifying ownership.","warn");
+    else if(!w)status("mgxLookupStatus","Connect a TON Mainnet wallet first.");
+   });
+   if(S.tc.wallet){
+    S.wallet=S.tc.wallet;
+    status("mgxWalletStatus",String(S.wallet.account.chain)===MAINNET?"Connected · TON Mainnet · "+short(S.wallet.account.address):"Connected on wrong network.",String(S.wallet.account.chain)===MAINNET?"ok":"warn");
+   }
+  }
+ }catch(e){status("mgxWalletStatus",e.message||"TON Connect initialization failed.","err")}
 }
 async function loadToken(){
  try{
