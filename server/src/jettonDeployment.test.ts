@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Address } from "@ton/core";
-import { buildInitialMintPayload, snakeString } from "./jettonDeployment.js";
+import { buildInitialMintPayload, calculateDeploymentValue, snakeString } from "./jettonDeployment.js";
 
 function decodeSnake(cell: ReturnType<typeof snakeString>): string {
   const chunks: Buffer[] = [];
@@ -60,4 +60,12 @@ test("initial mint payload follows the classic TON minter mintBody layout", () =
   assert.equal(mint.loadAddress()?.toRawString(), owner.toRawString());
   assert.equal(mint.loadCoins(), 1000000n, "forward TON amount must be 0.001 TON");
   assert.equal(mint.loadBit(), false);
+});
+
+test("deployment value funds the mint transfer in addition to execution fees", () => {
+  const estimatedFees = 10000000n;
+  const value = calculateDeploymentValue(estimatedFees);
+  assert.equal(value, 300000000n + estimatedFees + (estimatedFees * 30n / 100n) + 50000000n);
+  assert.ok(value > 300000000n, "transaction value must cover the 0.3 TON mint-to-wallet amount plus fees");
+  assert.throws(() => calculateDeploymentValue(0n), /zero deployment fee estimate/i);
 });
