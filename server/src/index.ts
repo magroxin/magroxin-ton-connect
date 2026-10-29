@@ -1244,16 +1244,81 @@ app.post("/api/deployment/verify", async (req: Request, res: Response) => {
       });
     }
 
+    // Do not report success merely because an account is active. The
+    // wallet transaction must have completed successfully.
+    const txDescription = matchingTx.description;
+    const computeExitCode = txDescription?.compute_ph?.exit_code;
+    const transactionSucceeded =
+      txDescription?.aborted === false &&
+      (computeExitCode === 0 || computeExitCode === "0");
+
+    if (!transactionSucceeded) {
+      return res.status(202).json({
+        ok: true,
+        status: "pending",
+        deploymentEnabled: true,
+        verifiedOnChain: false,
+        tokenAddress: deployment.address,
+        message: "The deployment transaction is not confirmed as successful yet.",
+      });
+    }
+
+    // Read the actual on-chain Jetton total supply. The value must match the
+    // exact integer supply derived from this order's supply and decimals.
+    const getDataResponse = await fetch("https://toncenter.com/api/v2/runGetMethod", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "X-API-Key": TONCENTER_API_KEY,
+      },
+      body: JSON.stringify({
+        address: expectedAddress,
+        method: "get_jetton_data",
+        stack: [],
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!getDataResponse.ok) throw new Error("TON Center Jetton data lookup failed.");
+    const getData = await getDataResponse.json() as any;
+    const totalSupplyEntry = Array.isArray(getData?.stack) ? getData.stack[0] : null;
+    const rawTotalSupply = Array.isArray(totalSupplyEntry) ? totalSupplyEntry[1] : undefined;
+    if (getData?.ok !== true || typeof rawTotalSupply !== "string") {
+      throw new Error("TON Center returned incomplete Jetton data.");
+    }
+
+    let actualSupply: bigint;
+    try {
+      actualSupply = BigInt(rawTotalSupply);
+    } catch {
+      throw new Error("TON Center returned an invalid Jetton total supply.");
+    }
+    const expectedSupply = BigInt(order.token.supply) * 10n ** BigInt(order.token.decimals);
+    if (actualSupply !== expectedSupply) {
+      return res.status(202).json({
+        ok: true,
+        status: "pending",
+        deploymentEnabled: true,
+        verifiedOnChain: false,
+        tokenAddress: deployment.address,
+        expectedSupply: expectedSupply.toString(),
+        actualSupply: actualSupply.toString(),
+        message: "The on-chain total supply does not match the requested token supply; deployment is not marked successful.",
+      });
+    }
+
     return res.json({
       ok: true,
       status: "deployed",
       deploymentEnabled: true,
       verifiedOnChain: true,
+      supplyVerifiedOnChain: true,
       orderId: order.id,
       tokenAddress: deployment.address,
+      totalSupply: actualSupply.toString(),
       transactionHash: matchingTx.transaction_id.hash,
       explorerUrl: "https://tonviewer.com/" + encodeURIComponent(deployment.address),
-      message: "Token contract verified on TON Mainnet.",
+      message: "Token contract and total supply verified on TON Mainnet.",
     });
   } catch (error) {
     console.error("[MAGROXIN] Deployment verification failed:", error instanceof Error ? error.message : "Unknown error");
