@@ -21,16 +21,26 @@ async function loadCode(url: string): Promise<Cell> {
   if (cells.length !== 1) throw new Error("Unexpected Jetton contract BOC.");
   return cells[0];
 }
-function snakeString(value: string): Cell {
+// TEP-64 snake values must start with the 0x00 snake prefix.
+// The first cell has 8 prefix bits, so it can hold at most 126 data bytes;
+// continuation cells can hold 127 bytes each.
+export function snakeString(value: string): Cell {
   const bytes = Buffer.from(value, "utf8");
   let next: Cell | undefined;
-  for (let offset = bytes.length; offset > 0; offset -= 127) {
-    const start = Math.max(0, offset - 127);
-    const builder = beginCell().storeBuffer(bytes.subarray(start, offset));
+
+  for (let end = bytes.length; end > 126;) {
+    const start = Math.max(126, end - 127);
+    const builder = beginCell().storeBuffer(bytes.subarray(start, end));
     if (next) builder.storeRef(next);
     next = builder.endCell();
+    end = start;
   }
-  return next ?? beginCell().endCell();
+
+  const root = beginCell().storeUint(0x00, 8);
+  const firstChunk = bytes.subarray(0, 126);
+  if (firstChunk.length > 0) root.storeBuffer(firstChunk);
+  if (next) root.storeRef(next);
+  return root.endCell();
 }
 function metadataKey(key: string): Buffer {
   return createHash("sha256").update(key, "utf8").digest();
@@ -62,7 +72,17 @@ export async function prepareJettonDeployment(input: JettonDeploymentInput, tonc
   const data = beginCell().storeCoins(0).storeAddress(v.admin).storeRef(content).storeRef(walletCode).endCell();
   const stateInit: StateInit = { code: minterCode, data };
   const address = contractAddress(0, stateInit);
-  const internalTransfer = beginCell().storeUint(0x178d4519, 32).storeUint(0, 64).storeCoins(v.supplyUnits).storeAddress(address).storeAddress(v.admin).storeCoins(0).storeBit(0).endCell();
+  // Match TON's reference mintBody layout for this classic Jetton minter:
+  // from_address = addr_none, response_address = owner, forward TON = 0.001 TON.
+  const internalTransfer = beginCell()
+    .storeUint(0x178d4519, 32)
+    .storeUint(0, 64)
+    .storeCoins(v.supplyUnits)
+    .storeAddress(null)
+    .storeAddress(v.admin)
+    .storeCoins(1000000n)
+    .storeBit(0)
+    .endCell();
   if (!toncenterApiKey) throw new Error("TON Center API key is required for deployment fee estimation.");
   const payload = beginCell().storeUint(21, 32).storeUint(0, 64).storeAddress(v.admin).storeCoins(300000000n).storeRef(internalTransfer).endCell();
   const estimateResponse = await fetch("https://toncenter.com/api/v2/estimateFee", {
