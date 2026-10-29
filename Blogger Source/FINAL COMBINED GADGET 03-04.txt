@@ -89,9 +89,9 @@ html body [class*="tc-root"] {
 <section class="vx-card">
   <h3>02 · Service fee</h3>
   <div class="vx-fee">
-    <span class="vx-label">Live service fee · loaded from backend order</span>
-    <strong id="VX03_feeAmount">Create order to load backend fee</strong>
-    <p id="VX03_feeDescription">The fee amount is loaded from the backend order (for example, 1 TON or 100 TON). No fixed amount is assumed here. Check the amount and recipient before approving a transaction.</p>
+    <span class="vx-label">Wallet-specific service fee · live backend quote</span>
+    <strong id="VX03_feeAmount">Connect wallet to load fee</strong>
+    <p id="VX03_feeDescription">The backend calculates the fee for the connected wallet: the configured test wallet receives 1 TON; all other wallets receive 100 TON. Check the amount and recipient before approving a transaction.</p>
   </div>
   <label class="vx-check">
     <input type="checkbox" id="VX03_accept"/>
@@ -364,6 +364,29 @@ window.addEventListener("vxton:open-review",onDraft);
 const existing=window.VXTON_TOKEN_DRAFT||window.MAGROXIN_TOKEN_DRAFT;
 if(existing)onDraft({detail:existing});
 
+let feeQuoteSequence=0;
+
+async function loadFeeQuote(){
+  const sequence=++feeQuoteSequence;
+  if(!connectedMainnet()){
+    $("VX03_feeAmount").textContent="Connect wallet to load fee";
+    return;
+  }
+
+  $("VX03_feeAmount").textContent="Checking wallet fee…";
+  try{
+    const data=await request("/api/fee-quote?walletAddress="+encodeURIComponent(state.address));
+    if(sequence!==feeQuoteSequence||!connectedMainnet())return;
+    if(!data||data.ok!==true||!data.amountNano)
+      throw new Error("Backend did not return a valid fee quote.");
+    $("VX03_feeAmount").textContent=formatNanoTon(data.amountNano);
+  }catch(e){
+    if(sequence!==feeQuoteSequence)return;
+    $("VX03_feeAmount").textContent="Fee quote unavailable";
+    status("VX03_serviceStatus",e&&e.message||"Could not load wallet-specific service fee.");
+  }
+}
+
 function walletReady(){
   if(!state.wallet||!state.address){
     state.friendlyAddress="";
@@ -381,6 +404,7 @@ function walletReady(){
   }
 
   refreshButtons();
+  loadFeeQuote();
 }
 
 async function initWallet(){
