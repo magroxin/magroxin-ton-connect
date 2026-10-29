@@ -368,7 +368,6 @@ function walletReady(){
   if(!state.wallet||!state.address){
     state.friendlyAddress="";
     status("VX03_walletStatus","Wallet not connected.");
-    status("VX03_walletAddress","Not connected");
   }else{
     state.friendlyAddress=state.address.trim();
 
@@ -379,11 +378,6 @@ function walletReady(){
         :"Wallet connected, but switch to TON Mainnet."
     );
 
-    const a=state.friendlyAddress;
-    status(
-      "VX03_walletAddress",
-      a.length>22?a.slice(0,9)+"…"+a.slice(-7):a
-    );
   }
 
   refreshButtons();
@@ -773,22 +767,6 @@ $("VX03_disconnectWallet").addEventListener(
   "click",
   disconnectWallet
 );
-
-$("VX03_copyWallet").addEventListener("click",async()=>{
-  if(!state.friendlyAddress)return;
-
-  try{
-    await navigator.clipboard.writeText(state.friendlyAddress);
-    status("VX03_walletStatus","Wallet address copied.");
-  }catch(_){
-    status(
-      "VX03_walletStatus",
-      "Copy failed. Copy the address from your wallet instead."
-    );
-  }
-});
-
-
 
 initWallet();
 })();
