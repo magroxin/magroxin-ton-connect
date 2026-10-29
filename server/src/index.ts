@@ -93,7 +93,7 @@ const orderSchema = z.preprocess((input) => {
     normalizedLogoCandidate.length <= 1_500_000
       ? normalizedLogoCandidate
       : "";
-  const rawLogoUrl = rawToken.logoUrl ?? rawToken.imageUrl ?? "";
+  const rawLogoUrl = rawToken.logoUrl ?? rawToken.imageUrl ?? (typeof rawLogo === "string" && /^https:\/\//i.test(rawLogo.trim()) ? rawLogo.trim() : "");
   let normalizedLogoUrl = "";
   if (typeof rawLogoUrl === "string" && rawLogoUrl.length <= 2048) {
     try {
@@ -123,7 +123,7 @@ const orderSchema = z.preprocess((input) => {
     supply: z.string().trim().regex(/^[1-9]\d*$/).max(31),
     decimals: z.number().int().min(0).max(9),
     description: z.string().max(1000).optional().default(""),
-    logo: z.string().max(1_500_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/).optional().default(""),
+    logo: z.string().max(1_500_000).refine((value) => value === "" || /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value), "Logo must be a supported Base64 image.").optional().default(""),
     logoUrl: z.string().max(2048).refine((value) => {
       if (!value) return true;
       try {
