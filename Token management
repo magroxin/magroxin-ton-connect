@@ -131,6 +131,17 @@
  align-items:center!important;width:100%!important
 }
 #MGX_TOKEN_MANAGER #mgxWalletMount button{margin:auto!important}
+#MGX_TOKEN_MANAGER .mgx-wallet-picker{display:none;position:fixed!important;inset:0!important;z-index:2147483647!important;background:#000e;backdrop-filter:blur(9px);padding:16px;overflow:auto}
+#MGX_TOKEN_MANAGER .mgx-wallet-picker.open{display:flex!important;align-items:center;justify-content:center}
+#MGX_TOKEN_MANAGER .mgx-wallet-box{width:min(100%,480px);max-height:90vh;overflow:auto;background:#061326;border:1px solid #52eaff80;border-radius:17px;padding:18px;box-shadow:0 20px 70px #000e}
+#MGX_TOKEN_MANAGER .mgx-wallet-row{display:flex;align-items:center;gap:12px;width:100%;padding:12px;margin:8px 0;background:#0a2036;color:#eafaff;border:1px solid #24506b;border-radius:11px;text-align:left}
+#MGX_TOKEN_MANAGER .mgx-wallet-row img{width:36px;height:36px;object-fit:contain;border-radius:9px}
+#MGX_TOKEN_MANAGER .mgx-wallet-row span{font-weight:bold;font-size:13px}
+#MGX_TOKEN_MANAGER .mgx-qr-wrap{display:none;text-align:center;margin-top:14px;padding:14px;background:#fff;border-radius:12px;color:#071322}
+#MGX_TOKEN_MANAGER .mgx-qr-wrap.show{display:block}
+#MGX_TOKEN_MANAGER .mgx-qr-wrap canvas{max-width:100%;height:auto}
+#MGX_TOKEN_MANAGER .mgx-wallet-open{display:inline-block;margin-top:12px;padding:11px 16px;background:#52eaff;color:#00121e;border-radius:8px;font-weight:bold;text-decoration:none;font-size:12px}
+#MGX_TOKEN_MANAGER .mgx-pick-close{float:right;background:#10253b;color:#fff;border:1px solid #24506b;border-radius:8px;padding:7px 12px}
 #MGX_TOKEN_MANAGER #mgxToast{
  position:fixed!important;z-index:2147483647!important;
  left:50%;bottom:90px;transform:translateX(-50%);
@@ -142,15 +153,6 @@
 @media(max-width:550px){
  #MGX_TOKEN_MANAGER .body{padding:10px}
  #MGX_TOKEN_MANAGER .grid{grid-template-columns:1fr}
-}
-/* TON CONNECT MODAL: render above the manager and Blogger overlays.
-   The gadget root intentionally has no stacking context, so this portal
-   can sit above the manager overlay instead of being trapped underneath it. */
-body .tc-root,body .tc-modal,body .tc-modal__container,
-body .tc-modal__content,body .tc-overlay,
-body [data-tc-root],body #tc-widget-root,
-body [class*="tc-modal"],body [class*="tc-root"]{
- z-index:2147483647!important;
 }
 </style>
 
@@ -195,7 +197,7 @@ body [class*="tc-modal"],body [class*="tc-root"]{
      Admin controls unlock only after checking the current on-chain admin address.
     </div>
     <button class="btn" id="mgxConnectWallet" style="width:100%;margin-top:12px">CONNECT WALLET</button>
-    <div id="mgxWalletMount" style="display:flex;justify-content:center;margin-top:12px"></div>
+    
     <button class="btn red" id="mgxDisconnectWallet" style="width:100%;margin-top:10px">DISCONNECT WALLET</button>
     <div class="status" id="mgxWalletStatus">Wallet not connected.</div>
    </div>
@@ -332,7 +334,7 @@ body [class*="tc-modal"],body [class*="tc-root"]{
  </div>
 </div>
 
-<div id="mgxToast" class="hidden"></div>
+<div class="mgx-wallet-picker" id="mgxWalletPicker" aria-hidden="true"><div class="mgx-wallet-box"><button class="mgx-pick-close" id="mgxPickerClose" type="button">CLOSE</button><h3 style="color:#52eaff;margin:4px 0 8px">CHOOSE YOUR TON WALLET</h3><div class="muted">MAGROXIN private wallet selector. Independent from other wallet buttons or widgets on this website.</div><div id="mgxWalletList" style="margin-top:14px"></div><div class="mgx-qr-wrap" id="mgxWalletQR"><div style="font-weight:bold;font-size:13px;margin-bottom:8px">SCAN WITH YOUR WALLET</div><canvas id="mgxWalletQRCanvas"></canvas><div id="mgxWalletLinkBox"></div></div><div class="status" id="mgxPickerStatus">Loading available wallets…</div></div></div><div id="mgxToast" class="hidden"></div>
 </div>
 
 <script>
@@ -375,7 +377,7 @@ root.dataset.ready="1";
 const $=id=>root.querySelector("#"+id);
 
 const S={
- wallet:null,tc:null,core:null,master:null,
+ wallet:null,tc:null,core:null,master:null,wallets:[],
  admin:null,adminOK:false,info:null,
  decimals:9,jwallet:null,balance:0n,balanceDecimals:9
 };
@@ -447,112 +449,46 @@ function amount(v,d){
    TON CONNECT INITIALIZATION
 ===================================== */
 
+/* PRIVATE MAGROXIN TON CONNECT ENGINE — isolated UI and storage */
+const MGX_STORAGE_PREFIX="magroxin_token_manager_tonconnect_v1_";
+const mgxStorage={async getItem(k){try{return localStorage.getItem(MGX_STORAGE_PREFIX+k)}catch(_){return null}},async setItem(k,v){try{localStorage.setItem(MGX_STORAGE_PREFIX+k,v)}catch(_){}},async removeItem(k){try{localStorage.removeItem(MGX_STORAGE_PREFIX+k)}catch(_){}}};
 async function initWallet(){
  try{
-  status("mgxWalletStatus","Loading TON Connect…");
-
-  const registry=window.customElements;
-
-  if(registry&&!registry.__mgxDefineGuard){
-   const nativeDefine=registry.define.bind(registry);
-
-   registry.define=function(name,ctor,options){
-    if(registry.get(name))return;
-    return nativeDefine(name,ctor,options);
-   };
-
-   try{
-    Object.defineProperty(registry,"__mgxDefineGuard",{
-     value:true,configurable:false
-    });
-   }catch(_){
-    registry.__mgxDefineGuard=true;
-   }
-  }
-
-  if(!window.TON_CONNECT_UI?.TonConnectUI){
-   if(!window.__MGX_TONCONNECT_LOAD_PROMISE){
-
-    window.__MGX_TONCONNECT_LOAD_PROMISE=new Promise((resolve,reject)=>{
-     const existing=document.querySelector('script[data-mgx-tonconnect="1"]');
-
-     if(existing){
-      if(window.TON_CONNECT_UI?.TonConnectUI){
-       resolve();
-       return;
-      }
-
-      existing.addEventListener("load",resolve,{once:true});
-      existing.addEventListener("error",()=>{
-       reject(Error("TON Connect library could not load."));
-      },{once:true});
-      return;
-     }
-
-     const script=document.createElement("script");
-     script.src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js";
-     script.async=true;
-     script.dataset.mgxTonconnect="1";
-     script.onload=resolve;
-     script.onerror=()=>reject(Error("TON Connect library could not load."));
-     document.head.appendChild(script);
-
-    }).catch(error=>{
-     window.__MGX_TONCONNECT_LOAD_PROMISE=null;
-     throw error;
-    });
-   }
-
-   await window.__MGX_TONCONNECT_LOAD_PROMISE;
-  }
-
-  if(!window.TON_CONNECT_UI?.TonConnectUI)
-   throw Error("TON Connect UI loaded, but its interface was not found. Refresh the page.");
-
+  status("mgxWalletStatus","Loading MAGROXIN private wallet engine…","warn");
   if(!S.tc){
-   S.tc=new window.TON_CONNECT_UI.TonConnectUI({
-    manifestUrl:MANIFEST_URL,
-    buttonRootId:"mgxWalletMount"
-   });
-
+   const mod=await import("https://esm.sh/@tonconnect/sdk@4.0.0");const TonConnect=mod.TonConnect||mod.default;
+   if(!TonConnect)throw Error("TON Connect SDK could not initialize.");
+   S.tc=new TonConnect({manifestUrl:MANIFEST_URL,storage:mgxStorage,walletsListCacheTTLMs:3600000});
+   if(S.tc.setConnectionNetwork)S.tc.setConnectionNetwork(MAINNET);
    S.tc.onStatusChange(w=>{
-    S.wallet=w||null;
-    S.adminOK=false;
-    clearTokenDetails(false);
-
-    status(
-     "mgxWalletStatus",
-     w?(String(w.account.chain)===MAINNET?
-      "Connected · TON Mainnet · "+short(w.account.address):
-      "Connected on wrong network. Switch to TON Mainnet."):
-      "Wallet not connected.",
-     w&&String(w.account.chain)===MAINNET?"ok":""
-    );
-
-    if(w&&String(w.account.chain)!==MAINNET)
-     status("mgxLookupStatus","Switch your wallet to TON Mainnet before verifying ownership.","warn");
-    else if(!w)
-     status("mgxLookupStatus","Connect a TON Mainnet wallet first.");
+    S.wallet=w||null;S.adminOK=false;clearTokenDetails(false);
+    status("mgxWalletStatus",w?(String(w.account.chain)===MAINNET?"Connected · TON Mainnet · "+short(w.account.address):"Connected on wrong network. Switch to TON Mainnet."):"Wallet not connected.",w&&String(w.account.chain)===MAINNET?"ok":"");
+    if(w&&String(w.account.chain)!==MAINNET)status("mgxLookupStatus","Switch your wallet to TON Mainnet before verifying ownership.","warn");else if(!w)status("mgxLookupStatus","Connect a TON Mainnet wallet first.");
+    if(w)closeWalletPicker();
    });
-
-   if(S.tc.wallet){
-    S.wallet=S.tc.wallet;
-
-    status(
-     "mgxWalletStatus",
-     String(S.wallet.account.chain)===MAINNET?
-     "Connected · TON Mainnet · "+short(S.wallet.account.address):
-     "Connected on wrong network.",
-     String(S.wallet.account.chain)===MAINNET?"ok":"warn"
-    );
-   }
+   await S.tc.restoreConnection();if(S.tc.wallet)S.wallet=S.tc.wallet;
   }
-
- }catch(e){
-  status("mgxWalletStatus",e.message||"TON Connect initialization failed.","err");
- }
+  status("mgxWalletStatus",S.wallet?"Connected · "+short(S.wallet.account.address):"MAGROXIN private wallet engine ready.","ok");return true;
+ }catch(e){S.tc=null;status("mgxWalletStatus",e.message||"Wallet engine initialization failed.","err");throw e;}
 }
-
+function closeWalletPicker(){$("mgxWalletPicker").classList.remove("open");$("mgxWalletPicker").setAttribute("aria-hidden","true");$("mgxWalletQR").classList.remove("show");$("mgxWalletLinkBox").innerHTML="";}
+async function openWalletPicker(){
+ const p=$("mgxWalletPicker");p.classList.add("open");p.setAttribute("aria-hidden","false");$("mgxWalletList").innerHTML="";$("mgxPickerStatus").textContent="Loading available wallets…";$("mgxWalletQR").classList.remove("show");
+ try{await initWallet();S.wallets=await S.tc.getWallets();if(!S.wallets.length)throw Error("No compatible TON wallets were returned. Check your internet connection.");
+  S.wallets.forEach((w,i)=>{const b=document.createElement("button");b.type="button";b.className="mgx-wallet-row";const img=document.createElement("img");img.src=w.imageUrl||"";img.alt="";img.onerror=()=>img.style.display="none";const label=document.createElement("span");label.textContent=w.name||"TON Wallet";b.append(img,label);b.addEventListener("click",()=>connectChosenWallet(i));$("mgxWalletList").appendChild(b);});
+  $("mgxPickerStatus").textContent="Select your preferred wallet.";
+ }catch(e){$("mgxPickerStatus").textContent=e.message||"Could not load wallets.";$("mgxPickerStatus").className="status err";}
+}
+async function connectChosenWallet(index){
+ try{const w=S.wallets[index];if(!w)throw Error("Wallet option is no longer available.");$("mgxPickerStatus").textContent="Preparing secure connection…";
+  if((w.embedded||w.injected)&&w.jsBridgeKey){S.tc.connect({jsBridgeKey:w.jsBridgeKey});$("mgxPickerStatus").textContent="Waiting for wallet approval…";return;}
+  if(!w.bridgeUrl)throw Error("This wallet does not provide a supported TON Connect bridge.");
+  const link=S.tc.connect({bridgeUrl:w.bridgeUrl,universalLink:w.universalLink||w.deepLink});if(!link)throw Error("Wallet did not provide a connection link.");
+  $("mgxWalletQR").classList.add("show");$("mgxWalletLinkBox").innerHTML="";const a=document.createElement("a");a.className="mgx-wallet-open";a.href=link;a.target="_blank";a.rel="noopener noreferrer";a.textContent="OPEN "+(w.name||"WALLET");$("mgxWalletLinkBox").appendChild(a);
+  try{const q=await import("https://esm.sh/qrcode@1.5.4");await(q.default||q).toCanvas($("mgxWalletQRCanvas"),link,{width:220,margin:1,color:{dark:"#071322",light:"#ffffff"}});}catch(_){$("mgxWalletQRCanvas").style.display="none";}
+  $("mgxPickerStatus").textContent="Scan the QR code or tap OPEN WALLET, then approve inside your wallet.";$("mgxPickerStatus").className="status ok";
+ }catch(e){$("mgxPickerStatus").textContent=e.message||"Could not start wallet connection.";$("mgxPickerStatus").className="status err";}
+}
 /* =====================================
    TOKEN VERIFICATION
 ===================================== */
@@ -910,34 +846,9 @@ $("mgxContact").addEventListener("click",()=>{
  toast("Telegram support link is not configured yet.");
 });
 
-$("mgxConnectWallet").addEventListener("click",async()=>{
- const btn=$("mgxConnectWallet");
- btn.disabled=true;
- status("mgxWalletStatus","Opening TON Connect wallet selector…","warn");
- try{
-  await initWallet();
-  if(!S.tc)throw Error("TON Connect could not initialize. Check the status message and refresh the page.");
-
-  /* Wait until TON Connect restores any previous session and finishes setup. */
-  if(S.tc.connectionRestored&&typeof S.tc.connectionRestored.then==="function"){
-   await S.tc.connectionRestored;
-  }
-
-  if(typeof S.tc.openModal==="function"){
-   await S.tc.openModal();
-  }else{
-   /* Fallback: activate the official TON Connect UI button if exposed. */
-   const widget=$("mgxWalletMount").querySelector("button");
-   if(widget)widget.click();
-   else throw Error("TON Connect modal API is unavailable and its wallet button was not rendered. Refresh the page.");
-  }
-  status("mgxWalletStatus","Choose your wallet in the TON Connect window.","ok");
- }catch(e){
-  status("mgxWalletStatus",e.message||"Could not open wallet selector.","err");
- }finally{
-  btn.disabled=false;
- }
-});
+$("mgxConnectWallet").addEventListener("click",async()=>{const btn=$("mgxConnectWallet");btn.disabled=true;try{await openWalletPicker();}catch(e){status("mgxWalletStatus",e.message||"Could not open wallet picker.","err");}finally{btn.disabled=false;}});
+$("mgxPickerClose").addEventListener("click",closeWalletPicker);
+$("mgxWalletPicker").addEventListener("click",e=>{if(e.target===$("mgxWalletPicker"))closeWalletPicker();});
 $("mgxDisconnectWallet").addEventListener("click",async()=>{
  try{
   if(S.tc)await S.tc.disconnect();
