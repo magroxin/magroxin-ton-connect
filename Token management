@@ -138,7 +138,13 @@
  #MGX_TOKEN_MANAGER #mgxWalletConnectAction:disabled{opacity:.4}
  #MGX_TOKEN_MANAGER .mgx-wallet-list-heading{margin:18px 0 8px}
  #MGX_TOKEN_MANAGER .mgx-wallet-row.selected{border-color:#52eaff;box-shadow:0 0 0 1px #52eaff55;background:#10314c}
-#MGX_TOKEN_MANAGER .mgx-wallet-picker{display:none;position:fixed!important;inset:0!important;z-index:2147483647!important;background:#000e;backdrop-filter:blur(9px);padding:16px;overflow:auto}
+ #MGX_TOKEN_MANAGER .mgx-qr-wrap{text-align:center!important}
+ #MGX_TOKEN_MANAGER .mgx-qr-wrap canvas{display:block!important;width:220px!important;max-width:100%!important;height:auto!important;margin:12px auto!important}
+ #MGX_TOKEN_MANAGER .mgx-wallet-open{display:block!important;width:min(100%,240px)!important;margin:12px auto 0!important;text-align:center!important;box-sizing:border-box}
+ #MGX_TOKEN_MANAGER #mgxWalletConnectAction{display:block;width:min(100%,280px);margin:12px auto 0!important;text-align:center}
+ #MGX_TOKEN_MANAGER #mgxWalletStatus{white-space:pre-wrap;overflow-wrap:anywhere;text-align:center;margin-top:12px}
+ #MGX_TOKEN_MANAGER #mgxConnectWallet,#MGX_TOKEN_MANAGER #mgxDisconnectWallet{display:block;margin-left:auto!important;margin-right:auto!important;text-align:center}
+ #MGX_TOKEN_MANAGER .mgx-wallet-picker{display:none;position:fixed!important;inset:0!important;z-index:2147483647!important;background:#000e;backdrop-filter:blur(9px);padding:16px;overflow:auto}
 #MGX_TOKEN_MANAGER .mgx-wallet-picker.open{display:flex!important;align-items:center;justify-content:center}
 #MGX_TOKEN_MANAGER .mgx-wallet-box{width:min(100%,480px);max-height:90vh;overflow:auto;background:#061326;border:1px solid #52eaff80;border-radius:17px;padding:18px;box-shadow:0 20px 70px #000e}
 #MGX_TOKEN_MANAGER .mgx-wallet-row{display:flex;align-items:center;gap:12px;width:100%;padding:12px;margin:8px 0;background:#0a2036;color:#eafaff;border:1px solid #24506b;border-radius:11px;text-align:left}
@@ -204,9 +210,8 @@
      Admin controls unlock only after checking the current on-chain admin address.
     </div>
     <button class="btn" id="mgxConnectWallet" style="width:100%;margin-top:12px">CONNECT WALLET</button>
-    
-    <button class="btn red" id="mgxDisconnectWallet" style="width:100%;margin-top:10px">DISCONNECT WALLET</button>
     <div class="status" id="mgxWalletStatus">Wallet not connected.</div>
+    <button class="btn red" id="mgxDisconnectWallet" style="width:100%;margin-top:10px;display:none">DISCONNECT WALLET</button>
    </div>
 
    <!-- FIND TOKEN -->
@@ -482,14 +487,21 @@ async function initWallet(){
    if(S.tc.setConnectionNetwork)S.tc.setConnectionNetwork(MAINNET);
    S.tc.onStatusChange(w=>{
     S.wallet=w||null;S.adminOK=false;clearTokenDetails(false);
-    status("mgxWalletStatus",w?(String(w.account.chain)===MAINNET?"Connected · TON Mainnet · "+short(w.account.address):"Connected on wrong network. Switch to TON Mainnet."):"Wallet not connected.",w&&String(w.account.chain)===MAINNET?"ok":"");
+    updateWalletUI();
+    status("mgxWalletStatus",w?(String(w.account.chain)===MAINNET?"WALLET CONNECTED · TON MAINNET\n"+w.account.address:"Connected on wrong network. Switch to TON Mainnet."):"Wallet not connected.",w&&String(w.account.chain)===MAINNET?"ok":"");
     if(w&&String(w.account.chain)!==MAINNET)status("mgxLookupStatus","Switch your wallet to TON Mainnet before verifying ownership.","warn");else if(!w)status("mgxLookupStatus","Connect a TON Mainnet wallet first.");
     if(w)closeWalletPicker();
    });
    await S.tc.restoreConnection();if(S.tc.wallet)S.wallet=S.tc.wallet;
   }
-  status("mgxWalletStatus",S.wallet?"Connected · "+short(S.wallet.account.address):"MAGROXIN private wallet engine ready.","ok");return true;
+  updateWalletUI();
+  status("mgxWalletStatus",S.wallet?(String(S.wallet.account.chain)===MAINNET?"WALLET CONNECTED · TON MAINNET\n"+S.wallet.account.address:"Connected on wrong network. Switch to TON Mainnet."):"MAGROXIN private wallet engine ready.","ok");return true;
  }catch(e){S.tc=null;status("mgxWalletStatus",e.message||"Wallet engine initialization failed.","err");throw e;}
+}
+function updateWalletUI(){
+ const connected=!!S.wallet;
+ $("mgxConnectWallet").style.display=connected?"none":"block";
+ $("mgxDisconnectWallet").style.display=connected?"block":"none";
 }
 function closeWalletPicker(){$("mgxWalletPicker").classList.remove("open");$("mgxWalletPicker").setAttribute("aria-hidden","true");$("mgxWalletQR").classList.remove("show");$("mgxWalletLinkBox").innerHTML="";}
 async function openWalletPicker(){
@@ -881,6 +893,7 @@ $("mgxDisconnectWallet").addEventListener("click",async()=>{
   if(S.tc)await S.tc.disconnect();
   S.wallet=null;
   clearTokenDetails(true);
+  updateWalletUI();
   status("mgxWalletStatus","Wallet disconnected.");
   status("mgxLookupStatus","Connect a TON Mainnet wallet first.");
   toast("Wallet disconnected.");
