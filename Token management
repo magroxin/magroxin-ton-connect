@@ -131,6 +131,13 @@
  align-items:center!important;width:100%!important
 }
 #MGX_TOKEN_MANAGER #mgxWalletMount button{margin:auto!important}
+ #MGX_TOKEN_MANAGER .mgx-selected-wallet{margin-top:16px;padding:15px;border:1px solid #52eaff66;border-radius:13px;background:linear-gradient(145deg,#0b2942,#071426);text-align:center}
+ #MGX_TOKEN_MANAGER .mgx-selected-title,#MGX_TOKEN_MANAGER .mgx-wallet-list-heading{font-size:10px;letter-spacing:1.5px;color:#73dfff;font-weight:bold;margin-bottom:8px}
+ #MGX_TOKEN_MANAGER #mgxSelectedWalletName{font-size:15px;font-weight:bold;color:#fff;margin:8px 0 12px}
+ #MGX_TOKEN_MANAGER #mgxWalletConnectAction{width:100%;padding:13px 16px;border:0;border-radius:9px;background:linear-gradient(90deg,#52eaff,#328cff);color:#00121e;font-weight:900;letter-spacing:.5px}
+ #MGX_TOKEN_MANAGER #mgxWalletConnectAction:disabled{opacity:.4}
+ #MGX_TOKEN_MANAGER .mgx-wallet-list-heading{margin:18px 0 8px}
+ #MGX_TOKEN_MANAGER .mgx-wallet-row.selected{border-color:#52eaff;box-shadow:0 0 0 1px #52eaff55;background:#10314c}
 #MGX_TOKEN_MANAGER .mgx-wallet-picker{display:none;position:fixed!important;inset:0!important;z-index:2147483647!important;background:#000e;backdrop-filter:blur(9px);padding:16px;overflow:auto}
 #MGX_TOKEN_MANAGER .mgx-wallet-picker.open{display:flex!important;align-items:center;justify-content:center}
 #MGX_TOKEN_MANAGER .mgx-wallet-box{width:min(100%,480px);max-height:90vh;overflow:auto;background:#061326;border:1px solid #52eaff80;border-radius:17px;padding:18px;box-shadow:0 20px 70px #000e}
@@ -334,7 +341,7 @@
  </div>
 </div>
 
-<div class="mgx-wallet-picker" id="mgxWalletPicker" aria-hidden="true"><div class="mgx-wallet-box"><button class="mgx-pick-close" id="mgxPickerClose" type="button">CLOSE</button><h3 style="color:#52eaff;margin:4px 0 8px">CHOOSE YOUR TON WALLET</h3><div class="muted">MAGROXIN private wallet selector. Independent from other wallet buttons or widgets on this website.</div><div id="mgxWalletList" style="margin-top:14px"></div><div class="mgx-qr-wrap" id="mgxWalletQR"><div style="font-weight:bold;font-size:13px;margin-bottom:8px">SCAN WITH YOUR WALLET</div><canvas id="mgxWalletQRCanvas"></canvas><div id="mgxWalletLinkBox"></div></div><div class="status" id="mgxPickerStatus">Loading available wallets…</div></div></div><div id="mgxToast" class="hidden"></div>
+<div class="mgx-wallet-picker" id="mgxWalletPicker" aria-hidden="true"><div class="mgx-wallet-box"><button class="mgx-pick-close" id="mgxPickerClose" type="button">CLOSE</button><h3 style="color:#52eaff;margin:4px 0 8px">CHOOSE YOUR TON WALLET</h3><div class="muted">MAGROXIN private wallet selector. Independent from other wallet buttons or widgets on this website.</div><div class="mgx-selected-wallet" id="mgxSelectedWallet"><div class="mgx-selected-title">SELECTED WALLET</div><div id="mgxSelectedWalletName">Choose a wallet below</div><button type="button" id="mgxWalletConnectAction" disabled>CONNECT WALLET</button></div><div class="mgx-qr-wrap" id="mgxWalletQR"><div style="font-weight:bold;font-size:13px;margin-bottom:8px">SCAN WITH YOUR WALLET</div><canvas id="mgxWalletQRCanvas"></canvas><div id="mgxWalletLinkBox"></div></div><div class="status" id="mgxPickerStatus">Loading available wallets…</div><div class="mgx-wallet-list-heading">AVAILABLE WALLETS</div><div id="mgxWalletList" style="margin-top:8px"></div></div></div><div id="mgxToast" class="hidden"></div>
 </div>
 
 <script>
@@ -377,7 +384,7 @@ root.dataset.ready="1";
 const $=id=>root.querySelector("#"+id);
 
 const S={
- wallet:null,tc:null,core:null,master:null,wallets:[],
+ wallet:null,tc:null,core:null,master:null,wallets:[],selectedWalletIndex:-1,
  admin:null,adminOK:false,info:null,
  decimals:9,jwallet:null,balance:0n,balanceDecimals:9
 };
@@ -486,21 +493,27 @@ async function initWallet(){
 }
 function closeWalletPicker(){$("mgxWalletPicker").classList.remove("open");$("mgxWalletPicker").setAttribute("aria-hidden","true");$("mgxWalletQR").classList.remove("show");$("mgxWalletLinkBox").innerHTML="";}
 async function openWalletPicker(){
- const p=$("mgxWalletPicker");p.classList.add("open");p.setAttribute("aria-hidden","false");$("mgxWalletList").innerHTML="";$("mgxPickerStatus").textContent="Loading available wallets…";$("mgxWalletQR").classList.remove("show");
+ const p=$("mgxWalletPicker");p.classList.add("open");p.setAttribute("aria-hidden","false");$("mgxWalletList").innerHTML="";$("mgxPickerStatus").textContent="Loading available wallets…";$("mgxWalletQR").classList.remove("show");$("mgxWalletLinkBox").innerHTML="";$("mgxWalletQRCanvas").style.display="block";S.selectedWalletIndex=-1;$("mgxSelectedWalletName").textContent="Choose a wallet below";$("mgxWalletConnectAction").disabled=true;
  try{await initWallet();S.wallets=await S.tc.getWallets();if(!S.wallets.length)throw Error("No compatible TON wallets were returned. Check your internet connection.");
-  S.wallets.forEach((w,i)=>{const b=document.createElement("button");b.type="button";b.className="mgx-wallet-row";const img=document.createElement("img");img.src=w.imageUrl||"";img.alt="";img.onerror=()=>img.style.display="none";const label=document.createElement("span");label.textContent=w.name||"TON Wallet";b.append(img,label);b.addEventListener("click",()=>connectChosenWallet(i));$("mgxWalletList").appendChild(b);});
-  $("mgxPickerStatus").textContent="Select your preferred wallet.";
+  S.wallets.forEach((w,i)=>{const b=document.createElement("button");b.type="button";b.className="mgx-wallet-row";const img=document.createElement("img");img.src=w.imageUrl||"";img.alt="";img.onerror=()=>img.style.display="none";const label=document.createElement("span");label.textContent=w.name||"TON Wallet";b.append(img,label);b.addEventListener("click",()=>selectWallet(i));$("mgxWalletList").appendChild(b);});
+  $("mgxPickerStatus").textContent="Choose a wallet from the list. Its connect option will appear above.";
  }catch(e){$("mgxPickerStatus").textContent=e.message||"Could not load wallets.";$("mgxPickerStatus").className="status err";}
 }
+function selectWallet(index){
+ const w=S.wallets[index];if(!w)return;S.selectedWalletIndex=index;$("mgxSelectedWalletName").textContent=w.name||"TON Wallet";$("mgxWalletConnectAction").disabled=false;
+ Array.from($("mgxWalletList").children).forEach((b,i)=>b.classList.toggle("selected",i===index));
+ $("mgxWalletQR").classList.remove("show");$("mgxWalletLinkBox").innerHTML="";$("mgxWalletQRCanvas").style.display="block";
+ $("mgxPickerStatus").textContent="Selected "+(w.name||"TON Wallet")+". Tap CONNECT WALLET above.";$("mgxPickerStatus").className="status";
+}
 async function connectChosenWallet(index){
- try{const w=S.wallets[index];if(!w)throw Error("Wallet option is no longer available.");$("mgxPickerStatus").textContent="Preparing secure connection…";
+ try{const w=S.wallets[index];if(!w)throw Error("Choose a wallet first.");$("mgxWalletConnectAction").disabled=true;$("mgxPickerStatus").textContent="Preparing secure connection…";
   if((w.embedded||w.injected)&&w.jsBridgeKey){S.tc.connect({jsBridgeKey:w.jsBridgeKey});$("mgxPickerStatus").textContent="Waiting for wallet approval…";return;}
   if(!w.bridgeUrl)throw Error("This wallet does not provide a supported TON Connect bridge.");
   const link=S.tc.connect({bridgeUrl:w.bridgeUrl,universalLink:w.universalLink||w.deepLink});if(!link)throw Error("Wallet did not provide a connection link.");
   $("mgxWalletQR").classList.add("show");$("mgxWalletLinkBox").innerHTML="";const a=document.createElement("a");a.className="mgx-wallet-open";a.href=link;a.target="_blank";a.rel="noopener noreferrer";a.textContent="OPEN "+(w.name||"WALLET");$("mgxWalletLinkBox").appendChild(a);
-  try{const q=await import("https://esm.sh/qrcode@1.5.4");await(q.default||q).toCanvas($("mgxWalletQRCanvas"),link,{width:220,margin:1,color:{dark:"#071322",light:"#ffffff"}});}catch(_){$("mgxWalletQRCanvas").style.display="none";}
+  try{const q=await import("https://esm.sh/qrcode@1.5.4");await(q.default||q).toCanvas($("mgxWalletQRCanvas"),link,{width:220,margin:1,color:{dark:"#071322",light:"#ffffff"}});$("mgxWalletQRCanvas").style.display="block";}catch(_){$("mgxWalletQRCanvas").style.display="none";}
   $("mgxPickerStatus").textContent="Scan the QR code or tap OPEN WALLET, then approve inside your wallet.";$("mgxPickerStatus").className="status ok";
- }catch(e){$("mgxPickerStatus").textContent=e.message||"Could not start wallet connection.";$("mgxPickerStatus").className="status err";}
+ }catch(e){$("mgxPickerStatus").textContent=e.message||"Could not start wallet connection.";$("mgxPickerStatus").className="status err";$("mgxWalletConnectAction").disabled=false;}
 }
 /* =====================================
    TOKEN VERIFICATION
@@ -861,6 +874,7 @@ $("mgxContact").addEventListener("click",()=>{
 
 $("mgxConnectWallet").addEventListener("click",async()=>{const btn=$("mgxConnectWallet");btn.disabled=true;try{await openWalletPicker();}catch(e){status("mgxWalletStatus",e.message||"Could not open wallet picker.","err");}finally{btn.disabled=false;}});
 $("mgxPickerClose").addEventListener("click",closeWalletPicker);
+$("mgxWalletConnectAction").addEventListener("click",()=>connectChosenWallet(S.selectedWalletIndex));
 $("mgxWalletPicker").addEventListener("click",e=>{if(e.target===$("mgxWalletPicker"))closeWalletPicker();});
 $("mgxDisconnectWallet").addEventListener("click",async()=>{
  try{
