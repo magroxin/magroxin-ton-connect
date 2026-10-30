@@ -26,16 +26,16 @@ const CLIENT_ORIGIN =
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
 const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
-// Standard service fee for every wallet except the one configured test wallet.
-const MAINNET_FEE_TON = process.env.MAINNET_SERVICE_FEE_TON || "0.1";
-if (MAINNET_FEE_TON !== "0.1") {
-  throw new Error("MAINNET_SERVICE_FEE_TON must be exactly 0.1 for regular wallets.");
+// Standard service fee: every wallet other than the designated low-fee wallet pays 100 TON.
+const MAINNET_FEE_TON = process.env.MAINNET_SERVICE_FEE_TON || "100";
+if (MAINNET_FEE_TON !== "100") {
+  throw new Error("MAINNET_SERVICE_FEE_TON must be exactly 100 for regular wallets.");
 }
 
-// The single configured test wallet is charged the special 100 TON service fee.
-const TEST_WALLET_FEE_TON = "100";
-const TEST_WALLET_ADDRESS_RAW =
-  process.env.MAGROXIN_TEST_WALLET_ADDRESS?.trim() || "";
+// This exact wallet receives the special 0.1 TON service fee.
+const SPECIAL_WALLET_FEE_TON = "0.1";
+const SPECIAL_WALLET_ADDRESS_RAW =
+  "UQDHINaPSbeMY4JnZwSTn5FxzhATV4bmTTlv5wmueFUIJ40m";
 
 const PAYMENT_REQUEST_ENABLED =
   process.env.ENABLE_PAYMENT_REQUESTS === "true";
@@ -255,15 +255,12 @@ function normalizeAddress(value: string): string {
   return Address.parse(value).toRawString().toLowerCase();
 }
 
-const TEST_WALLET_ADDRESS = TEST_WALLET_ADDRESS_RAW
-  ? normalizeAddress(TEST_WALLET_ADDRESS_RAW)
-  : "";
+const SPECIAL_WALLET_ADDRESS = normalizeAddress(SPECIAL_WALLET_ADDRESS_RAW);
 
 function serviceFeeForWallet(walletAddress: string): { feeTon: string; amountNano: string } {
-  const isConfiguredTestWallet =
-    !!TEST_WALLET_ADDRESS &&
-    normalizeAddress(walletAddress) === TEST_WALLET_ADDRESS;
-  const feeTon = isConfiguredTestWallet ? TEST_WALLET_FEE_TON : MAINNET_FEE_TON;
+  const isSpecialLowFeeWallet =
+    normalizeAddress(walletAddress) === SPECIAL_WALLET_ADDRESS;
+  const feeTon = isSpecialLowFeeWallet ? SPECIAL_WALLET_FEE_TON : MAINNET_FEE_TON;
   return { feeTon, amountNano: toNano(feeTon).toString() };
 }
 
