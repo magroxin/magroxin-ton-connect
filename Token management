@@ -143,6 +143,12 @@
  #MGX_TOKEN_MANAGER .body{padding:10px}
  #MGX_TOKEN_MANAGER .grid{grid-template-columns:1fr}
 }
+/* TON CONNECT MODAL: keep wallet picker above Blogger overlays */
+body .tc-root,body .tc-modal,body .tc-modal__container,
+body .tc-modal__content,body .tc-overlay,
+body [data-tc-root],body #tc-widget-root{
+ z-index:2147483647!important;
+}
 </style>
 
 <!-- FLOATING ENTRY -->
@@ -185,7 +191,9 @@
      Connect the wallet that currently administers your token.
      Admin controls unlock only after checking the current on-chain admin address.
     </div>
+    <button class="btn" id="mgxConnectWallet" style="width:100%;margin-top:12px">CONNECT WALLET</button>
     <div id="mgxWalletMount" style="display:flex;justify-content:center;margin-top:12px"></div>
+    <button class="btn red" id="mgxDisconnectWallet" style="width:100%;margin-top:10px">DISCONNECT WALLET</button>
     <div class="status" id="mgxWalletStatus">Wallet not connected.</div>
    </div>
 
@@ -504,7 +512,7 @@ async function initWallet(){
    S.tc.onStatusChange(w=>{
     S.wallet=w||null;
     S.adminOK=false;
-    $("mgxDetails").classList.remove("show");
+    if(!w)clearTokenDetails(false);
 
     status(
      "mgxWalletStatus",
@@ -844,7 +852,6 @@ const openManager=()=>{
  $("mgxOverlay").classList.add("open");
  $("mgxOverlay").setAttribute("aria-hidden","false");
  document.body.style.overflow="hidden";
-
  if(!S.tc)initWallet();
 };
 
@@ -857,10 +864,28 @@ $("mgxOpen").addEventListener("keydown",e=>{
  }
 });
 
+function clearTokenDetails(clearAddress=true){
+ S.master=null;S.admin=null;S.adminOK=false;S.info=null;
+ S.jwallet=null;S.balance=0n;
+ $("mgxDetails").classList.remove("show");
+ if(clearAddress)$("mgxMaster").value="";
+ ["mgxNameView","mgxSymbolView","mgxSupplyView","mgxAdminView"].forEach(id=>$(id).textContent="—");
+ $("mgxBalanceView").textContent="Not loaded";
+ ["mgxEditName","mgxEditSymbol","mgxEditDescription","mgxEditImage",
+  "mgxMintTo","mgxMintAmount","mgxBurnAmount","mgxRevokeWord"].forEach(id=>$(id).value="");
+ $("mgxDecimals").value="9";
+ status("mgxOwnerStatus","");
+ status("mgxMetadataStatus","");
+ status("mgxMintStatus","");
+ status("mgxBurnStatus","");
+ status("mgxRevokeStatus","");
+ status("mgxLookupStatus","Enter a Jetton master address and search again.");
+}
 function close(){
  $("mgxOverlay").classList.remove("open");
  $("mgxOverlay").setAttribute("aria-hidden","true");
  document.body.style.overflow="";
+ clearTokenDetails(true);
 }
 
 $("mgxClose").addEventListener("click",close);
@@ -879,6 +904,25 @@ $("mgxContact").addEventListener("click",()=>{
  toast("Telegram support link is not configured yet.");
 });
 
+$("mgxConnectWallet").addEventListener("click",async()=>{
+ await initWallet();
+ if(S.tc){
+  try{await S.tc.openModal();}
+  catch(e){status("mgxWalletStatus",e.message||"Could not open wallet selector.","err");}
+ }
+});
+$("mgxDisconnectWallet").addEventListener("click",async()=>{
+ try{
+  if(S.tc)await S.tc.disconnect();
+  S.wallet=null;
+  clearTokenDetails(true);
+  status("mgxWalletStatus","Wallet disconnected.");
+  status("mgxLookupStatus","Connect a TON Mainnet wallet first.");
+  toast("Wallet disconnected.");
+ }catch(e){
+  status("mgxWalletStatus",e.message||"Could not disconnect wallet.","err");
+ }
+});
 $("mgxLoad").addEventListener("click",loadToken);
 $("mgxSaveMetadata").addEventListener("click",saveMetadata);
 $("mgxMint").addEventListener("click",mint);
