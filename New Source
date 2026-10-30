@@ -1,0 +1,3493 @@
+<!-- MAGROXIN ALL-IN-ONE BLOGGER GADGET
+     Built from current GitHub Gadget 01 + Gadget 02 + FINAL COMBINED GADGET 03-04.
+     Do not install the old separate Gadget 03 or Gadget 04.
+     Keep the Render backend and TON Connect wallet flow unchanged.
+-->
+<div id="MGX_ALL_IN_ONE_APP">
+<style>
+#MGX_ALL_IN_ONE_APP{width:100%;max-width:100%;margin:0 auto;position:relative}
+#MGX_ALL_IN_ONE_APP [hidden]{display:none!important}
+</style>
+<!-- MAGROXIN TOKEN LAB | GADGET 01 PRO -->
+<div id="VXTON_HOME_01">
+  <style>
+    /* GLOBAL TOKEN-LAB BACKGROUND */
+    html:has(#VXTON_HOME_01),
+    body:has(#VXTON_HOME_01) {
+      background-color: #030716 !important;
+    }
+
+    body:has(#VXTON_HOME_01) {
+      background-image: none !important;
+    }
+
+    #VXTON_GLOBAL_BG {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 50% 15%, rgba(10,65,150,.30), transparent 52%),
+        radial-gradient(ellipse at 0% 65%, rgba(0,95,255,.15), transparent 45%),
+        radial-gradient(ellipse at 100% 75%, rgba(120,0,255,.15), transparent 42%),
+        linear-gradient(180deg,#020615 0%,#040a1d 48%,#020615 100%);
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-grid {
+      position: absolute;
+      inset: 0;
+      opacity: .18;
+      background-image:
+        linear-gradient(rgba(32,137,255,.13) 1px, transparent 1px),
+        linear-gradient(90deg,rgba(32,137,255,.13) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: linear-gradient(to bottom,transparent,#000 25%,#000 75%,transparent);
+      animation: vxbg-grid-move 24s linear infinite;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-aurora {
+      position: absolute;
+      width: 75vw;
+      height: 75vw;
+      max-width: 950px;
+      max-height: 950px;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: .13;
+      animation: vxbg-aurora 18s ease-in-out infinite alternate;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-a1 {
+      left: -25%;
+      top: -35%;
+      background: #005bff;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-a2 {
+      right: -30%;
+      top: 20%;
+      background: #8c21ff;
+      animation-delay: -8s;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-a3 {
+      left: 25%;
+      bottom: -65%;
+      background: #00d9ff;
+      animation-delay: -12s;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-stars {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: #8defff;
+      box-shadow: 0 0 8px 2px rgba(0,180,255,.55);
+      animation: vxbg-twinkle var(--duration,4s) ease-in-out infinite;
+      animation-delay: var(--delay,0s);
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-beam {
+      position: absolute;
+      width: 1px;
+      height: 70vh;
+      opacity: .4;
+      transform: rotate(35deg);
+      transform-origin: top;
+      background: linear-gradient(transparent,#087bff,transparent);
+      animation: vxbg-beam 9s ease-in-out infinite;
+    }
+
+    #VXTON_GLOBAL_BG .vxbg-beam.b1 { left: 12%; top: -25%; }
+    #VXTON_GLOBAL_BG .vxbg-beam.b2 {
+      right: 16%;
+      top: -20%;
+      animation-delay: -4s;
+      background: linear-gradient(transparent,#b044ff,transparent);
+    }
+
+    #VXTON_HOME_01 {
+      --cyan: #42edff;
+      --blue: #2888ff;
+      --purple: #a855ff;
+      position: relative;
+      z-index: 1;
+      isolation: isolate;
+      width: 100%;
+      max-width: 1440px;
+      min-height: 720px;
+      margin: 0 auto;
+      padding: 24px clamp(14px,4vw,55px) 55px;
+      box-sizing: border-box;
+      color: #f5f8ff;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      overflow: clip;
+    }
+
+    #VXTON_HOME_01 *,
+    #VXTON_HOME_01 *::before,
+    #VXTON_HOME_01 *::after {
+      box-sizing: border-box;
+    }
+
+    #VXTON_HOME_01 .vx01-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1180px;
+      margin: 0 auto;
+      animation: vx01-enter .8s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    #VXTON_HOME_01 .vx01-logo {
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      flex-shrink: 0;
+      border: 1px solid rgba(66,237,255,.45);
+      border-radius: 13px;
+      background: linear-gradient(135deg,#143a78,#11122f);
+      color: var(--cyan);
+      font-size: 25px;
+      font-weight: 1000;
+      font-style: italic;
+      text-shadow: 0 0 18px var(--cyan);
+      box-shadow: 0 0 24px rgba(0,140,255,.2);
+      animation: vx01-logo-pulse 4s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-brand-name {
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+    }
+
+    #VXTON_HOME_01 .vx01-brand-sub {
+      display: block;
+      margin-top: 4px;
+      color: #56cfff;
+      font-size: 10px;
+      letter-spacing: 3px;
+    }
+
+    #VXTON_HOME_01 .vx01-network {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 15px;
+      border: 1px solid rgba(66,237,255,.3);
+      border-radius: 50px;
+      background: rgba(4,17,43,.72);
+      color: #bdefff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      white-space: nowrap;
+      box-shadow: inset 0 0 15px rgba(0,140,255,.06);
+    }
+
+    #VXTON_HOME_01 .vx01-live-dot,
+    #VXTON_HOME_01 .vx01-status-dot {
+      width: 7px;
+      height: 7px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: #18f7ba;
+      box-shadow: 0 0 12px #18f7ba;
+      animation: vx01-live 1.8s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-hero {
+      position: relative;
+      z-index: 1;
+      max-width: 940px;
+      margin: 58px auto 0;
+      text-align: center;
+    }
+
+    #VXTON_HOME_01 .vx01-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 10px 18px;
+      border: 1px solid transparent;
+      border-radius: 50px;
+      background:
+        linear-gradient(#061127,#061127) padding-box,
+        linear-gradient(100deg,#923dff,#00dcff) border-box;
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      box-shadow: 0 0 30px rgba(0,125,255,.08);
+      animation: vx01-enter .8s .1s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-eyebrow i {
+      color: #a64fff;
+      font-style: normal;
+    }
+
+    #VXTON_HOME_01 .vx01-title {
+      margin: 26px 0 19px;
+      color: #f7fbff;
+      font-size: clamp(38px,7.4vw,83px);
+      line-height: 1.04;
+      font-weight: 950;
+      letter-spacing: -3px;
+      text-wrap: balance;
+      text-shadow: 0 6px 35px rgba(22,116,255,.12);
+      animation: vx01-enter .9s .18s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-title span {
+      display: inline-block;
+      padding-bottom: 5px;
+      background: linear-gradient(100deg,#27d9ff 0%,#70eaff 30%,#ffffff 54%,#9b7aff 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: vx01-text-flow 7s linear infinite;
+      filter: drop-shadow(0 0 25px rgba(25,154,255,.15));
+    }
+
+    #VXTON_HOME_01 .vx01-subtitle {
+      max-width: 680px;
+      margin: 0 auto;
+      color: #a8bddb;
+      font-size: clamp(14px,1.6vw,17px);
+      line-height: 1.9;
+      animation: vx01-enter .9s .28s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-token-art {
+      position: absolute;
+      z-index: -1;
+      top: 90px;
+      left: -150px;
+      width: 240px;
+      height: 240px;
+      pointer-events: none;
+      animation: vx01-float 7s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-coin {
+      position: absolute;
+      inset: 34px;
+      display: grid;
+      place-items: center;
+      border: 2px solid rgba(90,240,255,.85);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 32% 25%,rgba(86,241,255,.45),transparent 32%),
+        radial-gradient(circle at 50% 50%,#0750b9,#07152f 72%);
+      color: #b4f8ff;
+      font-size: 56px;
+      font-weight: 900;
+      box-shadow:
+        0 0 30px rgba(0,190,255,.55),
+        inset 0 0 30px rgba(0,170,255,.32);
+      transform: rotate(-15deg);
+    }
+
+    #VXTON_HOME_01 .vx01-orbit {
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(0,191,255,.6);
+      border-radius: 50%;
+      transform: rotate(-28deg) scaleY(.42);
+      box-shadow: 0 0 18px rgba(0,153,255,.2);
+    }
+
+    #VXTON_HOME_01 .vx01-orbit.o2 {
+      inset: 0;
+      transform: rotate(54deg) scaleY(.53);
+      border-color: rgba(154,75,255,.65);
+      animation: vx01-orbit-spin 12s linear infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-token-art .vx01-spark {
+      position: absolute;
+      top: 12px;
+      right: 30px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 0 18px 5px #328bff;
+    }
+
+    #VXTON_HOME_01 .vx01-side-panel {
+      position: absolute;
+      z-index: -1;
+      top: 170px;
+      right: -115px;
+      width: 245px;
+      padding: 20px;
+      border: 1px solid rgba(34,128,255,.4);
+      border-radius: 18px;
+      background: linear-gradient(145deg,rgba(8,28,72,.88),rgba(7,10,35,.68));
+      box-shadow: 0 0 45px rgba(0,94,255,.13), inset 0 0 25px rgba(0,140,255,.06);
+      transform: perspective(800px) rotateY(-13deg) rotateZ(-3deg);
+      animation: vx01-panel-float 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    #VXTON_HOME_01 .vx01-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(87,164,255,.16);
+      color: #9bc9ff;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    #VXTON_HOME_01 .vx01-panel-bars {
+      display: flex;
+      align-items: end;
+      gap: 9px;
+      height: 100px;
+      padding-top: 20px;
+    }
+
+    #VXTON_HOME_01 .vx01-panel-bars span {
+      flex: 1;
+      height: var(--h);
+      border-radius: 4px 4px 0 0;
+      background: linear-gradient(to top,#2460ff,#39efff);
+      box-shadow: 0 0 12px rgba(0,180,255,.24);
+      animation: vx01-bars 2.8s ease-in-out infinite alternate;
+      animation-delay: var(--d);
+    }
+
+    #VXTON_HOME_01 .vx01-panel-line {
+      height: 6px;
+      margin-top: 13px;
+      border-radius: 9px;
+      background: linear-gradient(90deg,#1264d8,#31dfff 65%,transparent);
+      opacity: .65;
+    }
+
+    #VXTON_HOME_01 .vx01-features {
+      display: grid;
+      grid-template-columns: repeat(3,minmax(0,1fr));
+      gap: 14px;
+      max-width: 790px;
+      margin: 33px auto 0;
+      animation: vx01-enter .9s .4s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-feature {
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+      padding: 22px 12px;
+      border: 1px solid rgba(22,125,255,.43);
+      border-radius: 20px;
+      background: linear-gradient(145deg,rgba(5,22,53,.88),rgba(4,10,30,.83));
+      box-shadow: inset 0 0 22px rgba(0,110,255,.045);
+      transition: transform .3s ease,border-color .3s ease,box-shadow .3s ease;
+    }
+
+    #VXTON_HOME_01 .vx01-feature::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -120%;
+      width: 80%;
+      height: 1px;
+      background: linear-gradient(90deg,transparent,#49eaff,transparent);
+      animation: vx01-card-shimmer 6s linear infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-feature:hover {
+      transform: translateY(-7px);
+      border-color: rgba(66,237,255,.85);
+      box-shadow: 0 12px 35px rgba(0,115,255,.14),inset 0 0 25px rgba(0,180,255,.06);
+    }
+
+    #VXTON_HOME_01 .vx01-feature-icon {
+      display: grid;
+      place-items: center;
+      height: 42px;
+      margin-bottom: 12px;
+      color: var(--cyan);
+      font-size: 30px;
+      text-shadow: 0 0 18px rgba(0,205,255,.65);
+      animation: vx01-icon-glow 3s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-feature:nth-child(2) .vx01-feature-icon {
+      color: #9b85ff;
+      animation-delay: -.8s;
+    }
+
+    #VXTON_HOME_01 .vx01-feature:nth-child(3) .vx01-feature-icon {
+      color: #60b7ff;
+      animation-delay: -1.5s;
+    }
+
+    #VXTON_HOME_01 .vx01-feature strong {
+      display: block;
+      color: #eaf7ff;
+      font-size: 12px;
+      letter-spacing: .8px;
+    }
+
+    #VXTON_HOME_01 .vx01-feature small {
+      display: block;
+      margin-top: 8px;
+      color: #91b3d8;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    #VXTON_HOME_01 .vx01-action-area {
+      position: relative;
+      z-index: 2;
+      margin: 28px auto 0;
+      text-align: center;
+      animation: vx01-enter .9s .5s ease both;
+    }
+
+    #VXTON_HOME_01 .vx01-button-shell {
+      display: inline-block;
+      padding: 3px;
+      border-radius: 20px;
+      background: linear-gradient(110deg,#00dfff,#287cff,#a54bff,#00e8ff);
+      background-size: 250% 100%;
+      box-shadow: 0 0 28px rgba(0,160,255,.25),0 0 65px rgba(94,51,255,.13);
+      animation: vx01-border-flow 5s linear infinite,vx01-button-hover 4s ease-in-out infinite;
+    }
+
+    #VXTON_HOME_01 .vx01-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 13px;
+      width: min(330px,78vw);
+      min-height: 61px;
+      padding: 15px 24px;
+      border: 0;
+      border-radius: 17px;
+      background: linear-gradient(105deg,#063a88,#102d80 50%,#54249a);
+      color: white;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      cursor: pointer;
+      transition: filter .25s,transform .25s;
+    }
+
+    #VXTON_HOME_01 .vx01-button:hover {
+      filter: brightness(1.3);
+      transform: scale(1.025);
+    }
+
+    #VXTON_HOME_01 .vx01-button:active {
+      transform: scale(.98);
+    }
+
+    #VXTON_HOME_01 .vx01-button:focus-visible {
+      outline: 2px solid white;
+      outline-offset: 5px;
+    }
+
+    #VXTON_HOME_01 .vx01-button .vx01-rocket {
+      color: var(--cyan);
+      font-size: 20px;
+      text-shadow: 0 0 15px var(--cyan);
+    }
+
+    #VXTON_HOME_01 .vx01-button .vx01-arrow {
+      font-size: 22px;
+      transition: transform .25s;
+    }
+
+    #VXTON_HOME_01 .vx01-button:hover .vx01-arrow {
+      transform: translateX(5px);
+    }
+
+    #VXTON_HOME_01 .vx01-status-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 9px;
+      width: fit-content;
+      max-width: 100%;
+      margin: 20px auto 0;
+      padding: 12px 18px;
+      border: 1px solid rgba(39,138,255,.36);
+      border-radius: 40px;
+      background: rgba(3,13,33,.85);
+      color: #a9c7e8;
+      font-size: 11px;
+      line-height: 1.6;
+      box-shadow: 0 0 25px rgba(0,100,255,.07);
+    }
+
+    #VXTON_HOME_01 .vx01-status-pill b {
+      color: #e4f7ff;
+      font-weight: 700;
+    }
+
+    #VXTON_HOME_01 .vx01-status {
+      min-height: 20px;
+      margin: 12px auto 0;
+      color: var(--cyan);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    #VXTON_HOME_01 .vx01-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 13px;
+      max-width: 500px;
+      margin: 40px auto 0;
+      color: #6eacd9;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+    }
+
+    #VXTON_HOME_01 .vx01-footer::before,
+    #VXTON_HOME_01 .vx01-footer::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg,transparent,rgba(47,143,255,.5));
+    }
+
+    #VXTON_HOME_01 .vx01-footer::after {
+      background: linear-gradient(90deg,rgba(47,143,255,.5),transparent);
+    }
+
+    #VXTON_HOME_01 .vx01-disclaimer {
+      margin-top: 12px;
+      color: #6d86a8;
+      font-size: 10px;
+      line-height: 1.8;
+      text-align: center;
+    }
+
+    @keyframes vx01-enter {
+      from { opacity: 0; transform: translateY(22px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes vx01-float {
+      0%,100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-17px) rotate(3deg); }
+    }
+
+    @keyframes vx01-panel-float {
+      0%,100% { transform: perspective(800px) rotateY(-13deg) rotateZ(-3deg) translateY(0); }
+      50% { transform: perspective(800px) rotateY(-9deg) rotateZ(-1deg) translateY(-13px); }
+    }
+
+    @keyframes vx01-orbit-spin {
+      from { transform: rotate(54deg) scaleY(.53); }
+      to { transform: rotate(414deg) scaleY(.53); }
+    }
+
+    @keyframes vx01-text-flow {
+      to { background-position: 200% center; }
+    }
+
+    @keyframes vx01-border-flow {
+      to { background-position: 250% center; }
+    }
+
+    @keyframes vx01-button-hover {
+      0%,100% { box-shadow: 0 0 25px rgba(0,160,255,.22),0 0 55px rgba(94,51,255,.1); }
+      50% { box-shadow: 0 0 38px rgba(0,220,255,.34),0 0 75px rgba(139,51,255,.2); }
+    }
+
+    @keyframes vx01-logo-pulse {
+      0%,100% { box-shadow: 0 0 18px rgba(0,140,255,.18); }
+      50% { box-shadow: 0 0 30px rgba(0,210,255,.36); }
+    }
+
+    @keyframes vx01-live {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .45; transform: scale(.7); }
+    }
+
+    @keyframes vx01-icon-glow {
+      0%,100% { filter: drop-shadow(0 0 3px rgba(0,205,255,.25)); }
+      50% { filter: drop-shadow(0 0 12px rgba(0,205,255,.65)); }
+    }
+
+    @keyframes vx01-card-shimmer {
+      0% { left: -120%; }
+      45%,100% { left: 140%; }
+    }
+
+    @keyframes vx01-bars {
+      from { filter: brightness(.7); }
+      to { filter: brightness(1.4); }
+    }
+
+    @keyframes vxbg-twinkle {
+      0%,100% { opacity: .15; transform: scale(.7); }
+      50% { opacity: 1; transform: scale(1.5); }
+    }
+
+    @keyframes vxbg-aurora {
+      from { transform: translate3d(-5%,0,0) scale(.9); }
+      to { transform: translate3d(12%,10%,0) scale(1.15); }
+    }
+
+    @keyframes vxbg-grid-move {
+      to { background-position: 54px 54px; }
+    }
+
+    @keyframes vxbg-beam {
+      0%,100% { opacity: .08; transform: rotate(35deg) translateY(-5%); }
+      50% { opacity: .5; transform: rotate(35deg) translateY(12%); }
+    }
+
+    @media (max-width: 900px) {
+      #VXTON_HOME_01 .vx01-token-art {
+        left: -130px;
+        top: 110px;
+        transform: scale(.72);
+      }
+
+      #VXTON_HOME_01 .vx01-side-panel {
+        right: -140px;
+        top: 190px;
+        transform: scale(.8);
+      }
+
+      #VXTON_HOME_01 .vx01-hero {
+        margin-top: 54px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      #VXTON_HOME_01 {
+        min-height: 0;
+        padding: 18px 13px 38px;
+      }
+
+      #VXTON_HOME_01 .vx01-logo {
+        width: 37px;
+        height: 37px;
+        font-size: 21px;
+      }
+
+      #VXTON_HOME_01 .vx01-brand-name {
+        font-size: 13px;
+        letter-spacing: 1px;
+      }
+
+      #VXTON_HOME_01 .vx01-brand-sub {
+        font-size: 8px;
+        letter-spacing: 2px;
+      }
+
+      #VXTON_HOME_01 .vx01-network {
+        gap: 6px;
+        padding: 9px 10px;
+        font-size: 9px;
+        letter-spacing: .4px;
+      }
+
+      #VXTON_HOME_01 .vx01-hero {
+        margin-top: 54px;
+      }
+
+      #VXTON_HOME_01 .vx01-eyebrow {
+        gap: 7px;
+        padding: 9px 12px;
+        font-size: 9px;
+        letter-spacing: 1.1px;
+      }
+
+      #VXTON_HOME_01 .vx01-title {
+        margin-top: 25px;
+        font-size: clamp(37px,10vw,58px);
+        letter-spacing: -1.8px;
+      }
+
+      #VXTON_HOME_01 .vx01-subtitle {
+        max-width: 450px;
+        font-size: 13px;
+        line-height: 1.8;
+      }
+
+      #VXTON_HOME_01 .vx01-token-art {
+        top: 20px;
+        left: -140px;
+        opacity: .25;
+        transform: scale(.6);
+      }
+
+      #VXTON_HOME_01 .vx01-side-panel {
+        top: 60px;
+        right: -160px;
+        opacity: .2;
+        transform: scale(.6);
+      }
+
+      #VXTON_HOME_01 .vx01-features {
+        gap: 8px;
+        margin-top: 27px;
+      }
+
+      #VXTON_HOME_01 .vx01-feature {
+        padding: 15px 5px;
+        border-radius: 14px;
+      }
+
+      #VXTON_HOME_01 .vx01-feature-icon {
+        height: 32px;
+        font-size: 24px;
+      }
+
+      #VXTON_HOME_01 .vx01-feature strong {
+        font-size: 9px;
+        letter-spacing: .1px;
+      }
+
+      #VXTON_HOME_01 .vx01-feature small {
+        margin-top: 6px;
+        font-size: 9px;
+        line-height: 1.5;
+      }
+
+      #VXTON_HOME_01 .vx01-button {
+        min-height: 56px;
+        font-size: 14px;
+      }
+
+      #VXTON_HOME_01 .vx01-status-pill {
+        padding: 11px 13px;
+        font-size: 10px;
+      }
+
+      #VXTON_HOME_01 .vx01-footer {
+        margin-top: 34px;
+        font-size: 10px;
+        letter-spacing: .8px;
+      }
+
+      #VXTON_GLOBAL_BG .vxbg-grid {
+        background-size: 38px 38px;
+      }
+
+      #VXTON_GLOBAL_BG .vxbg-aurora {
+        filter: blur(70px);
+        opacity: .1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #VXTON_GLOBAL_BG *,
+      #VXTON_HOME_01 *,
+      #VXTON_HOME_01 *::before,
+      #VXTON_HOME_01 *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+
+  <header class="vx01-nav">
+    <div class="vx01-brand">
+      <div class="vx01-logo" aria-hidden="true">M</div>
+      <div>
+        <div class="vx01-brand-name">MAGROXIN</div>
+        <span class="vx01-brand-sub">TOKEN LAB</span>
+      </div>
+    </div>
+
+    <div class="vx01-network">
+      <span class="vx01-live-dot"></span>
+      POWERED BY TON
+    </div>
+  </header>
+
+  <main class="vx01-hero">
+    <div class="vx01-token-art" aria-hidden="true">
+      <div class="vx01-orbit"></div>
+      <div class="vx01-orbit o2"></div>
+      <div class="vx01-coin">◇</div>
+      <div class="vx01-spark"></div>
+    </div>
+
+    <div class="vx01-side-panel" aria-hidden="true">
+      <div class="vx01-panel-head">
+        <span>TON NETWORK</span>
+        <span>◆ LIVE UI</span>
+      </div>
+      <div class="vx01-panel-bars">
+        <span style="--h:35%;--d:0s"></span>
+        <span style="--h:65%;--d:-.3s"></span>
+        <span style="--h:48%;--d:-.6s"></span>
+        <span style="--h:88%;--d:-.9s"></span>
+        <span style="--h:70%;--d:-1.2s"></span>
+        <span style="--h:100%;--d:-1.5s"></span>
+      </div>
+      <div class="vx01-panel-line"></div>
+      <div class="vx01-panel-line" style="width:70%"></div>
+    </div>
+
+    <div class="vx01-eyebrow">
+      <span>CREATE</span><i>•</i>
+      <span>CUSTOMIZE</span><i>•</i>
+      <span>LAUNCH</span>
+    </div>
+
+    <h1 class="vx01-title">
+      Create Your Own<br />
+      <span>TON Token</span>
+    </h1>
+
+    <p class="vx01-subtitle">
+      Your token. Your vision. The TON ecosystem.
+      Configure your token details, review your setup,
+      connect your wallet, and continue through the creation workflow.
+    </p>
+
+    <section class="vx01-features" aria-label="Token creator features">
+      <div class="vx01-feature">
+        <div class="vx01-feature-icon" aria-hidden="true">⬡</div>
+        <strong>TON MAINNET</strong>
+        <small>Mainnet token workflow</small>
+      </div>
+
+      <div class="vx01-feature">
+        <div class="vx01-feature-icon" aria-hidden="true">◎</div>
+        <strong>LIVE PREVIEW</strong>
+        <small>Review your token details</small>
+      </div>
+
+      <div class="vx01-feature">
+        <div class="vx01-feature-icon" aria-hidden="true">▣</div>
+        <strong>WALLET CONNECT</strong>
+        <small>TON Connect support</small>
+      </div>
+    </section>
+
+    <div class="vx01-action-area">
+      <div class="vx01-button-shell">
+        <button type="button" class="vx01-button" data-vh-start>
+          <span class="vx01-rocket" aria-hidden="true">➤</span>
+          <span>Create Token</span>
+          <span class="vx01-arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+
+      <div class="vx01-status" data-vh-status role="status" aria-live="polite"></div>
+
+      <div class="vx01-status-pill">
+        <span class="vx01-status-dot"></span>
+        <b>Token creator interface ready.</b>
+        <span>Connect your wallet to get started.</span>
+      </div>
+    </div>
+
+    <footer>
+      <div class="vx01-footer">◇ TON BLOCKCHAIN</div>
+      <div class="vx01-disclaimer">
+        TON Mainnet only · Never share your recovery phrase or private key.
+      </div>
+    </footer>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var home = document.getElementById("VXTON_HOME_01");
+    if (!home || home.dataset.vx01Init === "1") return;
+    home.dataset.vx01Init = "1";
+
+    /* Install one shared background for the token creator page. */
+    var bg = document.getElementById("VXTON_GLOBAL_BG");
+
+    if (!bg) {
+      bg = document.createElement("div");
+      bg.id = "VXTON_GLOBAL_BG";
+      bg.setAttribute("aria-hidden", "true");
+      bg.innerHTML =
+        '<div class="vxbg-aurora vxbg-a1"></div>' +
+        '<div class="vxbg-aurora vxbg-a2"></div>' +
+        '<div class="vxbg-aurora vxbg-a3"></div>' +
+        '<div class="vxbg-grid"></div>' +
+        '<div class="vxbg-beam b1"></div>' +
+        '<div class="vxbg-beam b2"></div>' +
+        '<div class="vxbg-stars"></div>';
+
+      document.body.insertBefore(bg, document.body.firstChild);
+
+      var starField = bg.querySelector(".vxbg-stars");
+      var starCount = window.matchMedia("(max-width: 600px)").matches ? 35 : 75;
+      var fragment = document.createDocumentFragment();
+
+      for (var i = 0; i < starCount; i++) {
+        var star = document.createElement("span");
+        star.className = "vxbg-star";
+        star.style.left = (Math.random() * 100) + "%";
+        star.style.top = (Math.random() * 100) + "%";
+        star.style.setProperty("--duration", (2 + Math.random() * 5) + "s");
+        star.style.setProperty("--delay", (-Math.random() * 6) + "s");
+        fragment.appendChild(star);
+      }
+
+      starField.appendChild(fragment);
+    }
+
+    var startButton = home.querySelector("[data-vh-start]");
+    var statusNode = home.querySelector("[data-vh-status]");
+
+    function openTokenForm() {
+      var form = document.getElementById("VXTON_FORM_02");
+
+      if (!form) {
+        statusNode.textContent =
+          "Step 02 not found. Install Step 02 on this same page first.";
+        return;
+      }
+
+      form.hidden = false;
+      form.style.setProperty("display", "block", "important");
+      form.setAttribute("aria-hidden", "false");
+
+      window.dispatchEvent(new CustomEvent("vxton:open-token-form"));
+      document.dispatchEvent(new CustomEvent("vxton:open-token-form"));
+
+      statusNode.textContent = "Token form opened.";
+
+      window.setTimeout(function () {
+        form.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 120);
+    }
+
+    startButton.addEventListener("click", openTokenForm);
+
+    window.addEventListener("vxton:back-to-home", function () {
+      home.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+  })();
+  </script>
+</div>
+<!-- MAGROXIN TOKEN LAB | GADGET 02 PRO FORM -->
+<div id="VXTON_FORM_02">
+  <style>
+    #VXTON_FORM_02 {
+      --v2-cyan:#42edff;
+      --v2-blue:#2888ff;
+      --v2-purple:#a855ff;
+      position:relative;
+      z-index:1;
+      width:100%;
+      max-width:1100px;
+      margin:30px auto;
+      padding:22px clamp(12px,3vw,32px) 45px;
+      box-sizing:border-box;
+      color:#f5f8ff;
+      font-family:Inter,"Segoe UI",Arial,sans-serif;
+      scroll-margin-top:24px;
+    }
+
+    #VXTON_FORM_02 *,
+    #VXTON_FORM_02 *::before,
+    #VXTON_FORM_02 *::after { box-sizing:border-box; }
+
+    #VXTON_FORM_02 .v2-wrap {
+      position:relative;
+      overflow:hidden;
+      padding:clamp(20px,4vw,38px);
+      border:1px solid rgba(45,139,255,.35);
+      border-radius:26px;
+      background:linear-gradient(145deg,rgba(5,18,44,.96),rgba(4,9,27,.96));
+      box-shadow:0 0 55px rgba(0,100,255,.10),inset 0 0 35px rgba(0,150,255,.035);
+    }
+
+    #VXTON_FORM_02 .v2-wrap::before {
+      content:"";
+      position:absolute;
+      top:0;
+      left:-100%;
+      width:80%;
+      height:2px;
+      background:linear-gradient(90deg,transparent,#42edff,#a855ff,transparent);
+      animation:v2-scan 7s linear infinite;
+      pointer-events:none;
+    }
+
+    #VXTON_FORM_02 .v2-topline {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-bottom:25px;
+    }
+
+    #VXTON_FORM_02 .v2-step {
+      display:inline-flex;
+      align-items:center;
+      gap:9px;
+      padding:9px 13px;
+      border:1px solid rgba(66,237,255,.24);
+      border-radius:30px;
+      background:rgba(8,35,69,.6);
+      color:#b9eaff;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:1.6px;
+    }
+
+    #VXTON_FORM_02 .v2-step-no {
+      display:grid;
+      place-items:center;
+      width:23px;
+      height:23px;
+      border-radius:50%;
+      background:linear-gradient(135deg,#16dfff,#397aff);
+      color:#031126;
+      font-size:11px;
+    }
+
+    #VXTON_FORM_02 .v2-network {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color:#a4bddd;
+      font-size:10px;
+      letter-spacing:1px;
+    }
+
+    #VXTON_FORM_02 .v2-dot {
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#18f7ba;
+      box-shadow:0 0 12px #18f7ba;
+      animation:v2-pulse 1.8s infinite;
+    }
+
+    #VXTON_FORM_02 .v2-heading {
+      margin:0;
+      color:#f5f9ff;
+      font-size:clamp(30px,5vw,48px);
+      line-height:1.1;
+      font-weight:950;
+      letter-spacing:-1.7px;
+    }
+
+    #VXTON_FORM_02 .v2-heading span {
+      background:linear-gradient(100deg,#42edff,#8ca5ff,#bd85ff);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+
+    #VXTON_FORM_02 .v2-intro {
+      max-width:670px;
+      margin:14px 0 28px;
+      color:#9fb5d2;
+      font-size:13px;
+      line-height:1.85;
+    }
+
+    #VXTON_FORM_02 .v2-layout {
+      display:grid;
+      grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);
+      gap:20px;
+      align-items:start;
+    }
+
+    #VXTON_FORM_02 .v2-panel {
+      min-width:0;
+      padding:clamp(16px,2.6vw,25px);
+      border:1px solid rgba(49,129,239,.27);
+      border-radius:20px;
+      background:linear-gradient(145deg,rgba(8,27,57,.78),rgba(4,13,33,.83));
+      box-shadow:inset 0 0 25px rgba(0,120,255,.025);
+      animation:v2-enter .65s ease both;
+    }
+
+    #VXTON_FORM_02 .v2-panel-title {
+      display:flex;
+      align-items:center;
+      gap:11px;
+      margin:0 0 22px;
+      color:#eaf6ff;
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.5px;
+    }
+
+    #VXTON_FORM_02 .v2-panel-icon {
+      display:grid;
+      place-items:center;
+      width:36px;
+      height:36px;
+      flex-shrink:0;
+      border:1px solid rgba(66,237,255,.3);
+      border-radius:11px;
+      background:rgba(13,72,126,.3);
+      color:var(--v2-cyan);
+      font-size:18px;
+      box-shadow:0 0 18px rgba(0,180,255,.07);
+    }
+
+    #VXTON_FORM_02 .v2-field { margin:0 0 19px; }
+
+    #VXTON_FORM_02 .v2-label {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:9px;
+      color:#dcecff;
+      font-size:12px;
+      font-weight:800;
+    }
+
+    #VXTON_FORM_02 .v2-label em {
+      color:#7d9bbc;
+      font-size:10px;
+      font-style:normal;
+      font-weight:500;
+    }
+
+    #VXTON_FORM_02 .v2-input,
+    #VXTON_FORM_02 .v2-select,
+    #VXTON_FORM_02 .v2-textarea {
+      display:block;
+      width:100%;
+      min-width:0;
+      padding:14px 15px;
+      border:1px solid rgba(83,136,203,.28);
+      border-radius:12px;
+      outline:none;
+      background:rgba(2,10,26,.82);
+      color:#f1f7ff;
+      font:inherit;
+      font-size:13px;
+      transition:border-color .2s,box-shadow .2s,background .2s;
+    }
+
+    #VXTON_FORM_02 .v2-input::placeholder,
+    #VXTON_FORM_02 .v2-textarea::placeholder { color:#627b9d; }
+
+    #VXTON_FORM_02 .v2-input:focus,
+    #VXTON_FORM_02 .v2-select:focus,
+    #VXTON_FORM_02 .v2-textarea:focus {
+      border-color:var(--v2-cyan);
+      background:rgba(5,20,44,.95);
+      box-shadow:0 0 0 3px rgba(66,237,255,.08),0 0 20px rgba(0,130,255,.08);
+    }
+
+    #VXTON_FORM_02 .v2-textarea {
+      min-height:112px;
+      resize:vertical;
+      line-height:1.7;
+    }
+
+    #VXTON_FORM_02 .v2-select option {
+      background:#07152d;
+      color:#fff;
+    }
+
+    #VXTON_FORM_02 .v2-help {
+      margin:7px 0 0;
+      color:#7792b3;
+      font-size:10px;
+      line-height:1.65;
+    }
+
+    #VXTON_FORM_02 .v2-counter {
+      color:#7e9fbe;
+      font-size:10px;
+      font-weight:500;
+    }
+
+    #VXTON_FORM_02 .v2-two {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:13px;
+    }
+
+    #VXTON_FORM_02 .v2-upload {
+      position:relative;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding:17px;
+      border:1px dashed rgba(66,190,255,.45);
+      border-radius:15px;
+      background:rgba(4,22,48,.55);
+      cursor:pointer;
+      transition:border-color .2s,background .2s;
+    }
+
+    #VXTON_FORM_02 .v2-upload:hover {
+      border-color:var(--v2-cyan);
+      background:rgba(8,43,77,.55);
+    }
+
+    #VXTON_FORM_02 .v2-upload-icon {
+      display:grid;
+      place-items:center;
+      width:48px;
+      height:48px;
+      flex-shrink:0;
+      border:1px solid rgba(66,237,255,.25);
+      border-radius:13px;
+      background:rgba(13,65,109,.4);
+      color:var(--v2-cyan);
+      font-size:22px;
+    }
+
+    #VXTON_FORM_02 .v2-upload strong {
+      display:block;
+      color:#e7f6ff;
+      font-size:12px;
+    }
+
+    #VXTON_FORM_02 .v2-upload small {
+      display:block;
+      margin-top:6px;
+      color:#7999bc;
+      font-size:10px;
+      line-height:1.6;
+    }
+
+    #VXTON_FORM_02 .v2-file {
+      position:absolute;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      clip-path:inset(50%);
+    }
+
+    #VXTON_FORM_02 .v2-file:focus-visible + .v2-upload {
+      outline:2px solid var(--v2-cyan);
+      outline-offset:3px;
+    }
+
+    #VXTON_FORM_02 .v2-preview-head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:17px;
+    }
+
+    #VXTON_FORM_02 .v2-preview-label {
+      color:#9bb7d9;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:1.7px;
+    }
+
+    #VXTON_FORM_02 .v2-live-badge {
+      padding:6px 9px;
+      border:1px solid rgba(24,247,186,.2);
+      border-radius:30px;
+      color:#67f6c5;
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.7px;
+    }
+
+    #VXTON_FORM_02 .v2-token-card {
+      position:relative;
+      overflow:hidden;
+      padding:21px;
+      border:1px solid rgba(55,148,255,.38);
+      border-radius:18px;
+      background:
+        radial-gradient(ellipse at 100% 0%,rgba(108,47,255,.22),transparent 48%),
+        linear-gradient(145deg,#0b2044,#071127 72%);
+      box-shadow:0 12px 35px rgba(0,0,0,.13),inset 0 0 25px rgba(0,130,255,.04);
+    }
+
+    #VXTON_FORM_02 .v2-token-card::after {
+      content:"";
+      position:absolute;
+      top:-70px;
+      right:-70px;
+      width:170px;
+      height:170px;
+      border:1px solid rgba(66,237,255,.14);
+      border-radius:50%;
+      box-shadow:0 0 0 18px rgba(66,237,255,.025),0 0 0 38px rgba(66,237,255,.018);
+      pointer-events:none;
+    }
+
+    #VXTON_FORM_02 .v2-token-top {
+      position:relative;
+      z-index:1;
+      display:flex;
+      align-items:center;
+      gap:13px;
+      min-width:0;
+    }
+
+    #VXTON_FORM_02 .v2-token-logo {
+      display:grid;
+      place-items:center;
+      width:58px;
+      height:58px;
+      flex-shrink:0;
+      overflow:hidden;
+      border:1px solid rgba(66,237,255,.4);
+      border-radius:17px;
+      background:linear-gradient(135deg,#0c4f8b,#20205b);
+      color:#76efff;
+      font-size:27px;
+      font-weight:900;
+      box-shadow:0 0 22px rgba(0,153,255,.13);
+    }
+
+    #VXTON_FORM_02 .v2-token-logo img {
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    #VXTON_FORM_02 .v2-token-identity {
+      min-width:0;
+    }
+
+    #VXTON_FORM_02 .v2-token-name {
+      overflow-wrap:anywhere;
+      color:#f3f8ff;
+      font-size:17px;
+      font-weight:900;
+    }
+
+    #VXTON_FORM_02 .v2-token-symbol {
+      margin-top:6px;
+      color:var(--v2-cyan);
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:1.5px;
+    }
+
+    #VXTON_FORM_02 .v2-token-description {
+      position:relative;
+      z-index:1;
+      min-height:48px;
+      margin:20px 0;
+      color:#91adce;
+      font-size:11px;
+      line-height:1.8;
+      overflow-wrap:anywhere;
+    }
+
+    #VXTON_FORM_02 .v2-stats {
+      position:relative;
+      z-index:1;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    #VXTON_FORM_02 .v2-stat {
+      min-width:0;
+      padding:13px 11px;
+      border:1px solid rgba(65,130,209,.19);
+      border-radius:12px;
+      background:rgba(2,10,27,.5);
+    }
+
+    #VXTON_FORM_02 .v2-stat small {
+      display:block;
+      color:#7999bc;
+      font-size:9px;
+      letter-spacing:.8px;
+    }
+
+    #VXTON_FORM_02 .v2-stat strong {
+      display:block;
+      margin-top:8px;
+      color:#e8f7ff;
+      font-size:14px;
+      font-weight:900;
+      overflow-wrap:anywhere;
+    }
+
+    #VXTON_FORM_02 .v2-preview-note {
+      margin-top:14px;
+      color:#7898b9;
+      font-size:10px;
+      line-height:1.7;
+    }
+
+    #VXTON_FORM_02 .v2-fee {
+      margin-top:17px;
+      padding:17px;
+      border:1px solid rgba(160,97,255,.28);
+      border-radius:15px;
+      background:linear-gradient(110deg,rgba(50,26,94,.35),rgba(7,30,61,.55));
+    }
+
+    #VXTON_FORM_02 .v2-fee-row {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    #VXTON_FORM_02 .v2-fee-title {
+      color:#e7d8ff;
+      font-size:11px;
+      font-weight:800;
+    }
+
+    #VXTON_FORM_02 .v2-fee-amount {
+      color:#c7a1ff;
+      font-size:18px;
+      font-weight:950;
+      white-space:nowrap;
+    }
+
+    #VXTON_FORM_02 .v2-fee small {
+      display:block;
+      margin-top:8px;
+      color:#9a8bb8;
+      font-size:10px;
+      line-height:1.7;
+    }
+
+    #VXTON_FORM_02 .v2-review-check {
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      margin-top:18px;
+      padding:14px;
+      border:1px solid rgba(77,139,211,.2);
+      border-radius:12px;
+      background:rgba(3,13,32,.5);
+      color:#a5bdd9;
+      font-size:11px;
+      line-height:1.7;
+      cursor:pointer;
+    }
+
+    #VXTON_FORM_02 .v2-review-check input {
+      width:16px;
+      height:16px;
+      flex-shrink:0;
+      margin-top:2px;
+      accent-color:#42edff;
+      cursor:pointer;
+    }
+
+    #VXTON_FORM_02 .v2-actions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top:25px;
+    }
+
+    #VXTON_FORM_02 .v2-button {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      min-height:49px;
+      padding:13px 20px;
+      border:1px solid rgba(65,144,255,.42);
+      border-radius:12px;
+      background:rgba(8,31,67,.85);
+      color:#dff5ff;
+      font:inherit;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      transition:transform .2s,filter .2s,border-color .2s;
+    }
+
+    #VXTON_FORM_02 .v2-button:hover {
+      transform:translateY(-2px);
+      border-color:var(--v2-cyan);
+      filter:brightness(1.12);
+    }
+
+    #VXTON_FORM_02 .v2-button:focus-visible {
+      outline:2px solid white;
+      outline-offset:3px;
+    }
+
+    #VXTON_FORM_02 .v2-button-primary {
+      flex:1;
+      min-width:190px;
+      border:1px solid transparent;
+      background:linear-gradient(100deg,#078fe8,#20cce9 53%,#8062ff);
+      color:#031326;
+      box-shadow:0 0 25px rgba(0,150,255,.18);
+    }
+
+    #VXTON_FORM_02 .v2-button-primary:hover {
+      box-shadow:0 0 32px rgba(0,190,255,.28);
+    }
+
+    #VXTON_FORM_02 .v2-message {
+      display:none;
+      margin-top:17px;
+      padding:13px 15px;
+      border:1px solid rgba(66,237,255,.22);
+      border-radius:12px;
+      background:rgba(5,30,56,.75);
+      color:#bcefff;
+      font-size:12px;
+      line-height:1.75;
+      overflow-wrap:anywhere;
+    }
+
+    #VXTON_FORM_02 .v2-message.v2-show { display:block; }
+
+    #VXTON_FORM_02 .v2-message.v2-error {
+      border-color:rgba(255,107,133,.35);
+      color:#ffbdcb;
+      background:rgba(68,13,37,.3);
+    }
+
+    #VXTON_FORM_02 .v2-bottom-note {
+      margin:21px 0 0;
+      color:#6f89aa;
+      font-size:10px;
+      line-height:1.8;
+      text-align:center;
+    }
+
+    @keyframes v2-enter {
+      from { opacity:0; transform:translateY(14px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    @keyframes v2-scan {
+      0% { left:-100%; }
+      45%,100% { left:140%; }
+    }
+
+    @keyframes v2-pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:.45; transform:scale(.72); }
+    }
+
+    @media (max-width:760px) {
+      #VXTON_FORM_02 .v2-layout { grid-template-columns:1fr; }
+      #VXTON_FORM_02 .v2-preview-panel { order:2; }
+      #VXTON_FORM_02 .v2-form-panel { order:1; }
+    }
+
+    @media (max-width:460px) {
+      #VXTON_FORM_02 { padding:14px 10px 30px; }
+      #VXTON_FORM_02 .v2-wrap { padding:17px 13px; border-radius:20px; }
+      #VXTON_FORM_02 .v2-two { grid-template-columns:1fr; gap:0; }
+      #VXTON_FORM_02 .v2-actions { flex-direction:column; }
+      #VXTON_FORM_02 .v2-button,
+      #VXTON_FORM_02 .v2-button-primary { width:100%; min-width:0; }
+      #VXTON_FORM_02 .v2-heading { letter-spacing:-1px; }
+    }
+
+    @media (prefers-reduced-motion:reduce) {
+      #VXTON_FORM_02 *,
+      #VXTON_FORM_02 *::before,
+      #VXTON_FORM_02 *::after {
+        animation-duration:.01ms !important;
+        animation-iteration-count:1 !important;
+        scroll-behavior:auto !important;
+      }
+    }
+  </style>
+
+  <section class="v2-wrap">
+    <div class="v2-topline">
+      <div class="v2-step">
+        <span class="v2-step-no">02</span>
+        TOKEN CONFIGURATION
+      </div>
+      <div class="v2-network">
+        <span class="v2-dot"></span>
+        TON MAINNET WORKFLOW
+      </div>
+    </div>
+
+    <h2 class="v2-heading">Build Your <span>Token</span></h2>
+    <p class="v2-intro">
+      Make it yours. Configure your token identity, add a logo, and see
+      your changes in the live preview before continuing to review.
+    </p>
+
+    <form id="v2TokenForm" novalidate>
+      <div class="v2-layout">
+        <div class="v2-panel v2-form-panel">
+          <h3 class="v2-panel-title">
+            <span class="v2-panel-icon">✧</span>
+            Token Details
+          </h3>
+
+          <div class="v2-field">
+            <label class="v2-label" for="v2TokenName">
+              Token Name <em>Required</em>
+            </label>
+            <input
+              class="v2-input"
+              id="v2TokenName"
+              name="name"
+              type="text"
+              placeholder="Magroxin"
+              maxlength="48"
+              required
+              autocomplete="off"
+            >
+            <p class="v2-help">Choose a clear name for your token (2–48 characters).</p>
+          </input
+></div>
+
+          <div class="v2-field">
+            <label class="v2-label" for="v2TokenSymbol">
+              Token Symbol <em>Required</em>
+            </label>
+            <input
+              class="v2-input"
+              id="v2TokenSymbol"
+              name="symbol"
+              type="text"
+              placeholder="MGRX"
+              maxlength="10"
+              minlength="2"
+              pattern="[A-Za-z0-9]+"
+              required
+              autocomplete="off"
+              autocapitalize="characters"
+            >
+            <p class="v2-help">2–10 letters or numbers. Spaces and special characters are not allowed.</p>
+          </input
+></div>
+
+          <div class="v2-field">
+            <label class="v2-label" for="v2TokenDescription">
+              Token Description
+              <span class="v2-counter" id="v2DescriptionCount">0 / 240</span>
+            </label>
+            <textarea
+              class="v2-textarea"
+              id="v2TokenDescription"
+              name="description"
+              maxlength="240"
+              placeholder="Tell people what your token is about..."
+            >
+    
+</textarea
+>
+  <p class="v2-help">Optional. Maximum 240 characters.</p>
+          
+</div>
+
+          <div class="v2-two">
+            <div class="v2-field">
+              <label class="v2-label" for="v2TokenSupply">Total Supply</label>
+              <input
+                class="v2-input"
+                id="v2TokenSupply"
+                name="supply"
+                type="number"
+                min="1"
+                max="1000000000000000000000000000000"
+                step="1"
+                value="1000000"
+                required
+                inputmode="numeric"
+              >
+              <p class="v2-help">Whole-number supply only.</p>
+            </input
+></div>
+
+            <div class="v2-field">
+              <label class="v2-label" for="v2TokenDecimals">Decimals</label>
+              <select class="v2-select" id="v2TokenDecimals" name="decimals">
+                <option value="9" selected />9 decimals
+                <option value="6" />6 decimals
+                <option value="3" />3 decimals
+                <option value="0" />0 decimals
+              </select>
+              <p class="v2-help">Choose your token precision.</p>
+            </div>
+          </div>
+
+          <div class="v2-field">
+            <label class="v2-label" for="v2TokenLogo">
+              Token Logo URL <em>Optional</em>
+            </label>
+            <input
+              class="v2-input"
+              id="v2TokenLogo"
+              name="logoUrl"
+              type="url"
+              inputmode="url"
+              placeholder="https://example.com/token-logo.png"
+              autocomplete="url"
+              maxlength="2048"
+              aria-describedby="v2LogoHelp"
+            >
+            <p class="v2-help" id="v2LogoHelp">Paste a public HTTPS image link (PNG, JPG or WEBP). The image must open without login or permission.</p>
+          </input
+></div>
+        </div>
+
+        <aside class="v2-panel v2-preview-panel">
+          <div class="v2-preview-head">
+            <span class="v2-preview-label">LIVE TOKEN PREVIEW</span>
+            <span class="v2-live-badge">● LIVE</span>
+          </div>
+
+          <div class="v2-token-card">
+            <div class="v2-token-top">
+              <div class="v2-token-logo" id="v2LogoPreview" aria-label="Token logo preview">M</div>
+              <div class="v2-token-identity">
+                <div class="v2-token-name" id="v2PreviewName">Your Token</div>
+                <div class="v2-token-symbol" id="v2PreviewSymbol">$SYMBOL</div>
+              </div>
+            </div>
+
+            <p class="v2-token-description" id="v2PreviewDescription">
+              Your token description will appear here as you type.
+            </p>
+
+            <div class="v2-stats">
+              <div class="v2-stat">
+                <small>TOTAL SUPPLY</small>
+                <strong id="v2PreviewSupply">1,000,000</strong>
+              </div>
+              <div class="v2-stat">
+                <small>DECIMALS</small>
+                <strong id="v2PreviewDecimals">9</strong>
+              </div>
+            </div>
+          </div>
+
+          <p class="v2-preview-note">
+            Preview only. This card is not a deployed token or a blockchain verification.
+          </p>
+
+          <div class="v2-fee">
+            <div class="v2-fee-row">
+              <span class="v2-fee-title">Platform Service Fee</span>
+              <span class="v2-fee-amount">100 TON</span>
+            </div>
+            <small>
+              The fee is displayed for review. Any payment must be verified
+              by the backend before the workflow can proceed.
+            </small>
+          </div>
+
+          <label class="v2-review-check" for="v2ConfirmDetails">
+            <input id="v2ConfirmDetails" type="checkbox" required />
+            <span>I have reviewed the token details and understand that the preview does not mean my token has been deployed.</span>
+          </label>
+        </aside>
+      </div>
+
+      <div class="v2-actions">
+        <button class="v2-button" id="v2BackHome" type="button">
+          <span aria-hidden="true">←</span> Back to Home
+        </button>
+        <button class="v2-button v2-button-primary" type="submit">
+          Continue to Review <span aria-hidden="true">→</span>
+        </button>
+      </div>
+
+      <div class="v2-message" id="v2FormMessage" role="status" aria-live="polite"></div>
+    </form>
+
+    <p class="v2-bottom-note">
+      MAGROXIN TOKEN LAB · Review your configuration before proceeding.
+      Never share your wallet recovery phrase or private key.
+    </p>
+  </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+(function () {
+  "use strict";
+
+  var root = document.getElementById("VXTON_FORM_02");
+  if (!root || root.dataset.v2Init === "1") return;
+  root.dataset.v2Init = "1";
+
+  var form = root.querySelector("#v2TokenForm");
+  var nameInput = root.querySelector("#v2TokenName");
+  var symbolInput = root.querySelector("#v2TokenSymbol");
+  var descriptionInput = root.querySelector("#v2TokenDescription");
+  var supplyInput = root.querySelector("#v2TokenSupply");
+  var decimalsInput = root.querySelector("#v2TokenDecimals");
+  var logoInput = root.querySelector("#v2TokenLogo");
+  var confirmInput = root.querySelector("#v2ConfirmDetails");
+  var message = root.querySelector("#v2FormMessage");
+
+  if (
+    !form || !nameInput || !symbolInput || !descriptionInput ||
+    !supplyInput || !decimalsInput || !logoInput ||
+    !confirmInput || !message
+  ) {
+    console.error("MAGROXIN: Required form elements are missing.");
+    return;
+  }
+
+  var logoData = "";
+  var logoMime = "";
+
+  function validLogoUrl(value) {
+    if (!value) return true;
+    try {
+      var url = new URL(value);
+      return url.protocol === "https:" && !!url.hostname && !url.username && !url.password;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function renderLogoPreview(value) {
+    var preview = byId("v2LogoPreview");
+    if (!preview) return;
+    preview.replaceChildren();
+    if (!value) {
+      preview.textContent = (nameInput.value.trim() || "M").charAt(0).toUpperCase();
+      return;
+    }
+    var img = document.createElement("img");
+    img.alt = "Token logo preview";
+    img.referrerPolicy = "no-referrer";
+    img.onload = function () {
+      if (preview.firstChild === img) {
+        logoData = value;
+        clearMessage();
+      }
+    };
+    img.onerror = function () {
+      if (preview.firstChild === img) {
+        preview.textContent = (nameInput.value.trim() || "M").charAt(0).toUpperCase();
+        logoData = "";
+        showMessage("Logo URL could not load. Use a public HTTPS direct image link.", true);
+      }
+    };
+    img.src = value;
+    preview.appendChild(img);
+  }
+
+  function byId(id) {
+    return root.querySelector("#" + id);
+  }
+
+  function showMessage(text, isError) {
+    message.textContent = text;
+    message.classList.add("v2-show");
+    message.classList.toggle("v2-error", !!isError);
+  }
+
+  function clearMessage() {
+    message.textContent = "";
+    message.classList.remove("v2-show", "v2-error");
+  }
+
+  function formatSupply(value) {
+    if (!value || !/^\d+$/.test(value)) return value || "—";
+
+    try {
+      return BigInt(value).toLocaleString("en-US");
+    } catch (e) {
+      return value;
+    }
+  }
+
+  function updatePreview() {
+    var name = nameInput.value.trim();
+    var symbol = symbolInput.value.trim().toUpperCase();
+    var description = descriptionInput.value.trim();
+    var supply = supplyInput.value.trim();
+    var decimals = decimalsInput.value;
+
+    var previewName = byId("v2PreviewName");
+    var previewSymbol = byId("v2PreviewSymbol");
+    var previewDescription = byId("v2PreviewDescription");
+    var previewSupply = byId("v2PreviewSupply");
+    var previewDecimals = byId("v2PreviewDecimals");
+    var descriptionCount = byId("v2DescriptionCount");
+    var logoPreview = byId("v2LogoPreview");
+
+    if (previewName) previewName.textContent = name || "Your Token";
+    if (previewSymbol) previewSymbol.textContent = symbol ? "$" + symbol : "$SYMBOL";
+
+    if (previewDescription) {
+      previewDescription.textContent =
+        description || "Your token description will appear here as you type.";
+    }
+
+    if (previewSupply) previewSupply.textContent = formatSupply(supply);
+    if (previewDecimals) previewDecimals.textContent = decimals;
+
+    if (descriptionCount) {
+      descriptionCount.textContent = descriptionInput.value.length + " / 240";
+    }
+
+    if (logoPreview && !logoInput.value.trim()) {
+      logoData = "";
+      logoPreview.textContent = (name || "M").trim().charAt(0).toUpperCase();
+    }
+  }
+
+  [
+    nameInput,
+    symbolInput,
+    descriptionInput,
+    supplyInput,
+    decimalsInput
+  ].forEach(function (el) {
+    el.addEventListener("input", function () {
+      clearMessage();
+
+      if (el === symbolInput) {
+        var start = symbolInput.selectionStart;
+        var end = symbolInput.selectionEnd;
+
+        var clean = symbolInput.value
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .toUpperCase()
+          .slice(0, 10);
+
+        if (clean !== symbolInput.value) {
+          symbolInput.value = clean;
+
+          try {
+            symbolInput.setSelectionRange(
+              Math.min(start, clean.length),
+              Math.min(end, clean.length)
+            );
+          } catch (e) {}
+        }
+      }
+
+      updatePreview();
+    });
+
+    el.addEventListener("change", updatePreview);
+  });
+
+  logoInput.addEventListener("input", function () {
+    clearMessage();
+    var value = logoInput.value.trim();
+    logoData = "";
+    if (!value) {
+      renderLogoPreview("");
+      return;
+    }
+    if (!validLogoUrl(value)) {
+      renderLogoPreview("");
+      showMessage("Please enter a valid public HTTPS image URL.", true);
+      return;
+    }
+    renderLogoPreview(value);
+  });
+
+  logoInput.addEventListener("change", function () {
+    var value = logoInput.value.trim();
+    if (value && validLogoUrl(value)) renderLogoPreview(value);
+  });
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    clearMessage();
+
+    var name = nameInput.value.trim();
+    var symbol = symbolInput.value.trim().toUpperCase();
+    var description = descriptionInput.value.trim();
+    var supply = supplyInput.value.trim();
+    var decimals = Number(decimalsInput.value);
+
+    if (name.length < 2 || name.length > 48) {
+      showMessage(
+        "Token name must be between 2 and 48 characters.",
+        true
+      );
+      nameInput.focus();
+      return;
+    }
+
+    if (!/^[A-Z0-9]{2,10}$/.test(symbol)) {
+      showMessage(
+        "Symbol must contain 2–10 letters or numbers.",
+        true
+      );
+      symbolInput.focus();
+      return;
+    }
+
+    if (description.length > 240) {
+      showMessage(
+        "Description must be 240 characters or fewer.",
+        true
+      );
+      descriptionInput.focus();
+      return;
+    }
+
+    if (!/^\d+$/.test(supply)) {
+      showMessage("Enter a whole-number token supply.", true);
+      supplyInput.focus();
+      return;
+    }
+
+    var supplyBig;
+
+    try {
+      supplyBig = BigInt(supply);
+    } catch (e) {
+      showMessage("Invalid token supply.", true);
+      supplyInput.focus();
+      return;
+    }
+
+    if (supplyBig < 1n || supplyBig > 10n ** 30n) {
+      showMessage("Supply must be between 1 and 10^30.", true);
+      supplyInput.focus();
+      return;
+    }
+
+    if ([0, 3, 6, 9].indexOf(decimals) === -1) {
+      showMessage("Select a supported decimals value.", true);
+      decimalsInput.focus();
+      return;
+    }
+
+    var logoUrl = logoInput.value.trim();
+
+    if (logoUrl && !validLogoUrl(logoUrl)) {
+      showMessage("Logo must use a valid HTTPS URL.", true);
+      logoInput.focus();
+      return;
+    }
+
+    if (!confirmInput.checked) {
+      showMessage(
+        "Please confirm that you reviewed the token details.",
+        true
+      );
+      confirmInput.focus();
+      return;
+    }
+
+    var draft = {
+      name: name,
+      symbol: symbol,
+      description: description,
+      supply: supply,
+      decimals: decimals,
+      network: "mainnet",
+      logoData: logoUrl || "",
+      logoUrl: logoUrl || "",
+      logoMime: "",
+      platformFeeTon: "100"
+    };
+
+    /*
+     * Keep the draft available if the final gadget initializes later.
+     */
+    window.VXTON_TOKEN_DRAFT = draft;
+    window.MAGROXIN_TOKEN_DRAFT = draft;
+    window.MGX_TOKEN_DRAFT = draft;
+
+    /*
+     * Notify any existing listeners without depending on these events
+     * to preserve the draft.
+     */
+    window.dispatchEvent(
+      new CustomEvent("vxton:token-draft", { detail: draft })
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("magroxin:token-draft", { detail: draft })
+    );
+
+    /*
+     * Use the combined final deployer, Gadget 3 + Gadget 4.
+     */
+    var finalGadget = document.getElementById("MGX_FINAL_DEPLOYER");
+
+    if (!finalGadget) {
+      showMessage(
+        "Token details are saved, but MGX_FINAL_DEPLOYER was not found. Add the combined final deployer and refresh the page.",
+        true
+      );
+      return;
+    }
+
+    finalGadget.hidden = false;
+    finalGadget.style.setProperty("display", "block", "important");
+    finalGadget.setAttribute("aria-hidden", "false");
+
+    /*
+     * Let the final gadget read the saved draft, then scroll to it.
+     */
+    window.dispatchEvent(
+      new CustomEvent("magroxin:open-review", { detail: draft })
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("vxton:open-review", { detail: draft })
+    );
+
+    showMessage(
+      "Token details saved. Opening the MAGROXIN final deployer…",
+      false
+    );
+
+    window.setTimeout(function () {
+      finalGadget.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }, 180);
+  });
+
+  var backButton = byId("v2BackHome");
+
+  if (backButton) {
+    backButton.addEventListener("click", function () {
+      window.dispatchEvent(new CustomEvent("vxton:back-to-home"));
+
+      var home = document.getElementById("VXTON_HOME_01");
+
+      if (home) {
+        home.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }
+    });
+  }
+
+  /*
+   * Step 01 opens this form using this event.
+   */
+  window.addEventListener("vxton:open-token-form", function () {
+    root.hidden = false;
+    root.style.setProperty("display", "block", "important");
+    root.setAttribute("aria-hidden", "false");
+  });
+
+  /*
+   * Refresh the preview when the form initializes.
+   */
+  updatePreview();
+
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+<!-- MAGROXIN FINAL COMBINED GADGET 3 + 4 — REPLACE BOTH OLD GADGETS WITH THIS ONE -->
+<div id="MGX_FINAL_DEPLOYER" hidden aria-hidden="true" style="display:none!important;width:100%;max-width:100%;margin:0 auto;">
+<!-- MAGROXIN GADGET 03 — FULL REPLACEMENT -->
+<div id="VXTON_REVIEW_03">
+<style>
+#VXTON_REVIEW_03{--c:#42edff;--b:#2888ff;--p:#a855ff;--bg:#030716;--panel:#081329;--line:rgba(66,237,255,.22);--txt:#f5f8ff;--muted:#a8bddb;width:100%;max-width:780px;margin:24px auto;color:var(--txt);font:14px/1.6 Arial,sans-serif;position:relative;z-index:10000;isolation:isolate}
+#VXTON_REVIEW_03 *{box-sizing:border-box}
+#VXTON_REVIEW_03 .vx-card{padding:20px;margin:0 0 18px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#0c1b37,#04091b);box-shadow:0 14px 38px #0004;overflow-wrap:anywhere}
+#VXTON_REVIEW_03 h2{font-size:22px;margin:8px 0;color:var(--txt)}
+#VXTON_REVIEW_03 h3{font-size:17px;margin:0 0 12px;color:var(--txt)}
+#VXTON_REVIEW_03 p{font-size:13px;color:var(--muted);line-height:1.7}
+#VXTON_REVIEW_03 .vx-chip{display:inline-block;padding:5px 10px;border:1px solid var(--line);border-radius:30px;color:var(--c);font-size:10px;font-weight:bold}
+#VXTON_REVIEW_03 .vx-head{display:flex;gap:14px;align-items:center}
+#VXTON_REVIEW_03 .vx-logo{width:68px;height:68px;object-fit:cover;border-radius:15px;background:#071329}
+#VXTON_REVIEW_03 .vx-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:16px}
+#VXTON_REVIEW_03 .vx-item{padding:12px;border-radius:12px;background:#0a1730;border:1px solid #6795d42b;min-width:0}
+#VXTON_REVIEW_03 .vx-label{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+#VXTON_REVIEW_03 .vx-value{font-weight:bold;overflow-wrap:anywhere}
+#VXTON_REVIEW_03 .vx-fee{padding:15px;border-radius:14px;margin:14px 0;background:linear-gradient(115deg,#2888ff20,#a855ff16);border:1px solid var(--line)}
+#VXTON_REVIEW_03 .vx-fee strong{font-size:28px;color:var(--c)}
+#VXTON_REVIEW_03 button{display:block;width:100%;margin-top:10px;padding:13px;border-radius:11px;border:1px solid var(--line);font-size:13px;font-weight:bold;cursor:pointer}
+#VXTON_REVIEW_03 .vx-primary{color:#03101e;background:linear-gradient(105deg,#42edff,#65aaff 62%,#a58aff)}
+#VXTON_REVIEW_03 .vx-secondary{color:var(--txt);background:#111f3c}
+#VXTON_REVIEW_03 button:disabled{opacity:.42;cursor:not-allowed}
+#VXTON_REVIEW_03 .vx-status{margin-top:12px;padding:12px;border-radius:11px;background:#030a1a;border:1px solid #6795d433;color:#c8d8f1;font-size:12px;overflow-wrap:anywhere}
+#VXTON_REVIEW_03 .vx-status:empty{display:none}
+#VXTON_REVIEW_03 .vx-hidden{display:none!important}
+#VXTON_REVIEW_03 .vx-check{display:flex;gap:9px;align-items:flex-start;color:var(--muted);font-size:12px;margin:14px 0}
+#VXTON_REVIEW_03 .vx-address{color:var(--c);overflow-wrap:anywhere;word-break:break-word}
+#VXTON_REVIEW_03 .vx-divider{height:1px;background:var(--line);margin:17px 0}
+#VXTON_REVIEW_03 #VX03_walletMount{display:flex;justify-content:center;align-items:center;min-height:90px;position:relative;z-index:2}
+#VXTON_REVIEW_03 #VX03_walletMount button{width:auto}
+#VXTON_REVIEW_03 .vx-wallet-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+#VXTON_REVIEW_03 .vx-wallet-actions button{width:auto;min-width:150px}
+#VXTON_REVIEW_03 .vx-foot{text-align:center;font-size:11px;color:#8196b2}
+#VX03_successPopup{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483647!important;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(1,5,18,.72);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+#VX03_successPopup.vx-hidden{display:none!important}
+#VX03_successPopup .vx-success-box{position:relative;width:100%;max-width:430px;padding:26px 22px;border:1px solid rgba(66,237,255,.48);border-radius:20px;background:linear-gradient(145deg,rgba(12,27,55,.98),rgba(4,9,27,.98));box-shadow:0 0 35px rgba(66,237,255,.17),0 20px 65px #0009;text-align:center;color:var(--txt)}
+#VX03_successPopup .vx-success-mark{width:62px;height:62px;margin:0 auto 15px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--c);color:var(--c);font-size:32px;box-shadow:0 0 22px #42edff20}
+#VX03_successPopup h2{margin:0 0 9px;font-size:22px;color:var(--txt)}
+#VX03_successPopup p{margin:8px 0;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+#VX03_successPopup .vx-popup-close{position:absolute;top:9px;right:12px;width:34px;height:34px;margin:0;padding:0;border:0;background:transparent;color:var(--muted);font-size:25px}
+#VX03_successPopup .vx-popup-action{margin-top:18px}
+@media(max-width:560px){#VXTON_REVIEW_03 .vx-card{padding:15px}#VXTON_REVIEW_03 h2{font-size:19px}#VXTON_REVIEW_03 .vx-fee strong{font-size:24px}#VXTON_REVIEW_03 .vx-wallet-actions button{width:100%}#VX03_successPopup .vx-success-box{padding:24px 17px}}
+
+
+
+
+
+
+
+/* MAGROXIN — TON CONNECT POPUP VISIBILITY FIX */
+html body tc-root,
+html body #tc-widget-root,
+html body .tc-root {
+  position: relative !important;
+  z-index: 2147483647 !important;
+}
+
+html body [class*="tc-modal"],
+html body [class*="tc-popup"],
+html body [class*="tc-root"] {
+  z-index: 2147483647 !important;
+}
+
+
+
+
+</style>
+
+<div class="vx-hidden" aria-hidden="true">
+  <img id="VX03_logo" alt="Token logo" />
+  <span id="VX03_name">Your token</span><span id="VX03_symbol">—</span>
+  <span id="VX03_vname">—</span><span id="VX03_vsymbol">—</span>
+  <span id="VX03_supply">—</span><span id="VX03_decimals">9</span>
+  <span id="VX03_deployState">Not verified</span><span id="VX03_description"></span>
+  <div id="VX03_reviewStatus"></div>
+</div><section class="vx-card">
+  <h3>01 · Connect your wallet</h3>
+  <p>Connect the wallet you will use to pay. Select TON Mainnet before creating an order.</p>
+  <div id="VX03_walletMount"></div>
+  <div class="vx-wallet-actions">
+    <button type="button" class="vx-secondary vx-hidden" id="VX03_disconnectWallet">Disconnect Wallet</button>
+  </div>
+  <div id="VX03_walletStatus" class="vx-status" role="status">Wallet not connected.</div>
+
+</section>
+
+<section class="vx-card">
+  <h3>02 · Service fee</h3>
+  <div class="vx-fee">
+    <span class="vx-label">Wallet-specific service fee · live backend quote</span>
+    <strong id="VX03_feeAmount">Connect wallet to load fee</strong>
+    <p id="VX03_feeDescription">The backend calculates the fee for the connected wallet: the configured test wallet receives 0.1 TON; all other wallets receive 100 TON. Check the amount and recipient before approving a transaction.</p>
+  </div>
+  <label class="vx-check">
+    <input type="checkbox" id="VX03_accept"/>
+    <span>I have reviewed the service fee and will check the amount and recipient in my wallet before confirming.</span>
+  </label>
+  <button type="button" class="vx-primary" id="VX03_createOrder" disabled>Create service-fee order</button>
+  <button type="button" class="vx-primary vx-hidden" id="VX03_payService" disabled>Pay service fee</button>
+  <button type="button" class="vx-secondary vx-hidden" id="VX03_verifyService" disabled>Verify service-fee payment</button>
+  <div id="VX03_serviceStatus" class="vx-status" role="status">Connect your Mainnet wallet and load valid token details to continue.</div>
+</section>
+
+<section class="vx-card vx-hidden" id="VX03_deploymentCard">
+  <h3>03 · Payment verified</h3>
+  <p>The backend has confirmed the service-fee payment. This does not mean a token has been deployed.</p>
+  <div id="VX03_deploymentStatus" class="vx-status" role="status"></div>
+</section>
+
+
+<div id="VX03_successPopup" class="vx-hidden" role="dialog" aria-modal="true" aria-labelledby="VX03_popupTitle">
+  <div class="vx-success-box">
+    <button type="button" class="vx-popup-close" id="VX03_popupClose" aria-label="Close popup">×</button>
+    <div class="vx-success-mark">✓</div>
+    <span class="vx-chip">MAGROXIN · TON MAINNET</span>
+    <h2 id="VX03_popupTitle">Payment Verified</h2>
+    <p id="VX03_popupMessage">The backend has verified your service-fee payment.</p>
+    <button type="button" class="vx-primary vx-popup-action" id="VX03_popupContinue">Continue</button>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const ROOT=document.getElementById("VXTON_REVIEW_03");
+if(!ROOT||ROOT.dataset.initialized==="yes")return;
+ROOT.dataset.initialized="yes";
+
+const API="https://magroxin-ton-api.onrender.com";
+const MAINNET="-239";
+const $=id=>ROOT.querySelector("#"+id);
+
+const state={
+  draft:null,
+  wallet:null,
+  address:"",
+  friendlyAddress:"",
+  order:null,
+  paymentReady:false,
+  busy:false,
+  servicePaid:false,
+  tonUI:null
+};
+
+function status(id,msg){
+  const n=$(id);
+  if(n)n.textContent=String(msg||"");
+}
+
+function show(id,yes){
+  const n=$(id);
+  if(n)n.classList.toggle("vx-hidden",!yes);
+}
+
+function button(id,disabled,label){
+  const n=$(id);
+  if(!n)return;
+  n.disabled=!!disabled;
+  if(label)n.textContent=label;
+}
+
+function connectedMainnet(){
+  return !!(
+    state.wallet &&
+    state.address &&
+    state.wallet.account &&
+    state.wallet.account.chain===MAINNET
+  );
+}
+
+function refreshButtons(){
+  const connected=connectedMainnet();
+  const hasOrder=!!state.order;
+
+  button(
+    "VX03_createOrder",
+    state.busy||!connected||!state.draft||
+    !$("VX03_accept").checked||hasOrder
+  );
+
+  button(
+    "VX03_payService",
+    state.busy||!connected||!hasOrder||
+    !state.paymentReady||state.servicePaid
+  );
+
+  button(
+    "VX03_verifyService",
+    state.busy||!connected||!hasOrder||state.servicePaid
+  );
+
+  
+  show("VX03_disconnectWallet",!!(state.wallet&&state.address));
+}
+
+function openSuccessPopup(){
+  show("VX03_successPopup",true);
+  $("VX03_popupClose").focus();
+}
+
+function closeSuccessPopup(){
+  show("VX03_successPopup",false);
+}
+
+function safeText(v,max){
+  return typeof v==="string"||typeof v==="number"
+    ?String(v).slice(0,max):"";
+}
+
+function normalizeLogo(raw,mimeHint){
+  if(!raw)return "";
+
+  let value=raw;
+  let mime=mimeHint||"image/png";
+
+  if(typeof raw==="object"){
+    mime=raw.mimeType||raw.contentType||raw.type||mime;
+    value=raw.dataUrl||raw.dataURL||raw.base64||
+      raw.data||raw.url||raw.src||"";
+  }
+
+  if(typeof value!=="string")return "";
+  value=value.trim();
+
+  if(/^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(value))
+    return value;
+
+  if(/^https:\/\/[^\s]+$/i.test(value))
+    return value;
+
+  const bare=value.replace(/\s/g,"").replace(/^base64,/i,"");
+
+  if(bare&&/^[A-Za-z0-9+/]+={0,2}$/.test(bare)){
+    if(!/^image\/(png|jpeg|jpg|webp|gif)$/i.test(mime))
+      mime="image/png";
+    return "data:"+mime+";base64,"+bare;
+  }
+
+  return "";
+}
+
+function parseDraft(raw){
+  if(!raw||typeof raw!=="object")return null;
+
+  const name=safeText(raw.name||raw.tokenName,100).trim();
+  const symbol=safeText(raw.symbol||raw.tokenSymbol,10)
+    .trim().toUpperCase();
+  const supply=safeText(raw.supply||raw.totalSupply,40).trim();
+  const decimals=Number(raw.decimals);
+  const description=safeText(raw.description,1000).trim();
+
+  const logoRaw=raw.logoData||raw.logoDataUrl||raw.logoBase64||
+    raw.logoUrl||raw.logoURL||raw.logo||raw.image||raw.tokenLogo||"";
+
+  const logoData=normalizeLogo(
+    logoRaw,
+    raw.logoMimeType||raw.mimeType
+  );
+
+  if(
+    name.length<2||
+    !/^[A-Z0-9._-]{2,10}$/.test(symbol)||
+    !/^[1-9]\d*$/.test(supply)||
+    supply.length>31||
+    !Number.isInteger(decimals)||
+    decimals<0||decimals>9||
+    (raw.network&&raw.network!=="mainnet")
+  )return null;
+
+  try{
+    const amount=BigInt(supply)*(10n**BigInt(decimals));
+    if(amount<=0n||amount>10n**30n)return null;
+  }catch(_){
+    return null;
+  }
+
+  if(logoData.startsWith("data:")&&logoData.length>1400000)
+    return null;
+
+  if(logoRaw&&!logoData)return null;
+
+  return {
+    name,
+    symbol,
+    supply,
+    decimals,
+    description,
+    logoData,
+    network:"mainnet"
+  };
+}
+
+function renderDraft(d){
+  state.draft=d;
+
+  $("VX03_name").textContent=d.name;
+  $("VX03_symbol").textContent="$"+d.symbol;
+  $("VX03_vname").textContent=d.name;
+  $("VX03_vsymbol").textContent=d.symbol;
+  $("VX03_supply").textContent=d.supply;
+  $("VX03_decimals").textContent=String(d.decimals);
+  $("VX03_description").textContent=
+    d.description||"No description provided.";
+
+  const img=$("VX03_logo");
+
+  if(d.logoData){
+    img.src=d.logoData;
+    img.alt=d.name+" token logo";
+  }else{
+    img.alt="Token logo";
+  }
+
+  status(
+    "VX03_reviewStatus",
+    "Token details loaded. Review them before continuing."
+  );
+
+  refreshButtons();
+}
+
+function resetOrder(message){
+  state.order=null;
+  state.paymentReady=false;
+  state.servicePaid=false;
+
+  $("VX03_feeAmount").textContent="Create order to check fee";
+  $("VX03_accept").checked=false;
+
+  status("VX03_deployState","Not verified");
+  status("VX03_deploymentStatus","");
+  show("VX03_payService",false);
+  show("VX03_verifyService",false);
+  show("VX03_deploymentCard",false);
+  closeSuccessPopup();
+
+  if(message)status("VX03_serviceStatus",message);
+  refreshButtons();
+}
+
+function onDraft(event){
+  const d=parseDraft(event&&event.detail);
+
+  if(!d){
+    status(
+      "VX03_reviewStatus",
+      "Token details are missing or invalid. Return to Step 02 and check the form."
+    );
+    return;
+  }
+
+  resetOrder("Review the fee and create a new order.");
+  renderDraft(d);
+}
+
+window.addEventListener("vxton:token-draft",onDraft);
+document.addEventListener("vxton:token-draft",onDraft);
+window.addEventListener("vxton:open-review",onDraft);
+
+const existing=window.VXTON_TOKEN_DRAFT||window.MAGROXIN_TOKEN_DRAFT;
+if(existing)onDraft({detail:existing});
+
+let feeQuoteSequence=0;
+
+async function loadFeeQuote(){
+  const sequence=++feeQuoteSequence;
+  if(!connectedMainnet()){
+    $("VX03_feeAmount").textContent="Connect wallet to load fee";
+    return;
+  }
+
+  $("VX03_feeAmount").textContent="Checking wallet fee…";
+  try{
+    const data=await request("/api/fee-quote?walletAddress="+encodeURIComponent(state.address));
+    if(sequence!==feeQuoteSequence||!connectedMainnet())return;
+    if(!data||data.ok!==true||!data.amountNano)
+      throw new Error("Backend did not return a valid fee quote.");
+    $("VX03_feeAmount").textContent=formatNanoTon(data.amountNano);
+  }catch(e){
+    if(sequence!==feeQuoteSequence)return;
+    $("VX03_feeAmount").textContent="Fee quote unavailable";
+    status("VX03_serviceStatus",e&&e.message||"Could not load wallet-specific service fee.");
+  }
+}
+
+function walletReady(){
+  if(!state.wallet||!state.address){
+    state.friendlyAddress="";
+    status("VX03_walletStatus","Wallet not connected.");
+  }else{
+    state.friendlyAddress=state.address.trim();
+
+    status(
+      "VX03_walletStatus",
+      connectedMainnet()
+        ?"Wallet connected · TON Mainnet"
+        :"Wallet connected, but switch to TON Mainnet."
+    );
+
+  }
+
+  refreshButtons();
+  loadFeeQuote();
+}
+
+async function initWallet(){
+  try{
+    if(!window.TON_CONNECT_UI){
+      await new Promise((resolve,reject)=>{
+        const s=document.createElement("script");
+        s.src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js";
+        s.onload=resolve;
+        s.onerror=()=>reject(new Error("Could not load TON Connect."));
+        document.head.appendChild(s);
+      });
+    }
+
+    const TonConnectUI=window.TON_CONNECT_UI&&
+      window.TON_CONNECT_UI.TonConnectUI;
+
+    if(!TonConnectUI)
+      throw new Error("TON Connect UI library unavailable.");
+
+    state.tonUI=new TonConnectUI({
+      manifestUrl:API+"/tonconnect-manifest.json",
+      buttonRootId:"VX03_walletMount"
+    });
+
+// MAGROXIN — Shared TON Connect Wallet Bridge
+window.MAGROXIN_TON_UI = state.tonUI;
+
+    state.tonUI.onStatusChange(wallet=>{
+      const oldAddress=state.address;
+      const newAddress=wallet&&wallet.account
+        ?wallet.account.address:"";
+
+      state.wallet=wallet||null;
+      state.address=newAddress;
+
+      if(state.order&&oldAddress!==newAddress){
+        resetOrder(
+          "Wallet changed or disconnected. Connect the intended wallet and create a new order."
+        );
+      }
+
+      walletReady();
+    });
+
+    walletReady();
+
+  }catch(e){
+    status(
+      "VX03_walletStatus",
+      e&&e.message||"Wallet initialization failed."
+    );
+  }
+}
+
+async function disconnectWallet(){
+  if(!state.tonUI){
+    status("VX03_walletStatus","TON Connect is not initialized.");
+    return;
+  }
+
+  const btn=$("VX03_disconnectWallet");
+  button("VX03_disconnectWallet",true,"Disconnecting…");
+
+  try{
+    await state.tonUI.disconnect();
+
+    state.wallet=null;
+    state.address="";
+    state.friendlyAddress="";
+
+    resetOrder("Wallet disconnected. Connect again to continue.");
+    walletReady();
+
+    status("VX03_walletStatus","Wallet disconnected.");
+
+  }catch(e){
+    status(
+      "VX03_walletStatus",
+      e&&e.message||"Could not disconnect wallet."
+    );
+  }finally{
+    button("VX03_disconnectWallet",false,"Disconnect Wallet");
+    walletReady();
+  }
+}
+
+async function request(path,options){
+  const response=await fetch(API+path,options||{});
+  const data=await response.json().catch(()=>({}));
+
+  if(!response.ok){
+    const detailText=Array.isArray(data.details)
+      ?data.details.map(x=>(x.field?x.field+": ":"")+(x.message||"")).filter(Boolean).join(" · ")
+      :"";
+    throw new Error((data.error||"API request failed ("+response.status+").")+(detailText?" ["+detailText+"]":""));
+  }
+
+  return data;
+}
+
+function formatNanoTon(nano){
+  if(!/^\d+$/.test(String(nano)))
+    throw new Error("Backend returned an invalid fee amount.");
+
+  const n=BigInt(String(nano));
+  const whole=n/1000000000n;
+  const frac=(n%1000000000n).toString()
+    .padStart(9,"0").replace(/0+$/,"");
+
+  return whole.toString()+(frac?"."+frac:"")+" TON";
+}
+
+async function createOrder(){
+  if(!state.draft||!state.wallet||!state.address)
+    throw new Error("Connect your wallet and complete token details first.");
+
+  if(!connectedMainnet())
+    throw new Error("Switch your wallet to TON Mainnet.");
+
+  if(!$("VX03_accept").checked)
+    throw new Error("Accept the fee policy to continue.");
+
+  const token={
+    name:state.draft.name,
+    symbol:state.draft.symbol,
+    supply:state.draft.supply,
+    decimals:state.draft.decimals,
+    description:state.draft.description
+  };
+
+  if(state.draft.logoData){
+    if(state.draft.logoData.startsWith("data:image/")) token.logoData=state.draft.logoData;
+    else if(/^https:\/\//i.test(state.draft.logoData)) token.logoUrl=state.draft.logoData;
+  }
+
+  const data=await request("/api/orders",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      walletAddress:state.address,
+      deploymentNetwork:"mainnet",
+      token
+    })
+  });
+
+  if(!data.order||!data.order.id)
+    throw new Error("Backend did not return an order ID.");
+
+  const order=data.order;
+  const nano=order.amountNano;
+
+  if(
+    nano===undefined||nano===null||
+    !/^[1-9]\d*$/.test(String(nano))
+  ){
+    throw new Error("Backend order has no valid fee amount. Payment blocked.");
+  }
+
+  if(order.feeTon!==undefined&&order.feeTon!==null){
+    if(!/^\d+(?:\.\d{1,9})?$/.test(String(order.feeTon)))
+      throw new Error("Backend returned an invalid TON fee.");
+
+    const parts=String(order.feeTon).split(".");
+    const expected=BigInt(parts[0])*1000000000n+
+      BigInt((parts[1]||"").padEnd(9,"0")||"0");
+
+    if(expected!==BigInt(String(nano)))
+      throw new Error("Order fee fields do not match. Payment blocked.");
+  }
+
+  state.order={...order,walletAddress:state.address};
+
+  state.paymentReady=!!(
+    data.payment&&
+    data.payment.paymentRequestEnabled===true&&
+    data.payment.paymentVerificationEnabled===true
+  );
+
+  $("VX03_feeAmount").textContent=formatNanoTon(nano);
+
+  show("VX03_payService",state.paymentReady);
+  show("VX03_verifyService",state.paymentReady);
+
+  status(
+    "VX03_serviceStatus",
+    state.paymentReady
+      ?"Order created. Check the amount and recipient in your wallet before sending."
+      :"Order created, but backend payment requests or verification are disabled."
+  );
+
+  refreshButtons();
+}
+
+async function getServicePayment(){
+  if(!state.order)
+    throw new Error("Create an order first.");
+
+  if(!state.paymentReady)
+    throw new Error("Backend payment requests and verification are not both enabled.");
+
+  if(
+    !connectedMainnet()||
+    state.address!==state.order.walletAddress
+  ){
+    throw new Error("Reconnect the wallet that created this order.");
+  }
+
+  const p=await request(
+    "/api/orders/"+encodeURIComponent(state.order.id)+"/payment-request"
+  );
+
+  if(p.network!==MAINNET)
+    throw new Error("Payment request is not TON Mainnet.");
+
+  if(String(p.amountNano)!==String(state.order.amountNano))
+    throw new Error("Payment amount does not match this order. Payment blocked.");
+
+  if(!p.address||typeof p.address!=="string")
+    throw new Error("Backend payment recipient address is missing.");
+
+  if(
+    p.validUntil===undefined||p.validUntil===null||
+    !Number.isFinite(Number(p.validUntil))||
+    Number(p.validUntil)<=Math.floor(Date.now()/1000)
+  ){
+    throw new Error("Payment request is expired or invalid.");
+  }
+
+  if(
+    p.payload!==undefined&&p.payload!==null&&
+    typeof p.payload!=="string"
+  ){
+    throw new Error("Backend returned an invalid payment payload.");
+  }
+
+  return {
+    ...p,
+    validUntil:Number(p.validUntil),
+    payload:p.payload||""
+  };
+}
+
+function advanceToDeployer(){
+  if(!state.servicePaid||!state.order||!state.order.id||!state.address||!state.draft)return;
+  const bridgeData={
+    orderId:state.order.id,
+    walletAddress:state.address,
+    network:"mainnet",
+    token:{
+      name:state.draft.name||"",
+      symbol:state.draft.symbol||"",
+      supply:state.draft.supply||"",
+      decimals:state.draft.decimals??9,
+      description:state.draft.description||"",
+      logo:state.draft.logoData||"",
+      logoUrl:state.draft.logoData&&/^https:\/\//i.test(state.draft.logoData)?state.draft.logoData:""
+    }
+  };
+  window.MAGROXIN_GADGET4_DATA=bridgeData;
+  window.dispatchEvent(new CustomEvent("magroxin:gadget4:open",{detail:bridgeData}));
+}
+
+async function verifyService(){
+  if(!state.order)
+    throw new Error("Create an order first.");
+
+  if(
+    !connectedMainnet()||
+    state.address!==state.order.walletAddress
+  ){
+    throw new Error("Reconnect the wallet that created this order.");
+  }
+
+  const data=await request(
+    "/api/orders/"+encodeURIComponent(state.order.id)+"/verify",
+    {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({walletAddress:state.address})
+    }
+  );
+
+  if(data.status==="paid"&&data.paymentMarkedPaid===true){
+    state.servicePaid=true;
+
+    status("VX03_deployState","Payment verified");
+
+    status(
+      "VX03_serviceStatus",
+      "Service payment verified by the backend."
+    );
+
+    status(
+      "VX03_deploymentStatus",
+      "Payment verified successfully by the backend."
+    );
+
+    // Prepare Gadget 4, then show the verified-payment popup above it.
+    advanceToDeployer();
+    refreshButtons();
+    openSuccessPopup();
+    return true;
+  }
+
+  status(
+    "VX03_serviceStatus",
+    data.message||"Payment is not confirmed yet. No success popup will be shown."
+  );
+
+  return false;
+}
+
+async function payService(){
+  const p=await getServicePayment();
+
+  await state.tonUI.sendTransaction({
+    validUntil:p.validUntil,
+    network:MAINNET,
+    messages:[{
+      address:p.address,
+      amount:String(p.amountNano),
+      payload:p.payload
+    }]
+  });
+
+  status(
+    "VX03_serviceStatus",
+    "Transaction submitted. Waiting for backend verification…"
+  );
+
+  const ok=await verifyService();
+
+  if(!ok){
+    status(
+      "VX03_serviceStatus",
+      "Transaction submitted, but backend has not verified payment yet. Use Verify service-fee payment later."
+    );
+  }
+}
+
+async function run(id,action,statusId,label){
+  if(state.busy)return;
+
+  state.busy=true;
+  refreshButtons();
+
+  const n=$(id);
+  const old=n.textContent;
+
+  button(id,true,label||"Please wait…");
+
+  try{
+    await action();
+  }catch(e){
+    status(statusId,e&&e.message||"Request failed.");
+  }finally{
+    state.busy=false;
+    button(id,false,old);
+    refreshButtons();
+  }
+}
+
+$("VX03_accept").addEventListener("change",refreshButtons);
+
+$("VX03_createOrder").addEventListener("click",()=>{
+  run(
+    "VX03_createOrder",
+    createOrder,
+    "VX03_serviceStatus",
+    "Creating order…"
+  );
+});
+
+$("VX03_payService").addEventListener("click",()=>{
+  run(
+    "VX03_payService",
+    payService,
+    "VX03_serviceStatus",
+    "Opening wallet…"
+  );
+});
+
+$("VX03_verifyService").addEventListener("click",()=>{
+  run(
+    "VX03_verifyService",
+    verifyService,
+    "VX03_serviceStatus",
+    "Verifying…"
+  );
+});
+
+$("VX03_disconnectWallet").addEventListener(
+  "click",
+  disconnectWallet
+);
+
+$("VX03_popupClose").addEventListener("click",closeSuccessPopup);
+$("VX03_popupContinue").addEventListener("click",()=>{
+  closeSuccessPopup();
+  const deployer=document.getElementById("MGX_GADGET4");
+  if(deployer)deployer.scrollIntoView({behavior:"smooth",block:"center"});
+});
+
+initWallet();
+})();
+</script>
+<!-- END MAGROXIN GADGET 03 -->
+
+<!-- MAGROXIN GADGET 4 — ROYAL TOKEN DEPLOYER -->
+<div id="MGX_GADGET4" style="display:none">
+<style>
+#MGX_GADGET4{
+ --cyan:#00eaff;--blue:#087cff;--gold:#f2ce72;
+ --ice:#bafaff;--muted:#8eb8e8;
+ color:#eaf7ff;font-family:Arial,Helvetica,sans-serif;
+ width:100%;max-width:1050px;margin:26px auto;
+ position:relative;isolation:isolate
+}
+#MGX_GADGET4 *{box-sizing:border-box}
+#MGX_GADGET4 .mgx-frame{
+ position:relative;overflow:hidden;padding:25px 18px 18px;
+ border:1px solid #087cff88;border-radius:19px;
+ background:radial-gradient(ellipse at 50% 0%,#063b8055,transparent 55%),
+ radial-gradient(ellipse at 0% 100%,#003f9b33,transparent 45%),
+ linear-gradient(145deg,#020b20,#030716 65%,#010611);
+ box-shadow:inset 0 0 35px #006bff12,0 0 35px #006bff19
+}
+#MGX_GADGET4 .mgx-frame:before{
+ content:"";position:absolute;inset:7px;pointer-events:none;
+ border:1px solid #00bfff20;border-radius:13px
+}
+#MGX_GADGET4 .mgx-topline{
+ position:absolute;top:0;left:8%;width:84%;height:2px;
+ background:linear-gradient(90deg,transparent,var(--cyan),var(--gold),var(--cyan),transparent);
+ box-shadow:0 0 12px var(--cyan)
+}
+#MGX_GADGET4 .mgx-brand{text-align:center;margin:0 auto 27px;position:relative}
+#MGX_GADGET4 .mgx-brand-name{
+ font-size:clamp(26px,5.4vw,47px);font-weight:900;
+ letter-spacing:clamp(4px,1.1vw,11px);
+ background:linear-gradient(180deg,#fff,#b9dfff 48%,#f0cb6c);
+ -webkit-background-clip:text;background-clip:text;color:transparent
+}
+#MGX_GADGET4 .mgx-brand-name span{color:var(--cyan);-webkit-text-fill-color:var(--cyan)}
+#MGX_GADGET4 .mgx-network{color:var(--cyan);letter-spacing:5px;font-size:12px;font-weight:bold;margin-top:7px}
+#MGX_GADGET4 .mgx-main{
+ position:relative;max-width:760px;margin:auto;text-align:center;
+ border:1px solid #e7bd5b99;border-radius:20px;padding:29px 18px 18px;
+ background:linear-gradient(145deg,#071831ed,#02091bed);
+ box-shadow:inset 0 0 25px #006bff12,0 0 20px #006bff12
+}
+#MGX_GADGET4 .mgx-crown{
+ position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+ width:48px;height:48px;border-radius:50%;display:grid;place-items:center;
+ font-size:25px;color:var(--gold);background:#07152d;border:2px solid var(--gold);
+ box-shadow:0 0 20px #e7bd5b44
+}
+#MGX_GADGET4 .mgx-title{
+ margin:7px 0 9px;font-size:clamp(21px,3vw,29px);
+ line-height:1.25;letter-spacing:1px;font-weight:900;color:#f4dfac
+}
+#MGX_GADGET4 .mgx-desc{max-width:490px;margin:0 auto 23px;color:#9dd8ff;font-size:13px;line-height:1.8}
+#MGX_GADGET4 .mgx-button-shell{
+ position:relative;margin:0 auto 17px;padding:5px;max-width:540px;border-radius:19px;
+ background:linear-gradient(110deg,#e7bd5b,#087cff,#00eaff,#e7bd5b);
+ background-size:250% 100%;animation:mgx4glow 7s linear infinite;box-shadow:0 0 20px #087cff22
+}
+#MGX_GADGET4 .mgx-deploy{
+ display:block;width:100%;min-height:96px;padding:15px 10px;
+ border:1px solid #49dfff;border-radius:15px;color:#c7e5ff;
+ background:linear-gradient(180deg,#0a2b5b,#06132e 70%,#030b1c);
+ font-weight:900;font-size:clamp(17px,3.5vw,25px);
+ letter-spacing:1.5px;cursor:pointer;transition:filter .25s,transform .25s
+}
+#MGX_GADGET4 .mgx-rocket{font-size:23px;margin-right:10px}
+#MGX_GADGET4 .mgx-deploy small{display:block;font-size:11px;letter-spacing:0;font-weight:500;margin-top:8px;color:#86a8d7}
+#MGX_GADGET4 .mgx-deploy:disabled{cursor:not-allowed;filter:brightness(.46) saturate(.55);color:#7196c8;background:linear-gradient(180deg,#102448,#050d1f);border-color:#365783}
+#MGX_GADGET4 .mgx-deploy:not(:disabled){color:#fff;background:linear-gradient(105deg,#065baf,#087cff 42%,#00bde8);border-color:#aafaff;box-shadow:inset 0 0 18px #aafaff2a,0 0 26px #008cff75}
+#MGX_GADGET4 .mgx-deploy:not(:disabled):hover{transform:translateY(-2px);filter:brightness(1.15)}
+#MGX_GADGET4 .mgx-check{
+ width:min(100%,390px);min-height:53px;display:block;margin:0 auto 18px;padding:12px;
+ border:1px solid #00bfff;border-radius:12px;color:#a8e7ff;
+ background:linear-gradient(180deg,#071d3b,#030b1c);font-size:14px;font-weight:900;letter-spacing:1px;cursor:pointer
+}
+#MGX_GADGET4 .mgx-check:disabled{opacity:.55;cursor:wait}
+#MGX_GADGET4 .mgx-status{
+ text-align:left;display:flex;align-items:flex-start;gap:12px;padding:15px 13px;
+ border:1px solid #087cff88;border-radius:12px;background:#020b20;color:#a9d9ff;
+ font-size:12px;line-height:1.7;overflow-wrap:anywhere;min-height:78px
+}
+#MGX_GADGET4 .mgx-status-icon{flex:0 0 28px;width:28px;height:28px;border:2px solid var(--cyan);border-radius:50%;display:grid;place-items:center;color:var(--cyan);font-weight:bold;font-size:16px}
+#MGX_GADGET4 .mgx-status strong{display:block;color:var(--cyan);font-size:13px;margin-bottom:3px}
+#MGX_GADGET4 .mgx-status[data-state="error"]{border-color:#ff507288}
+#MGX_GADGET4 .mgx-status[data-state="error"] .mgx-status-icon{border-color:#ff5072;color:#ff7893}
+#MGX_GADGET4 .mgx-status[data-state="error"] strong{color:#ff7893}
+#MGX_GADGET4 .mgx-status[data-state="ok"]{border-color:#00ffaa66}
+#MGX_GADGET4 .mgx-status[data-state="ok"] .mgx-status-icon{border-color:#00ffaa;color:#00ffaa}
+#MGX_GADGET4 .mgx-status[data-state="ok"] strong{color:#76ffd0}
+#MGX_GADGET4 .mgx-footer{text-align:center;color:#557eb4;font-size:10px;letter-spacing:2px;margin:19px 0 0}
+@keyframes mgx4glow{0%{background-position:0 50%}100%{background-position:250% 50%}}
+@media(max-width:500px){
+ #MGX_GADGET4 .mgx-frame{padding:23px 11px 15px}
+ #MGX_GADGET4 .mgx-main{padding:27px 11px 13px}
+ #MGX_GADGET4 .mgx-deploy{min-height:85px}
+ #MGX_GADGET4 .mgx-network{letter-spacing:3px}
+}
+@media(prefers-reduced-motion:reduce){#MGX_GADGET4 .mgx-button-shell{animation:none}}
+</style>
+<div class="mgx-frame">
+ <div class="mgx-topline"></div>
+ <header class="mgx-brand">
+  <div class="mgx-brand-name">MAGRO<span>X</span>IN</div>
+  <div class="mgx-network">· TON MAINNET ·</div>
+ </header>
+ <section class="mgx-main">
+  <div class="mgx-crown">♛</div>
+  <h2 class="mgx-title">ROYAL TOKEN DEPLOYER</h2>
+  <p class="mgx-desc">Deploy your token on TON Mainnet. Your service fee must be verified and deployment must be enabled by the backend.</p>
+  <div class="mgx-button-shell">
+   <button type="button" id="MGX4_DEPLOY" class="mgx-deploy" disabled>
+    <span class="mgx-rocket">🚀</span> DEPLOY TOKEN
+    <small id="MGX4_DEPLOY_HINT">🔒 Disabled · Check backend first</small>
+   </button>
+  </div>
+  <button type="button" id="MGX4_CHECK" class="mgx-check">⟳ &nbsp; CHECK BACKEND</button>
+  <div id="MGX4_STATUS" class="mgx-status" data-state="busy" role="status" aria-live="polite">
+   <span class="mgx-status-icon">i</span>
+   <div><strong id="MGX4_STATUS_TITLE">Checking backend…</strong><span id="MGX4_STATUS_TEXT">Contacting Render to check deployment permission.</span></div>
+  </div>
+ </section>
+ <div class="mgx-footer">MAGROXIN · TON MAINNET · SECURE · TRANSPARENT · ROYAL</div>
+</div>
+<!-- SUCCESS MODAL: moved to BODY by JavaScript -->
+<div id="MGX4_MODAL" class="mgx-modal" role="dialog" aria-modal="true" aria-labelledby="MGX4_SUCCESS_TITLE" style="display:none">
+ <style>
+ #MGX4_MODAL.mgx-modal{
+  position:fixed!important;inset:0!important;z-index:2147483647!important;
+  display:none;align-items:center;justify-content:center;padding:14px;
+  overflow-y:auto;background:rgba(1,5,17,.94);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  font-family:Arial,Helvetica,sans-serif;color:#eaf7ff
+ }
+ #MGX4_MODAL.mgx-modal.open{display:flex!important}
+ #MGX4_MODAL .mgx-modal-box{
+  box-sizing:border-box;width:100%;max-width:510px;max-height:calc(100dvh - 28px);
+  overflow-y:auto;overscroll-behavior:contain;padding:23px 17px;
+  border:1px solid #e7bd5b99;border-radius:19px;
+  background:radial-gradient(ellipse at top,#0b3260,#030a1b 68%);
+  box-shadow:0 0 40px #087cff35;text-align:center
+ }
+ #MGX4_MODAL .mgx-success-icon{
+  width:59px;height:59px;border-radius:50%;margin:0 auto 13px;
+  display:grid;place-items:center;font-size:29px;color:#8dffd4;border:2px solid #00ffaa;box-shadow:0 0 22px #00ffaa22
+ }
+ #MGX4_MODAL .mgx-chip{display:inline-block;padding:5px 10px;border:1px solid #00eaff66;border-radius:20px;color:#00eaff;font-size:10px;letter-spacing:1.5px;font-weight:bold}
+ #MGX4_MODAL h3{color:#f4dfac;font-size:22px;line-height:1.4;margin:12px 0 8px}
+ #MGX4_MODAL p{color:#9fc9ef;font-size:12px;line-height:1.7}
+ #MGX4_MODAL .mgx-result{display:flex;flex-direction:column;gap:5px;text-align:left;margin-top:10px;padding:11px;background:#020b1c;border:1px solid #087cff44;border-radius:10px}
+ #MGX4_MODAL .mgx-result-label{color:#6ea9df;font-size:10px;letter-spacing:1px}
+ #MGX4_MODAL .mgx-result-value{color:#e2f7ff;font-size:13px;overflow-wrap:anywhere;word-break:break-word}
+ #MGX4_MODAL .mgx-result-value a{color:#00eaff}
+ #MGX4_MODAL .mgx-logo{width:66px;height:66px;object-fit:cover;border-radius:50%;border:2px solid #00eaff;display:none;margin:0 auto 12px}
+ #MGX4_MODAL .mgx-actions{display:flex;gap:10px;margin-top:17px}
+ #MGX4_MODAL .mgx-actions button{flex:1;min-height:43px;border-radius:10px;font-weight:bold;cursor:pointer;padding:10px}
+ #MGX4_MODAL .mgx-copy{border:1px solid #00bfff;color:#a9efff;background:#071b37}
+ #MGX4_MODAL .mgx-close{border:0;color:#03101c;background:linear-gradient(100deg,#bafaff,#00eaff,#e7bd5b)}
+ @media(max-width:500px){#MGX4_MODAL .mgx-actions{flex-direction:column}}
+ #MGX4_MODAL .mgx-modal-box{position:relative;border:1px solid rgba(92,231,255,.58);background:radial-gradient(ellipse at 50% -12%,rgba(0,234,255,.20),transparent 46%),radial-gradient(ellipse at 100% 100%,rgba(8,124,255,.16),transparent 48%),linear-gradient(155deg,#0a1d3b 0%,#040d22 52%,#020817 100%);box-shadow:0 0 0 1px #e7bd5b20,0 0 38px #00bfff25,0 24px 80px #000b}
+ #MGX4_MODAL .mgx-modal-box:before{content:"";position:absolute;inset:7px;border:1px solid #00eaff20;border-radius:13px;pointer-events:none}
+ #MGX4_MODAL .mgx-success-icon{position:relative;width:72px;height:72px;font-size:34px;background:radial-gradient(circle,#00ffaa20,transparent 70%);box-shadow:0 0 0 7px #00ffaa0b,0 0 32px #00ffaa30,inset 0 0 18px #00ffaa12}
+ #MGX4_MODAL .mgx-chip{background:#00eaff0c;box-shadow:0 0 18px #00eaff16}
+ #MGX4_MODAL h3{font-size:clamp(21px,5vw,26px);letter-spacing:1.1px;text-shadow:0 0 18px #e7bd5b30}
+ #MGX4_MODAL .mgx-result{position:relative;margin-top:9px;padding:12px 13px 13px;border:1px solid #168bdc55;border-left:3px solid #00cfff;background:linear-gradient(105deg,#06172e,#041022 72%,#06162a);box-shadow:inset 0 1px #ffffff08,0 5px 15px #0002;transition:border-color .2s,transform .2s}
+ #MGX4_MODAL .mgx-result:hover{border-color:#00eaffaa;transform:translateY(-1px)}
+ #MGX4_MODAL .mgx-result-label{color:#67cfff;font-size:10px;font-weight:800;letter-spacing:1.35px}
+ #MGX4_MODAL .mgx-result-value{font-size:13px;line-height:1.65;color:#e8faff}
+ #MGX4_MODAL .mgx-result-value a{color:#54f0ff;text-decoration:none;border-bottom:1px dotted #54f0ff88}
+ #MGX4_MODAL .mgx-result-value a:hover{color:#fff;border-bottom-color:#fff}
+ #MGX4_MODAL .mgx-logo{width:78px;height:78px;object-fit:contain;padding:3px;background:#061a31;box-shadow:0 0 0 5px #00eaff10,0 0 25px #00eaff55}
+ #MGX4_MODAL .mgx-actions button{min-height:48px;letter-spacing:.65px;transition:transform .2s,filter .2s,box-shadow .2s}
+ #MGX4_MODAL .mgx-actions button:hover{transform:translateY(-2px);filter:brightness(1.12)}
+ #MGX4_MODAL .mgx-copy{border-color:#00d9ff;background:linear-gradient(110deg,#062b50,#073b61);box-shadow:0 0 18px #00bfff1c}
+ #MGX4_MODAL .mgx-close{background:linear-gradient(110deg,#bafaff,#00eaff 60%,#e7bd5b);box-shadow:0 0 18px #00eaff25}
+ @media(prefers-reduced-motion:no-preference){#MGX4_MODAL .mgx-success-icon{animation:mgxSuccessPulse 2.8s ease-in-out infinite}@keyframes mgxSuccessPulse{0%,100%{box-shadow:0 0 0 7px #00ffaa0b,0 0 22px #00ffaa22}50%{box-shadow:0 0 0 10px #00ffaa10,0 0 38px #00ffaa55}}}
+ @media(max-width:500px){#MGX4_MODAL .mgx-actions{flex-direction:column}#MGX4_MODAL .mgx-modal-box{padding:21px 13px}#MGX4_MODAL .mgx-result{padding:11px}}
+ @media(prefers-reduced-motion:reduce){#MGX4_MODAL .mgx-result,#MGX4_MODAL .mgx-actions button{transition:none}}
+ </style>
+ <div class="mgx-modal-box">
+  <div class="mgx-success-icon">✓</div>
+  <img id="MGX4_R_LOGO" class="mgx-logo" alt="Token logo" referrerpolicy="no-referrer" />
+  <span class="mgx-chip">MAGROXIN · TON MAINNET</span>
+  <h3 id="MGX4_SUCCESS_TITLE">TOKEN DEPLOYED SUCCESSFULLY</h3>
+  <p id="MGX4_SUCCESS_TEXT">The backend confirmed deployment. Token distribution should be verified separately.</p>
+  <div class="mgx-result"><div class="mgx-result-label">TOKEN NAME</div><div id="MGX4_R_NAME" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TOKEN SYMBOL</div><div id="MGX4_R_SYMBOL" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TOKEN MASTER ADDRESS</div><div id="MGX4_R_ADDRESS" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">DECIMALS</div><div id="MGX4_R_DECIMALS" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TOTAL SUPPLY</div><div id="MGX4_R_SUPPLY" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">CREATOR WALLET</div><div id="MGX4_R_CREATOR" class="mgx-result-value">—</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">DEPLOYMENT DATE & TIME</div><div id="MGX4_R_DATE" class="mgx-result-value">Not provided by backend</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TRANSACTION HASH</div><div id="MGX4_R_HASH" class="mgx-result-value">Not provided by backend</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TON EXPLORER</div><div id="MGX4_R_EXPLORER" class="mgx-result-value">—</div></div>
+  <div class="mgx-actions">
+   <button type="button" id="MGX4_COPY" class="mgx-copy">COPY CONTRACT ADDRESS</button>
+   <button type="button" id="MGX4_CLOSE" class="mgx-close">CLOSE</button>
+  </div>
+ </div>
+</div>
+<script>
+(function(){
+"use strict";
+const ROOT=document.getElementById("MGX_GADGET4");
+if(!ROOT||ROOT.dataset.ready==="yes")return;
+ROOT.dataset.ready="yes";
+const API="https://magroxin-ton-api.onrender.com";
+const MAINNET="-239";
+const $=id=>document.getElementById(id);
+const modal=$("MGX4_MODAL");
+/* Move the modal outside Blogger's clipped/transformed containers. */
+if(modal && modal.parentElement!==document.body)document.body.appendChild(modal);
+let backendEnabled=false,checking=false,deploying=false,completed=false;
+let orderData=null,tokenAddress="";
+function setStatus(title,message,state){
+ $("MGX4_STATUS_TITLE").textContent=title;
+ $("MGX4_STATUS_TEXT").textContent=message;
+ $("MGX4_STATUS").dataset.state=state||"";
+}
+function refreshButton(){
+ const ready=backendEnabled&&!!orderData&&!checking&&!deploying&&!completed;
+ $("MGX4_DEPLOY").disabled=!ready;
+ $("MGX4_DEPLOY_HINT").textContent=ready
+  ?"✦ Backend enabled · Paid order received"
+  :!backendEnabled?"🔒 Disabled · Backend not enabled"
+  :!orderData?"🔒 Waiting for Gadget 3 payment verification"
+  :deploying?"⏳ Deployment in progress":"Deployment already submitted";
+}
+async function api(path,options){
+ const opts=Object.assign({cache:"no-store",headers:{"Accept":"application/json"}},options||{});
+ const response=await fetch(API+path,opts);
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok&&response.status!==202)throw new Error(data.error||data.message||"Request failed ("+response.status+").");
+ return {response,data};
+}
+function firstValue(){
+ for(const v of arguments){
+  if(v!==undefined&&v!==null&&String(v).trim()!=="")return v;
+ }
+ return "";
+}
+function readGadget3Fields(){
+ const get=id=>{
+  const el=document.getElementById(id);
+  if(!el)return "";
+  if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT")return el.value||"";
+  return el.textContent||"";
+ };
+ return {
+  name:get("VX03_name"),
+  symbol:get("VX03_symbol"),
+  logo:get("VX03_logo"),
+  supply:get("VX03_supply"),
+  decimals:get("VX03_decimals"),
+  description:get("VX03_description")
+ };
+}
+function normalizeToken(detail){
+ const eventToken=detail.token&&typeof detail.token==="object"?detail.token:{};
+ const dom=readGadget3Fields();
+ return {
+  name:firstValue(eventToken.name,eventToken.tokenName,detail.name,dom.name),
+  symbol:firstValue(eventToken.symbol,eventToken.tokenSymbol,detail.symbol,dom.symbol),
+  logo:firstValue(eventToken.logo,eventToken.image,eventToken.imageUrl,detail.logo,dom.logo),
+  supply:firstValue(eventToken.supply,eventToken.totalSupply,detail.supply,dom.supply),
+  decimals:firstValue(eventToken.decimals,detail.decimals,dom.decimals),
+  description:firstValue(eventToken.description,detail.description,dom.description)
+ };
+}
+function acceptOrder(detail){
+ if(!detail||typeof detail!=="object")return;
+ const id=detail.orderId||detail.order_id;
+ const address=detail.walletAddress||detail.creatorAddress||detail.wallet_address;
+ if(typeof id!=="string"||!id.trim()||typeof address!=="string"||!address.trim())return;
+ if(detail.network&&detail.network!=="mainnet"&&detail.network!==MAINNET){
+  setStatus("Wrong network","Gadget 3 did not provide a TON Mainnet order.","error");return;
+ }
+ orderData={orderId:id.trim(),walletAddress:address.trim(),network:"mainnet",token:normalizeToken(detail)};
+ ROOT.style.display="block";
+ refreshButton();
+ setStatus(backendEnabled?"Order received":"Deployment disabled",
+ backendEnabled?"Paid order received. Check wallet connection before deploying.":"Render has not enabled token deployment.",""+(backendEnabled?"ok":"error"));
+}
+window.addEventListener("magroxin:gadget4:open",e=>acceptOrder(e.detail));
+window.addEventListener("magroxin:gadget4:order",e=>acceptOrder(e.detail));
+async function checkBackend(){
+ if(checking||deploying)return;
+ checking=true;$("MGX4_CHECK").disabled=true;$("MGX4_CHECK").textContent="⟳ CHECKING BACKEND…";
+ refreshButton();setStatus("Checking Render backend","Reading live deployment permission.","busy");
+ try{
+  const r=await api("/");
+  backendEnabled=r.data.deploymentEnabled===true;
+  if(!backendEnabled)setStatus("Deployment is disabled","Render returned deploymentEnabled=false. No transaction can be sent.","error");
+  else if(!orderData)setStatus("Backend is enabled","Complete and verify service-fee payment in Gadget 3 first.","ok");
+  else setStatus("Backend enabled","Paid order received. Deployment is available if the wallet session matches.","ok");
+ }catch(e){backendEnabled=false;setStatus("Backend check failed",e.message,"error")}
+ finally{
+  checking=false;$("MGX4_CHECK").disabled=false;$("MGX4_CHECK").textContent="⟳ CHECK BACKEND";refreshButton();
+ }
+}
+function getWalletUI(){
+ const ui=window.MAGROXIN_TON_UI;
+ return ui&&typeof ui.sendTransaction==="function"&&typeof ui.onStatusChange==="function"?ui:null;
+}
+function getConnectedWallet(){
+ const ui=getWalletUI();
+ if(!ui)throw new Error("Gadget 3 wallet session is not exposed to Gadget 4. No transaction was sent.");
+ const wallet=ui.wallet;
+ if(!wallet||!wallet.account||!wallet.account.address)throw new Error("Wallet is not connected. Return to Gadget 3 and connect it.");
+ if(wallet.account.chain&&wallet.account.chain!==MAINNET)throw new Error("Connect a TON Mainnet wallet.");
+ return {ui,address:wallet.account.address};
+}
+async function verifyDeployment(orderId,walletAddress){
+ const deadline=Date.now()+120000;
+ while(Date.now()<deadline){
+  await new Promise(resolve=>setTimeout(resolve,2500));
+  const r=await api("/api/deployment/verify",{
+   method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+   body:JSON.stringify({orderId,walletAddress,network:"mainnet"})
+  });
+  const d=r.data;
+  if(d.deploymentEnabled===false){backendEnabled=false;refreshButton();throw new Error("Render disabled deployment. No deployment was confirmed.")}
+  if(d.status==="deployed"&&d.verifiedOnChain===true&&d.tokenAddress)return d;
+  if(d.status==="failed"||d.retryable===false)throw new Error(d.error||"Backend could not verify deployment.");
+  setStatus("Verifying on TON Mainnet",d.message||"Waiting for on-chain confirmation…","busy");
+ }
+ throw new Error("Verification is still pending. No success popup was shown. Check status before retrying.");
+}
+function setText(id,value){
+ $(id).textContent=value===undefined||value===null||value===""?"Not provided by backend":String(value);
+}
+function showSuccess(verified){
+ if(verified.status!=="deployed"||verified.verifiedOnChain!==true||!verified.tokenAddress)
+  throw new Error("Deployment has not been verified by the backend.");
+ const token=orderData.token||{};
+ setText("MGX4_R_NAME",firstValue(verified.tokenName,verified.name,token.name));
+ setText("MGX4_R_SYMBOL",firstValue(verified.tokenSymbol,verified.symbol,token.symbol));
+ setText("MGX4_R_ADDRESS",verified.tokenAddress);
+ setText("MGX4_R_DECIMALS",firstValue(verified.decimals,token.decimals));
+ setText("MGX4_R_SUPPLY",firstValue(verified.totalSupply,verified.supply,token.supply));
+ setText("MGX4_R_CREATOR",firstValue(verified.creatorAddress,verified.walletAddress,orderData.walletAddress));
+ const logo=firstValue(verified.tokenLogo,verified.logo,token.logo);
+ const logoEl=$("MGX4_R_LOGO");
+ if(typeof logo==="string"&&/^(https?:\/\/|data:image\/)/i.test(logo)){
+  logoEl.src=logo;logoEl.style.display="block";
+ }else{logoEl.removeAttribute("src");logoEl.style.display="none"}
+ const rawDate=firstValue(verified.deployedAt,verified.timestamp,verified.transactionTimestamp);
+ let dateText="Not provided by backend";
+ if(rawDate!==""){
+  const date=typeof rawDate==="number"?new Date(rawDate<1000000000000?rawDate*1000:rawDate):new Date(rawDate);
+  if(!Number.isNaN(date.getTime()))dateText=date.toLocaleString();
+ }
+ setText("MGX4_R_DATE",dateText);
+ setText("MGX4_R_HASH",firstValue(verified.transactionHash,verified.txHash));
+ const exp=$("MGX4_R_EXPLORER");exp.replaceChildren();
+ const addLink=(url,label)=>{
+  const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=label;exp.appendChild(a);
+ };
+ const safeAddress=encodeURIComponent(verified.tokenAddress);
+ addLink("https://tonviewer.com/"+safeAddress,"View token on TON Explorer");
+ const hash=firstValue(verified.transactionHash,verified.txHash);
+ if(hash&&/^[A-Za-z0-9_-]+$/.test(String(hash))){
+  const sep=document.createTextNode(" · ");exp.appendChild(sep);
+  addLink("https://tonviewer.com/transaction/"+encodeURIComponent(hash),"View transaction");
+ }
+ tokenAddress=verified.tokenAddress;
+ modal.classList.add("open");
+ modal.setAttribute("aria-hidden","false");
+ $("MGX4_CLOSE").focus();
+ setStatus("Deployment verified","Backend confirmed the token master on TON Mainnet. Creator token balance should be checked separately.","ok");
+}
+async function deployToken(){
+ if(deploying||checking||completed||!backendEnabled||!orderData)return;
+ deploying=true;refreshButton();
+ try{
+  setStatus("Rechecking deployment permission","Checking Render immediately before transaction preparation.","busy");
+  const live=await api("/");
+  backendEnabled=live.data.deploymentEnabled===true;
+  if(!backendEnabled)throw new Error("Render has deployment disabled. No transaction was sent.");
+  if(orderData.network!=="mainnet")throw new Error("Order is not for TON Mainnet.");
+  const wallet=getConnectedWallet();
+  if(wallet.address!==orderData.walletAddress)throw new Error("Connected wallet does not match the wallet that paid the service fee.");
+  setStatus("Preparing transaction","Requesting a deployment transaction from the backend.","busy");
+  const r=await api("/api/deployment/prepare",{
+   method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+   body:JSON.stringify({orderId:orderData.orderId,walletAddress:wallet.address,network:"mainnet"})
+  });
+  const p=r.data,tx=p.transaction;
+  if(p.deploymentEnabled!==true||p.status!=="prepared"||!tx||tx.network!==MAINNET||!Array.isArray(tx.messages)||!tx.messages.length)
+   throw new Error(p.error||"The deployment service returned an invalid response.");
+  setStatus("Wallet approval required","Review the transaction in your connected TON wallet.","busy");
+  await wallet.ui.sendTransaction(tx);
+  setStatus("Waiting for verification","Waiting for backend confirmation on-chain.","busy");
+  const verified=await verifyDeployment(orderData.orderId,wallet.address);
+  showSuccess(verified);completed=true;
+ }catch(e){setStatus("Deployment not confirmed",e.message||"Deployment failed or is still pending.","error")}
+ finally{deploying=false;refreshButton()}
+}
+function closeModal(){
+ modal.classList.remove("open");modal.setAttribute("aria-hidden","true");
+ $("MGX4_DEPLOY").focus();
+}
+$("MGX4_CHECK").addEventListener("click",checkBackend);
+$("MGX4_DEPLOY").addEventListener("click",deployToken);
+$("MGX4_CLOSE").addEventListener("click",closeModal);
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.classList.contains("open"))closeModal()});
+$("MGX4_COPY").addEventListener("click",async()=>{
+ if(!tokenAddress)return;
+ try{
+  await navigator.clipboard.writeText(tokenAddress);
+  $("MGX4_COPY").textContent="COPIED ✓";
+  setTimeout(()=>$("MGX4_COPY").textContent="COPY CONTRACT ADDRESS",1500);
+ }catch(e){setStatus("Copy failed","Select the contract address and copy it manually.","error")}
+});
+refreshButton();
+checkBackend();
+})();
+</script>
+</div>
+<!-- END MAGROXIN GADGET 4 -->
+<!-- END MAGROXIN FINAL COMBINED GADGET -->
+</div><!-- /MGX_FINAL_DEPLOYER -->
+
+</div>
