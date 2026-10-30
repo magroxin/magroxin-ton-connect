@@ -2917,7 +2917,23 @@ function advanceToDeployer(){
     }
   };
   window.MAGROXIN_GADGET4_DATA=bridgeData;
+
+  // Reveal the deployer immediately after backend-confirmed service payment.
+  // Do this before dispatching the event so the section is visible even if
+  // the event listener is delayed by Blogger's gadget execution order.
+  const deployer=document.getElementById("MGX_GADGET4");
+  if(deployer){
+    deployer.hidden=false;
+    deployer.style.setProperty("display","block","important");
+    deployer.style.visibility="visible";
+    deployer.setAttribute("aria-hidden","false");
+  }
+
   window.dispatchEvent(new CustomEvent("magroxin:gadget4:open",{detail:bridgeData}));
+
+  if(deployer){
+    setTimeout(()=>deployer.scrollIntoView({behavior:"smooth",block:"center"}),150);
+  }
 }
 
 async function verifyService(){
