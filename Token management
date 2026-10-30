@@ -512,7 +512,7 @@ async function initWallet(){
    S.tc.onStatusChange(w=>{
     S.wallet=w||null;
     S.adminOK=false;
-    if(!w)clearTokenDetails(false);
+    clearTokenDetails(false);
 
     status(
      "mgxWalletStatus",
