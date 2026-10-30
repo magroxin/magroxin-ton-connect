@@ -3393,7 +3393,7 @@ function setText(id,value){
   setText("MGX4_R_CREATOR",orderData.walletAddress);
   const logo=firstValue(token.logo);
   const logoEl=$("MGX4_R_LOGO");
-  if(typeof logo==="string"&&/^(https?:\\/\\/|data:image\\/)/i.test(logo)){
+  if(typeof logo==="string"&&(logo.startsWith("https://")||logo.startsWith("http://")||logo.startsWith("data:image/"))){
    logoEl.src=logo;logoEl.style.display="block";
   }else{logoEl.removeAttribute("src");logoEl.style.display="none"}
   setText("MGX4_R_DATE",new Date().toLocaleString());
