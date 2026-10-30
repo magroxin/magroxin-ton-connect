@@ -905,10 +905,31 @@ $("mgxContact").addEventListener("click",()=>{
 });
 
 $("mgxConnectWallet").addEventListener("click",async()=>{
- await initWallet();
- if(S.tc){
-  try{await S.tc.openModal();}
-  catch(e){status("mgxWalletStatus",e.message||"Could not open wallet selector.","err");}
+ const btn=$("mgxConnectWallet");
+ btn.disabled=true;
+ status("mgxWalletStatus","Opening TON Connect wallet selector…","warn");
+ try{
+  await initWallet();
+  if(!S.tc)throw Error("TON Connect could not initialize. Check the status message and refresh the page.");
+
+  /* Wait until TON Connect restores any previous session and finishes setup. */
+  if(S.tc.connectionRestored&&typeof S.tc.connectionRestored.then==="function"){
+   await S.tc.connectionRestored;
+  }
+
+  if(typeof S.tc.openModal==="function"){
+   await S.tc.openModal();
+  }else{
+   /* Fallback: activate the official TON Connect UI button if exposed. */
+   const widget=$("mgxWalletMount").querySelector("button");
+   if(widget)widget.click();
+   else throw Error("TON Connect modal API is unavailable and its wallet button was not rendered. Refresh the page.");
+  }
+  status("mgxWalletStatus","Choose your wallet in the TON Connect window.","ok");
+ }catch(e){
+  status("mgxWalletStatus",e.message||"Could not open wallet selector.","err");
+ }finally{
+  btn.disabled=false;
  }
 });
 $("mgxDisconnectWallet").addEventListener("click",async()=>{
