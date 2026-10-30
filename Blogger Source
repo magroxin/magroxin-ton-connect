@@ -3257,9 +3257,9 @@ initWallet();
   <div class="mgx-result"><div class="mgx-result-label">DECIMALS</div><div id="MGX4_R_DECIMALS" class="mgx-result-value">—</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TOTAL SUPPLY</div><div id="MGX4_R_SUPPLY" class="mgx-result-value">—</div></div>
   <div class="mgx-result"><div class="mgx-result-label">CREATOR WALLET</div><div id="MGX4_R_CREATOR" class="mgx-result-value">—</div></div>
-  <div class="mgx-result"><div class="mgx-result-label">DEPLOYMENT TRANSACTION STATUS</div><div id="MGX4_R_CREATOR_BALANCE" class="mgx-result-value">Waiting for confirmation</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">WALLET SUBMISSION STATUS</div><div id="MGX4_R_CREATOR_BALANCE" class="mgx-result-value">Waiting for wallet submission</div></div>
   <div class="mgx-result"><div class="mgx-result-label">DEPLOYMENT DATE & TIME</div><div id="MGX4_R_DATE" class="mgx-result-value">Not provided by backend</div></div>
-  <div class="mgx-result"><div class="mgx-result-label">TRANSACTION HASH</div><div id="MGX4_R_HASH" class="mgx-result-value">Not provided by backend</div></div>
+  <div class="mgx-result"><div class="mgx-result-label">TRANSACTION HASH</div><div id="MGX4_R_HASH" class="mgx-result-value">Not returned by wallet</div></div>
   <div class="mgx-result"><div class="mgx-result-label">TON EXPLORER</div><div id="MGX4_R_EXPLORER" class="mgx-result-value">—</div></div>
   <div class="mgx-actions">
    <button type="button" id="MGX4_COPY" class="mgx-copy">COPY CONTRACT ADDRESS</button>
@@ -3398,6 +3398,41 @@ async function verifyDeployment(orderId,walletAddress){
 function setText(id,value){
  $(id).textContent=value===undefined||value===null||value===""?"Not provided by backend":String(value);
 }
+function showSubmitted(submission){
+ const token=orderData.token||{};
+ const address=String(submission.tokenAddress||"");
+ setText("MGX4_R_NAME",token.name);
+ setText("MGX4_R_SYMBOL",token.symbol);
+ setText("MGX4_R_ADDRESS",address||"Address not returned by deployment API");
+ setText("MGX4_R_DECIMALS",token.decimals);
+ setText("MGX4_R_SUPPLY",token.supply);
+ setText("MGX4_R_CREATOR",submission.walletAddress||orderData.walletAddress);
+ setText("MGX4_R_CREATOR_BALANCE","Wallet accepted deployment transaction · awaiting network confirmation");
+ const logo=token.logo;
+ const logoEl=$("MGX4_R_LOGO");
+ if(typeof logo==="string"&&/^(https?:\\/\\/|data:image\\/)/i.test(logo)){
+  logoEl.src=logo;logoEl.style.display="block";
+ }else{logoEl.removeAttribute("src");logoEl.style.display="none"}
+ setText("MGX4_R_DATE",new Date().toLocaleString());
+ setText("MGX4_R_HASH","Wallet did not return a transaction hash");
+ const exp=$("MGX4_R_EXPLORER");exp.replaceChildren();
+ if(address){
+  const a=document.createElement("a");
+  a.href="https://tonviewer.com/"+encodeURIComponent(address);
+  a.target="_blank";a.rel="noopener noreferrer";
+  a.textContent="Open token address on explorer";
+  exp.appendChild(a);
+ }else{
+  exp.textContent="Token address unavailable";
+ }
+ tokenAddress=address;
+ $("MGX4_SUCCESS_TITLE").textContent="DEPLOYMENT TRANSACTION SUBMITTED";
+ $("MGX4_SUCCESS_TEXT").textContent="Your wallet accepted the deployment transaction request. Network confirmation may still be pending; check the explorer before treating the token as fully deployed.";
+ modal.classList.add("open");
+ modal.setAttribute("aria-hidden","false");
+ $("MGX4_CLOSE").focus();
+ setStatus("Deployment submitted","Wallet accepted the transaction. Backend verification was skipped as requested; network confirmation is still pending.","ok");
+}
 function showSuccess(verified){
  if(verified.status!=="deployed"||verified.transactionConfirmedOnChain!==true||!verified.tokenAddress)
   throw new Error("Deployment transaction has not completed successfully on TON Mainnet.");
@@ -3459,10 +3494,17 @@ async function deployToken(){
   if(p.deploymentEnabled!==true||p.status!=="prepared"||!tx||tx.network!==MAINNET||!Array.isArray(tx.messages)||!tx.messages.length)
    throw new Error(p.error||"The deployment service returned an invalid response.");
   setStatus("Wallet approval required","Review the transaction in your connected TON wallet.","busy");
-  await wallet.ui.sendTransaction(tx);
-  setStatus("Waiting for verification","Waiting for backend confirmation on-chain.","busy");
-  const verified=await verifyDeployment(orderData.orderId,wallet.address);
-  showSuccess(verified);completed=true;
+  const walletResult=await wallet.ui.sendTransaction(tx);
+
+  // Wallet accepted the deployment request. Show the result modal immediately;
+  // do not wait for the backend deployment-verification endpoint.
+  const submitted={
+   tokenAddress:p.tokenAddress||p.tokenMasterAddress||"",
+   walletAddress:wallet.address,
+   walletResult
+  };
+  showSubmitted(submitted);
+  completed=true;
  }catch(e){setStatus("Deployment not confirmed",e.message||"Deployment failed or is still pending.","error")}
  finally{deploying=false;refreshButton()}
 }
