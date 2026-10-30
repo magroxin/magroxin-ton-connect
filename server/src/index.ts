@@ -22,7 +22,7 @@ const PORT = Number(process.env.PORT || 10000);
 const DATABASE_URL = process.env.DATABASE_URL || "";
 const FEE_WALLET = process.env.MAGROXIN_FEE_WALLET || "";
 const CLIENT_ORIGIN =
-  process.env.CLIENT_ORIGIN || "https://magroxin.blogspot.com";
+  process.env.CLIENT_ORIGIN || "https://www.magroxin.com";
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
 const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
@@ -175,7 +175,12 @@ app.use((_req: Request, res: Response, next) => {
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || origin === CLIENT_ORIGIN) {
+      const allowedOrigins = new Set([
+        CLIENT_ORIGIN,
+        "https://www.magroxin.com",
+        "https://magroxin.com",
+      ]);
+      if (!origin || allowedOrigins.has(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Origin not allowed by CORS."));
