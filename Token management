@@ -452,11 +452,24 @@ function amount(v,d){
 /* PRIVATE MAGROXIN TON CONNECT ENGINE — isolated UI and storage */
 const MGX_STORAGE_PREFIX="magroxin_token_manager_tonconnect_v1_";
 const mgxStorage={async getItem(k){try{return localStorage.getItem(MGX_STORAGE_PREFIX+k)}catch(_){return null}},async setItem(k,v){try{localStorage.setItem(MGX_STORAGE_PREFIX+k,v)}catch(_){}},async removeItem(k){try{localStorage.removeItem(MGX_STORAGE_PREFIX+k)}catch(_){}}};
+function loadTonSdk(){
+ if(window.TonConnectSDK&&window.TonConnectSDK.TonConnect)return Promise.resolve(window.TonConnectSDK);
+ if(window.__MGX_TON_SDK_PROMISE)return window.__MGX_TON_SDK_PROMISE;
+ window.__MGX_TON_SDK_PROMISE=new Promise((resolve,reject)=>{
+  const script=document.createElement("script");
+  script.src="https://unpkg.com/@tonconnect/sdk@4.0.0/dist/tonconnect-sdk.min.js";
+  script.async=true;
+  script.onload=()=>window.TonConnectSDK&&window.TonConnectSDK.TonConnect?resolve(window.TonConnectSDK):reject(Error("TON Connect SDK loaded but its API was not found."));
+  script.onerror=()=>reject(Error("Could not load TON Connect SDK from CDN. Check your internet connection or CDN access."));
+  document.head.appendChild(script);
+ });
+ return window.__MGX_TON_SDK_PROMISE;
+}
 async function initWallet(){
  try{
   status("mgxWalletStatus","Loading MAGROXIN private wallet engine…","warn");
   if(!S.tc){
-   const mod=await import("https://esm.sh/@tonconnect/sdk@4.0.0");const TonConnect=mod.TonConnect||mod.default;
+   const sdk=await loadTonSdk();const TonConnect=sdk.TonConnect;
    if(!TonConnect)throw Error("TON Connect SDK could not initialize.");
    S.tc=new TonConnect({manifestUrl:MANIFEST_URL,storage:mgxStorage,walletsListCacheTTLMs:3600000});
    if(S.tc.setConnectionNetwork)S.tc.setConnectionNetwork(MAINNET);
