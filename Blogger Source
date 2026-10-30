@@ -2745,14 +2745,26 @@ async function disconnectWallet(){
 }
 
 async function request(path,options){
-  const response=await fetch(API+path,options||{});
-  const data=await response.json().catch(()=>({}));
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),20000);
+  let response,data;
+  try{
+    const opts=Object.assign({},options||{},{signal:controller.signal,cache:"no-store"});
+    response=await fetch(API+path,opts);
+    data=await response.json().catch(()=>({}));
+  }catch(error){
+    if(error&&error.name==="AbortError")
+      throw new Error("Backend request timed out. Check your connection and try again.");
+    throw new Error(error&&error.message||"Could not connect to the MAGROXIN backend.");
+  }finally{
+    clearTimeout(timeout);
+  }
 
   if(!response.ok){
     const detailText=Array.isArray(data.details)
       ?data.details.map(x=>(x.field?x.field+": ":"")+(x.message||"")).filter(Boolean).join(" · ")
       :"";
-    throw new Error((data.error||"API request failed ("+response.status+").")+(detailText?" ["+detailText+"]":""));
+    throw new Error((data.error||data.message||"API request failed ("+response.status+").")+(detailText?" ["+detailText+"]":""));
   }
 
   return data;
@@ -3311,11 +3323,27 @@ function refreshButton(){
   :!orderData?"🔒 Waiting for Gadget 3 payment verification"
   :deploying?"⏳ Deployment in progress":"Deployment already submitted";
 }
-async function api(path,options){
- const opts=Object.assign({cache:"no-store",headers:{"Accept":"application/json"}},options||{});
- const response=await fetch(API+path,opts);
- const data=await response.json().catch(()=>({}));
- if(!response.ok&&response.status!==202)throw new Error(data.error||data.message||"Request failed ("+response.status+").");
+async function api(path,options,timeoutMs){
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),Number(timeoutMs)||15000);
+ let response,data;
+ try{
+  const supplied=options||{};
+  const opts=Object.assign({cache:"no-store"},supplied,{
+   headers:Object.assign({"Accept":"application/json"},supplied.headers||{}),
+   signal:controller.signal
+  });
+  response=await fetch(API+path,opts);
+  data=await response.json().catch(()=>({}));
+ }catch(error){
+  if(error&&error.name==="AbortError")
+   throw new Error("Backend request timed out. Press CHECK BACKEND to retry.");
+  throw new Error(error&&error.message||"Could not connect to the MAGROXIN backend.");
+ }finally{
+  clearTimeout(timeout);
+ }
+ if(!response.ok&&response.status!==202)
+  throw new Error(data.error||data.message||"Request failed ("+response.status+").");
  return {response,data};
 }
 function firstValue(){
@@ -3419,7 +3447,7 @@ function showSubmitted(submission){
  const address=String(submission.tokenAddress||"");
  setText("MGX4_R_NAME",token.name);
  setText("MGX4_R_SYMBOL",token.symbol);
- setText("MGX4_R_ADDRESS",address||"Address not returned by deployment API");
+ setText("MGX4_R_ADDRESS",address||"Contract address was not returned. Do not treat this as deployed.");
  setText("MGX4_R_DECIMALS",token.decimals);
  setText("MGX4_R_SUPPLY",token.supply);
  setText("MGX4_R_CREATOR",submission.walletAddress||orderData.walletAddress);
@@ -3442,8 +3470,10 @@ function showSubmitted(submission){
   exp.textContent="Token address unavailable";
  }
  tokenAddress=address;
- $("MGX4_SUCCESS_TITLE").textContent="DEPLOYMENT TRANSACTION SUBMITTED";
- $("MGX4_SUCCESS_TEXT").textContent="Your wallet accepted the deployment transaction request. Network confirmation may still be pending; check the explorer before treating the token as fully deployed.";
+ $("MGX4_SUCCESS_TITLE").textContent="TOKEN DEPLOYMENT REQUEST SUBMITTED";
+ $("MGX4_SUCCESS_TEXT").textContent=address
+  ?"Your wallet accepted the TON Mainnet deployment transaction. The token contract address was prepared by the backend; network confirmation may still be pending. Check the explorer before treating deployment as complete."
+  :"Your wallet accepted the TON Mainnet deployment transaction. The backend did not return a contract address, so do not treat this as confirmed until the address is available.";
  modal.classList.add("open");
  modal.setAttribute("aria-hidden","false");
  $("MGX4_CLOSE").focus();
@@ -3514,8 +3544,9 @@ async function deployToken(){
 
   // Wallet accepted the deployment request. Show the result modal immediately;
   // do not wait for the backend deployment-verification endpoint.
+  const preparedAddress=firstValue(p.tokenAddress,p.tokenMasterAddress,p.jettonAddress);
   const submitted={
-   tokenAddress:p.tokenAddress||p.tokenMasterAddress||"",
+   tokenAddress:preparedAddress,
    walletAddress:wallet.address,
    walletResult
   };
@@ -3542,6 +3573,8 @@ $("MGX4_COPY").addEventListener("click",async()=>{
  }catch(e){setStatus("Copy failed","Select the contract address and copy it manually.","error")}
 });
 refreshButton();
+// Backend health check is time-limited; the manual CHECK BACKEND control
+// remains available if the service is temporarily unreachable.
 checkBackend();
 })();
 </script>
