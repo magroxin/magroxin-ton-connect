@@ -26,13 +26,14 @@ const CLIENT_ORIGIN =
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || "";
 const TONCENTER_V3 = "https://toncenter.com/api/v3";
 
-const MAINNET_FEE_TON = process.env.MAINNET_SERVICE_FEE_TON || "100";
-if (MAINNET_FEE_TON !== "100") {
-  throw new Error("MAINNET_SERVICE_FEE_TON must be exactly 100; the standard service fee is fixed.");
+// Standard service fee for every wallet except the one configured test wallet.
+const MAINNET_FEE_TON = process.env.MAINNET_SERVICE_FEE_TON || "0.1";
+if (MAINNET_FEE_TON !== "0.1") {
+  throw new Error("MAINNET_SERVICE_FEE_TON must be exactly 0.1 for regular wallets.");
 }
 
-// Optional exact-address allowlist for the 1 TON test fee. Every other wallet
-// continues to receive the standard 100 TON Mainnet fee.
+// The single configured test wallet is charged the special 100 TON service fee.
+const TEST_WALLET_FEE_TON = "100";
 const TEST_WALLET_ADDRESS_RAW =
   process.env.MAGROXIN_TEST_WALLET_ADDRESS?.trim() || "";
 
@@ -262,7 +263,7 @@ function serviceFeeForWallet(walletAddress: string): { feeTon: string; amountNan
   const isConfiguredTestWallet =
     !!TEST_WALLET_ADDRESS &&
     normalizeAddress(walletAddress) === TEST_WALLET_ADDRESS;
-  const feeTon = isConfiguredTestWallet ? "0.1" : MAINNET_FEE_TON;
+  const feeTon = isConfiguredTestWallet ? TEST_WALLET_FEE_TON : MAINNET_FEE_TON;
   return { feeTon, amountNano: toNano(feeTon).toString() };
 }
 
