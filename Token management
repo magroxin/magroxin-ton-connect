@@ -5,9 +5,9 @@
  --c:#52eaff;--b:#328cff;--bg:#030817;
  --p:#091a30;--line:#24506b;
  color:#eafaff;font-family:Arial,sans-serif;
- position:relative!important;
- z-index:2147483647!important;
- isolation:isolate!important;
+ position:static!important;
+ z-index:auto!important;
+ isolation:auto!important;
 }
 #MGX_TOKEN_MANAGER *{box-sizing:border-box}
 #MGX_TOKEN_MANAGER .float{
@@ -143,10 +143,13 @@
  #MGX_TOKEN_MANAGER .body{padding:10px}
  #MGX_TOKEN_MANAGER .grid{grid-template-columns:1fr}
 }
-/* TON CONNECT MODAL: keep wallet picker above Blogger overlays */
+/* TON CONNECT MODAL: render above the manager and Blogger overlays.
+   The gadget root intentionally has no stacking context, so this portal
+   can sit above the manager overlay instead of being trapped underneath it. */
 body .tc-root,body .tc-modal,body .tc-modal__container,
 body .tc-modal__content,body .tc-overlay,
-body [data-tc-root],body #tc-widget-root{
+body [data-tc-root],body #tc-widget-root,
+body [class*="tc-modal"],body [class*="tc-root"]{
  z-index:2147483647!important;
 }
 </style>
@@ -360,9 +363,12 @@ if(root.parentElement!==document.body){
  document.body.appendChild(root);
 }
 
-root.style.setProperty("position","relative","important");
-root.style.setProperty("z-index","2147483647","important");
-root.style.setProperty("isolation","isolate","important");
+/* Do not create a top-level stacking context here.
+   TON Connect renders its wallet modal outside this gadget.
+   The manager overlay itself owns the high z-index. */
+root.style.setProperty("position","static","important");
+root.style.setProperty("z-index","auto","important");
+root.style.setProperty("isolation","auto","important");
 
 root.dataset.ready="1";
 
